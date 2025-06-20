@@ -1,0 +1,18 @@
+# Node
+/node_modules
+
+# Vendor (Dependencies PHP)
+/vendor
+
+# File Environment
+.env
+
+# Laravel Storage & Cache
+/storage/app/public
+/storage/framework/
+/storage/logs/
+laravel.log
+
+# Laravel Public Build
+/public/build
+/public/hot
