@@ -1,71 +1,89 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
-import { ArrowPathIcon, BanknotesIcon, EyeIcon } from '@heroicons/vue/24/solid';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import { ArrowPathIcon, BanknotesIcon, CalendarDaysIcon, CheckCircleIcon, ClockIcon } from '@heroicons/vue/24/solid';
 
 const props = defineProps({
     pageTitle: String,
     errors: Object,
     siswa: Object,
-    tagihanList: Array,
+    invoiceList: Array,
 });
 
+const page = usePage();
+const appLogo = computed(() => page.props.app_settings?.app_logo ? `/storage/${page.props.app_settings.app_logo}` : null);
+
 const form = useForm({
-    id_siswa: '',
+    nis: '',
     tanggal_lahir: '',
 });
+
+// State untuk tab aktif
+const activeTab = ref('pending');
+
+// Filter invoices berdasarkan tab
+const pendingInvoices = computed(() => props.invoiceList?.filter(invoice => invoice.status === 'PENDING') || []);
+const historyInvoices = computed(() => props.invoiceList?.filter(invoice => invoice.status !== 'PENDING') || []);
 
 const submit = () => {
     form.post(route('tagihan.check_status'), {
         preserveState: true,
-        onError: () => {
-            form.reset('id_siswa', 'tanggal_lahir');
-        }
+        onError: () => form.reset('nis', 'tanggal_lahir'),
     });
 };
 
+const refreshData = () => {
+    router.reload({ only: ['invoiceList'] });
+};
+
 const getStatusClass = (status) => {
-    if (status === 'PAID') return 'bg-green-100 text-green-800';
-    if (status === 'PENDING') return 'bg-yellow-100 text-yellow-800';
-    if (status === 'EXPIRED' || status === 'FAILED') return 'bg-red-100 text-red-800';
-    return 'bg-gray-100 text-gray-800';
+    if (status === 'PAID') return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300';
+    if (status === 'PENDING') return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300';
+    if (status === 'EXPIRED' || status === 'FAILED') return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
 };
 </script>
 
 <template>
     <Head :title="pageTitle" />
-    <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-slate-800 min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="p-4 text-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm shadow-sm sticky top-0 z-10">
-            <Link href="/">
-                <h1 class="text-2xl font-teko font-bold text-gray-800 dark:text-white tracking-wider">PERSIJA DEVELOPMENT</h1>
-            </Link>
-        </header>
+    <div class="relative min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center p-4 sm:p-6">
+        <!-- Background Image -->
+        <div class="absolute inset-0 z-0 bg-cover bg-center" style="background-image: url('/images/bg_registration.jpg');"></div>
+        <div class="absolute inset-0 bg-black/50 z-0"></div>
 
-        <main class="flex-grow flex items-center justify-center p-4">
-            <div class="w-full max-w-2xl mx-auto">
-                <!-- Tampilkan Form jika tidak ada data siswa -->
-                <div v-if="!siswa" class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 md:p-8">
-                    <h2 class="text-2xl font-bold text-center text-gray-900 dark:text-white">{{ pageTitle }}</h2>
-                    <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">Masukkan ID Siswa dan Tanggal Lahir untuk melihat status pembayaran.</p>
+        <main class="w-full max-w-4xl mx-auto z-10 flex-grow flex flex-col">
+            <!-- Header -->
+            <header class="text-center mb-8">
+                <Link href="/" class="inline-block">
+                    <img v-if="appLogo" :src="appLogo" alt="App Logo" class="h-12 w-auto mx-auto">
+                    <ApplicationLogo v-else class="h-12 w-auto mx-auto text-white" />
+                </Link>
+                <h1 class="mt-4 text-3xl font-bold text-white tracking-tight">Persija Development</h1>
+                <h2 class="text-lg text-white/80">{{ pageTitle }}</h2>
+            </header>
 
-                    <form @submit.prevent="submit" class="mt-8 space-y-6">
-                        <div v-if="errors.lookup" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                            <span class="block sm:inline">{{ errors.lookup }}</span>
+            <!-- Konten Utama -->
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-2xl rounded-xl p-6 md:p-8 flex-grow">
+                <!-- Form Pencarian -->
+                <div v-if="!siswa">
+                    <p class="text-center text-gray-600 dark:text-gray-400">Masukkan NIS dan Tanggal Lahir untuk melihat status pembayaran.</p>
+                    <form @submit.prevent="submit" class="mt-6 max-w-md mx-auto space-y-6">
+                        <div v-if="errors.lookup" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md" role="alert">
+                            <span>{{ errors.lookup }}</span>
                         </div>
-
                         <div>
-                            <label for="id_siswa" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ID Siswa</label>
-                            <input v-model="form.id_siswa" id="id_siswa" type="text" required class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <div v-if="errors.id_siswa" class="text-red-500 text-xs mt-1">{{ errors.id_siswa }}</div>
+                            <label for="nis" class="block text-sm font-medium text-gray-700 dark:text-gray-300">NIS (Nomor Induk Siswa)</label>
+                            <input v-model="form.nis" id="nis" type="text" required class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500">
+                            <div v-if="form.errors.nis" class="text-red-500 text-xs mt-1">{{ form.errors.nis }}</div>
                         </div>
                         <div>
                             <label for="tanggal_lahir" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Lahir</label>
-                            <input v-model="form.tanggal_lahir" id="tanggal_lahir" type="date" required class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                             <div v-if="errors.tanggal_lahir" class="text-red-500 text-xs mt-1">{{ errors.tanggal_lahir }}</div>
+                            <input v-model="form.tanggal_lahir" id="tanggal_lahir" type="date" required class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500">
+                             <div v-if="form.errors.tanggal_lahir" class="text-red-500 text-xs mt-1">{{ form.errors.tanggal_lahir }}</div>
                         </div>
                         <div>
-                            <button type="submit" :disabled="form.processing" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
+                            <button type="submit" :disabled="form.processing" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
                                 <span v-if="!form.processing">Cek Tagihan</span>
                                 <span v-else>Mencari...</span>
                             </button>
@@ -73,41 +91,82 @@ const getStatusClass = (status) => {
                     </form>
                 </div>
 
-                <!-- Tampilkan Hasil jika data siswa ditemukan -->
-                <div v-else class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 md:p-8">
-                    <div class="flex justify-end mb-4">
-                        <Link :href="route('tagihan.check_form')" class="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center">
-                           <ArrowPathIcon class="h-4 w-4 mr-1"/>
-                            Cari Siswa Lain
-                        </Link>
+                <!-- Tampilan Hasil -->
+                <div v-else>
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Hasil untuk: {{ siswa.nama_siswa }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">NIS: {{ siswa.nis }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                           <button @click="refreshData" class="text-sm text-indigo-600 hover:text-indigo-500 flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                               <ArrowPathIcon class="h-4 w-4 mr-1"/> Refresh
+                           </button>
+                           <Link :href="route('tagihan.check_form')" class="text-sm text-indigo-600 hover:text-indigo-500 flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                               Cari Siswa Lain
+                           </Link>
+                        </div>
                     </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Status Tagihan</h2>
-                        <p class="mt-1 text-lg text-gray-700 dark:text-gray-300">{{ siswa.nama_siswa }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">ID: {{ siswa.id_siswa }}</p>
+                    
+                    <!-- Navigasi Tab -->
+                    <div class="mt-6 border-b border-gray-200 dark:border-gray-700">
+                        <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                            <button @click="activeTab = 'pending'" :class="[activeTab === 'pending' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm']">
+                                Tagihan Tertunda ({{ pendingInvoices.length }})
+                            </button>
+                            <button @click="activeTab = 'history'" :class="[activeTab === 'history' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm']">
+                                Riwayat Pembayaran
+                            </button>
+                        </nav>
                     </div>
 
-                    <div class="mt-6 border-t border-gray-200 dark:border-gray-700">
-                        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-                            <li v-if="tagihanList.length === 0" class="py-4 text-center text-gray-500">
-                                Tidak ada data tagihan untuk siswa ini.
-                            </li>
-                            <li v-else v-for="tagihan in tagihanList" :key="tagihan.id_tagihan" class="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                <div>
-                                    <p class="text-md font-semibold text-gray-800 dark:text-gray-100">{{ tagihan.periode_tagihan }}</p>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">{{ tagihan.total_tagihan_formatted }}</p>
+                    <!-- Daftar Tagihan -->
+                    <div class="mt-6 space-y-4">
+                        <div v-show="activeTab === 'pending'">
+                            <div v-if="pendingInvoices.length === 0" class="text-center text-gray-500 py-10">Tidak ada tagihan yang perlu dibayar.</div>
+                            <div v-else v-for="invoice in pendingInvoices" :key="invoice.id" class="bg-white dark:bg-gray-800/50 p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-start gap-4">
+                                    <div class="flex-grow">
+                                        <p class="font-semibold text-gray-800 dark:text-gray-100">{{ invoice.description }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+                                            <CalendarDaysIcon class="h-4 w-4 mr-1.5"/>
+                                            Jatuh Tempo: {{ invoice.due_date_formatted }}
+                                        </p>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(invoice.status)">
+                                            {{ invoice.status }}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-4 mt-2 sm:mt-0">
-                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(tagihan.status_pembayaran_xendit)">
-                                        {{ tagihan.status_pembayaran_xendit }}
-                                    </span>
-                                    <a v-if="tagihan.can_pay && tagihan.xendit_payment_url" :href="tagihan.xendit_payment_url" target="_blank" class="inline-flex items-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-sm px-4 py-2 ml-auto md:ml-0">
+                                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                    <p class="text-xl font-bold text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</p>
+                                    <a v-if="invoice.can_pay && invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-sm px-5 py-2">
                                         <BanknotesIcon class="h-5 w-5 mr-2" />
-                                        Bayar
+                                        Bayar Sekarang
                                     </a>
                                 </div>
-                            </li>
-                        </ul>
+                            </div>
+                        </div>
+                        <div v-show="activeTab === 'history'">
+                            <div v-if="historyInvoices.length === 0" class="text-center text-gray-500 py-10">Belum ada riwayat pembayaran.</div>
+                             <div v-else v-for="invoice in historyInvoices" :key="invoice.id" class="bg-white dark:bg-gray-800/50 p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-start gap-4">
+                                    <div class="flex-grow">
+                                        <p class="font-semibold text-gray-800 dark:text-gray-100">{{ invoice.description }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+                                            <CheckCircleIcon v-if="invoice.status === 'PAID'" class="h-4 w-4 mr-1.5 text-green-500"/>
+                                            <ClockIcon v-else class="h-4 w-4 mr-1.5 text-red-500"/>
+                                            <span v-if="invoice.status === 'PAID'">Lunas pada: {{ invoice.paid_at_formatted }}</span>
+                                            <span v-else>Status: {{ invoice.status }}</span>
+                                        </p>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <p class="text-lg font-bold text-right" :class="invoice.status === 'PAID' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ invoice.total_amount_formatted }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

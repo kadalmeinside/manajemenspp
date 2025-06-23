@@ -19,7 +19,7 @@ const backUrl = computed(() => {
         }
         // Jika admin, arahkan ke dashboard admin
         if (user.value.roles.includes('admin')) {
-            return route('admin.dashboard');
+            return route('tagihan.check_form');
         }
     }
     // Default untuk guest, arahkan ke form cek tagihan

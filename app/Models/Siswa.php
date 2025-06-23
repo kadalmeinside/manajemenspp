@@ -18,6 +18,7 @@ class Siswa extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'nis',
         'nama_siswa',
         'tanggal_lahir',
         'status_siswa',

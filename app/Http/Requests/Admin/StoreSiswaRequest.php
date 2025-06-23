@@ -23,7 +23,6 @@ class StoreSiswaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Data Siswa
             'nama_siswa' => 'required|string|max:255',
             'status_siswa' => 'required|string|in:Aktif,Non-Aktif,Lulus,Cuti',
             'id_kelas' => 'required|uuid|exists:kelas,id_kelas',

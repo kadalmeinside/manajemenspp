@@ -97,6 +97,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::resource('kelas', KelasController::class);
             Route::get('siswa/export', [SiswaController::class, 'export'])->name('siswa.export');
             Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
+            Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');
             Route::resource('siswa', SiswaController::class);
             Route::resource('invoices', InvoiceController::class);
             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');

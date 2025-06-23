@@ -109,38 +109,60 @@ class SiswaController extends Controller
     public function store(StoreSiswaRequest $request)
     {
         $validated = $request->validated();
-        $siswaRole = Role::where('name', 'siswa')->first(); 
+        $siswaRole = Role::where('name', 'siswa')->firstOrFail();
+        
+        $newNis = ''; // Inisialisasi variabel NIS
 
-        $user = User::create([
-            'name' => $validated['user_name'],
-            'email' => $validated['email_wali'], 
-            'password' => Hash::make($validated['user_password']),
-            'email_verified_at' => now(),
-        ]);
+        // Gunakan transaksi untuk mencegah race condition saat membuat NIS
+        DB::transaction(function () use ($validated, $siswaRole, $request, &$newNis) {
+            
+            // --- Logika Generate NIS ---
+            $kelas = Kelas::findOrFail($validated['id_kelas']);
+            $tahun = now()->format('Y');
+            $kodeCabang = $kelas->kode_cabang ?? 'XXX';
 
-        if ($siswaRole) {
+            // Kunci tabel untuk mencegah user lain membaca saat kita menghitung nomor urut
+            $lastSiswa = Siswa::where('nis', 'LIKE', "{$tahun}-{$kodeCabang}-%")
+                              ->lockForUpdate() // Ini bagian penting untuk mencegah race condition
+                              ->orderBy('nis', 'desc')
+                              ->first();
+
+            $nomorUrut = 1;
+            if ($lastSiswa) {
+                $lastNomorUrut = (int) substr($lastSiswa->nis, -4);
+                $nomorUrut = $lastNomorUrut + 1;
+            }
+            $nomorUrutFormatted = str_pad($nomorUrut, 4, '0', STR_PAD_LEFT);
+            $newNis = "{$tahun}{$kodeCabang}{$nomorUrutFormatted}";
+            // --- Akhir Logika Generate NIS ---
+
+            // Buat User
+            $user = User::create([
+                'name' => $validated['user_name'],
+                'email' => $validated['email_wali'],
+                'password' => Hash::make($validated['user_password']),
+                'email_verified_at' => now(),
+            ]);
             $user->assignRole($siswaRole);
-        }
 
-        Siswa::create([
-            'nama_siswa' => $validated['nama_siswa'],
-            'tanggal_lahir' => $validated['tanggal_lahir'],
-            'status_siswa' => $validated['status_siswa'],
-            'id_kelas' => $validated['id_kelas'],
-            'id_user' => $user->id, 
-            'email_wali' => $validated['email_wali'],
-            'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
-            'tanggal_bergabung' => $validated['tanggal_bergabung'],
-            'jumlah_spp_custom' => $validated['jumlah_spp_custom'],
-            'admin_fee_custom' => $validated['admin_fee_custom'],
-        ]);
+            // Buat Siswa dengan NIS yang baru
+            Siswa::create([
+                'nis' => $newNis, // Simpan NIS yang sudah digenerate
+                'nama_siswa' => $validated['nama_siswa'],
+                'tanggal_lahir' => $validated['tanggal_lahir'],
+                'status_siswa' => $validated['status_siswa'],
+                'id_kelas' => $validated['id_kelas'],
+                'id_user' => $user->id,
+                'email_wali' => $validated['email_wali'],
+                'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
+                'tanggal_bergabung' => $validated['tanggal_bergabung'],
+                'jumlah_spp_custom' => $validated['jumlah_spp_custom'],
+                'admin_fee_custom' => $validated['admin_fee_custom'],
+            ]);
+        });
 
-        return Redirect::route('admin.siswa.index')->with([
-            'message' => 'Siswa berhasil dibuat beserta akun loginnya.',
-            'type' => 'success'
-        ]);
+        return Redirect::route('admin.siswa.index')->with('message', 'Siswa baru dengan NIS ' . $newNis . ' berhasil dibuat.');
     }
-
     /**
      * Display the specified resource.
      */
@@ -232,7 +254,7 @@ class SiswaController extends Controller
             }
 
             $siswa->update($request->only([
-                'nama_siswa', 'tanggal_lahir', 'status_siswa', 'id_kelas',
+                'nis','nama_siswa', 'tanggal_lahir', 'status_siswa', 'id_kelas',
                 'email_wali', 'nomor_telepon_wali', 'tanggal_bergabung',
                 'jumlah_spp_custom', 'admin_fee_custom'
             ]));
@@ -307,5 +329,30 @@ class SiswaController extends Controller
             'message' => 'Data siswa berhasil diimpor.',
             'type' => 'success'
         ]);
+    }
+
+    public function generateNis(Kelas $kelas)
+    {
+        if (!auth()->user()->can('manage_siswa')) {
+            abort(403);
+        }
+
+        $tahun = now()->format('Y'); // 2 digit tahun
+        $kodeCabang = $kelas->kode_cabang ?? 'N/A';
+        
+        $lastSiswa = Siswa::where('nis', 'LIKE', "{$tahun}-{$kodeCabang}-%")
+                          ->orderBy('nis', 'desc')
+                          ->first();
+
+        $nomorUrut = 1;
+        if ($lastSiswa) {
+            $lastNomorUrut = (int) substr($lastSiswa->nis, -4);
+            $nomorUrut = $lastNomorUrut + 1;
+        }
+        
+        $nomorUrutFormatted = str_pad($nomorUrut, 4, '0', STR_PAD_LEFT);
+        $newNis = "{$tahun}{$kodeCabang}{$nomorUrutFormatted}";
+
+        return response()->json(['nis' => $newNis]);
     }
 }

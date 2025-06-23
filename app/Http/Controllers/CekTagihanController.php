@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Siswa;
-use App\Models\TagihanSpp;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -16,7 +16,7 @@ class CekTagihanController extends Controller
     public function showForm()
     {
         return Inertia::render('Public/CekTagihan', [
-            'pageTitle' => 'Cek Tagihan Pembayaran',
+            'pageTitle' => 'Cek Tagihan Soccer School',
         ]);
     }
 
@@ -26,35 +26,35 @@ class CekTagihanController extends Controller
     public function checkStatus(Request $request)
     {
         $validated = $request->validate([
-            'id_siswa' => 'required|string|max:50',
+            'nis' => 'required|string|exists:siswa,nis',
             'tanggal_lahir' => 'required|date',
         ]);
 
-        $siswa = Siswa::where('id_siswa', $validated['id_siswa']) 
+        $siswa = Siswa::where('nis', $validated['nis'])
                      ->whereDate('tanggal_lahir', $validated['tanggal_lahir'])
                      ->first();
 
         if (!$siswa) {
-            return back()->withErrors(['lookup' => 'Kombinasi ID Siswa dan Tanggal Lahir tidak ditemukan.']);
+            return back()->withErrors(['lookup' => 'Kombinasi NIS dan Tanggal Lahir tidak ditemukan.']);
         }
 
-        $tagihanList = TagihanSpp::where('id_siswa', $siswa->id_siswa)
-            ->orderBy('periode_tagihan', 'desc')
-            ->get();
+        $invoiceList = $siswa->invoices()->orderBy('created_at', 'asc')->get();
 
         return Inertia::render('Public/CekTagihan', [
             'pageTitle' => 'Status Tagihan - ' . $siswa->nama_siswa,
             'siswa' => [
                 'nama_siswa' => $siswa->nama_siswa,
-                'id_siswa' => $siswa->id_siswa,
+                'nis' => $siswa->nis,
             ],
-            'tagihanList' => $tagihanList->map(function ($tagihan) {
+            'invoiceList' => $invoiceList->map(function ($invoice) {
                 return [
-                    'periode_tagihan' => Carbon::parse($tagihan->periode_tagihan)->isoFormat('MMMM YYYY'),
-                    'total_tagihan_formatted' => 'Rp ' . number_format($tagihan->total_tagihan, 0, ',', '.'),
-                    'status_pembayaran_xendit' => $tagihan->status_pembayaran_xendit,
-                    'xendit_payment_url' => $tagihan->xendit_payment_url,
-                    'can_pay' => in_array($tagihan->status_pembayaran_xendit, ['PENDING']),
+                    'id' => $invoice->id,
+                    'description' => $invoice->description,
+                    'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
+                    'status' => $invoice->status,
+                    'due_date_formatted' => Carbon::parse($invoice->due_date)->isoFormat('D MMMM YYYY'),
+                    'can_pay' => in_array($invoice->status, ['PENDING']),
+                    'xendit_payment_url' => $invoice->xendit_payment_url,
                 ];
             }),
         ]);

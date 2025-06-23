@@ -39,6 +39,7 @@ class UpdateSiswaRequest extends FormRequest
         Log::info('[UpdateSiswaRequest] Submitted email_wali: ' . $this->input('email_wali'));
 
         return [
+            'nis' => 'nullable|string|max:255',
             'nama_siswa' => 'required|string|max:255',
             'status_siswa' => 'required|string|in:Aktif,Non-Aktif,Lulus,Cuti',
             'id_kelas' => 'required|uuid|exists:kelas,id_kelas',

@@ -30,6 +30,7 @@ const isEditMode = ref(false);
 
 const form = useForm({
     id_siswa: null,
+    nis: '',
     nama_siswa: '',
     tanggal_lahir: '',
     status_siswa: 'Aktif',
@@ -73,6 +74,7 @@ const openEditModal = (siswaItem) => {
     isEditMode.value = true;
     form.reset();
     form.clearErrors();
+    form.nis = data.nis;
     form.id_siswa = data.id_siswa;
     form.nama_siswa = data.nama_siswa;
     form.tanggal_lahir = data.tanggal_lahir;
@@ -393,6 +395,18 @@ onMounted(() => {
                                 <option v-for="k in allKelas" :key="k.id_kelas" :value="k.id_kelas">{{ k.nama_kelas }}</option>
                             </select>
                             <InputError class="mt-2" :message="form.errors.id_kelas" />
+                        </div>
+                        <div>
+                            <InputLabel for="nis_modal" value="Nomor Induk Siswa (NIS)" />
+                            <TextInput
+                                id="nis_modal"
+                                type="text"
+                                class="mt-1 block w-full bg-gray-100 dark:bg-gray-900"
+                                v-model="form.nis"
+                                :placeholder="isEditMode ? '' : 'Akan digenerate otomatis'"
+                                readonly
+                            />
+                            <InputError class="mt-2" :message="form.errors.nis" />
                         </div>
                         <div>
                             <InputLabel for="status_siswa_modal" value="Status Siswa" required />

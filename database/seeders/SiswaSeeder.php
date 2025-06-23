@@ -51,6 +51,7 @@ class SiswaSeeder extends Seeder
 
             // Buat Data Siswa
             Siswa::create([
+                'nis' => now()->year . str_pad(Siswa::count() + 1, 4, '0', STR_PAD_LEFT),
                 'nama_siswa' => $namaSiswa,
                 'tanggal_lahir' => $faker->dateTimeBetween('-15 years', '-5 years')->format('Y-m-d'),
                 'status_siswa' => 'Aktif',
