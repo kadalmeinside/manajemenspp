@@ -16,3 +16,9 @@ laravel.log
 # Laravel Public Build
 /public/build
 /public/hot
+
+# macOS
+.DS_Store
+
+# NPM dependency lock file
+package-lock.json
