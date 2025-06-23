@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TagihanSpp;
+use App\Models\Invoice; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -14,62 +14,54 @@ class WebhookController extends Controller
      */
     public function handleInvoiceCallback(Request $request)
     {
-        Log::info('[Xendit Webhook] Received:', $request->all());
-
+        // Log semua header yang masuk untuk debugging
+        Log::info('[Xendit Webhook] Received request with headers:', $request->headers->all());
+        
         $xenditCallbackToken = $request->header('x-callback-token');
-        $storedCallbackToken = config('xendit.callback_verification_token'); 
+        $storedCallbackToken = config('xendit.callback_verification_token');
 
-        Log::info('[Xendit Webhook] Token Verification Details:', [
-            'received_token_from_header' => $xenditCallbackToken,
-            'stored_token_from_config' => $storedCallbackToken,
-            'are_they_equal' => ($xenditCallbackToken === $storedCallbackToken)
+        Log::info('[Xendit Webhook] Token Verification:', [
+            'received_token' => $xenditCallbackToken,
+            'expected_token' => $storedCallbackToken
         ]);
 
         if (!$storedCallbackToken || $xenditCallbackToken !== $storedCallbackToken) {
-            Log::warning('[Xendit Webhook] Invalid callback token.', [
-                'received_token' => $xenditCallbackToken,
-            ]);
+            Log::warning('[Xendit Webhook] VERIFICATION FAILED - Invalid callback token.');
             return response()->json(['message' => 'Invalid callback token'], 403);
         }
 
-        Log::info('[Xendit Webhook] Token verified successfully. Processing payload...');
-        $payload = $request->json()->all(); 
+        $payload = $request->all();
+        Log::info('[Xendit Webhook] Payload received:', $payload);
 
-        if (!isset($payload['external_id']) || !isset($payload['status'])) {
-            Log.error('[Xendit Webhook] Missing external_id or status in payload.', ['payload' => $payload]);
-            return response()->json(['message' => 'Missing required data'], 400);
-        }
+        // Cari invoice berdasarkan external_id
+        $invoice = Invoice::where('external_id_xendit', $payload['external_id'])->first();
 
-        $externalId = $payload['external_id'];
-        $statusDariXendit = $payload['status']; 
+        if ($invoice) {
+            // Update status invoice
+            $invoice->status = strtoupper($payload['status']);
+            
+            // Simpan seluruh payload webhook untuk audit
+            $invoice->xendit_callback_payload = $payload;
 
-        $tagihan = TagihanSpp::where('external_id_xendit', $externalId)->first();
-
-        if (!$tagihan) {
-            Log.warning('[Xendit Webhook] TagihanSpp not found for external_id.', ['external_id' => $externalId]);
-            return response()->json(['message' => 'Tagihan not found, but webhook acknowledged.'], 200);
-        }
-
-        if ($tagihan->status_pembayaran_xendit !== $statusDariXendit) {
-            $tagihan->status_pembayaran_xendit = $statusDariXendit;
-
-            if ($statusDariXendit === 'PAID') {
-                $tagihan->tanggal_bayar = isset($payload['paid_at']) ? Carbon::parse($payload['paid_at']) : now();
-                $tagihan->metode_pembayaran = $payload['payment_channel'] ?? null;
-                Log::info('[Xendit Webhook] Tagihan PAID.', ['external_id' => $externalId, 'tagihan_id' => $tagihan->id_tagihan]);
-            } elseif ($statusDariXendit === 'EXPIRED') {
-                Log::info('[Xendit Webhook] Tagihan EXPIRED.', ['external_id' => $externalId, 'tagihan_id' => $tagihan->id_tagihan]);
-                $tagihan->tanggal_bayar = null;
-            } elseif ($statusDariXendit === 'FAILED') {
-                Log::info('[Xendit Webhook] Tagihan FAILED.', ['external_id' => $externalId, 'tagihan_id' => $tagihan->id_tagihan]);
-                $tagihan->tanggal_bayar = null;
+            if ($invoice->status === 'PAID') {
+                $invoice->paid_at = Carbon::parse($payload['paid_at']);
+                
+                // Aktifkan siswa jika ini adalah invoice pendaftaran
+                if ($invoice->type === 'pendaftaran') {
+                    $siswa = $invoice->siswa;
+                    if ($siswa && $siswa->status_siswa === 'pending_payment') {
+                        $siswa->update(['status_siswa' => 'Aktif', 'tanggal_bergabung' => now()]);
+                        Log::info('[Xendit Webhook] Siswa activated.', ['siswa_id' => $siswa->id_siswa]);
+                    }
+                }
             }
-
-            $tagihan->save();
+            
+            $invoice->save();
+            Log::info('[Xendit Webhook] Invoice status updated successfully.', ['invoice_id' => $invoice->id, 'new_status' => $invoice->status]);
         } else {
-            Log::info('[Xendit Webhook] Status tagihan tidak berubah, tidak ada update.', ['external_id' => $externalId, 'status' => $statusDariXendit]);
+            Log::warning('[Xendit Webhook] Invoice not found for external_id.', ['external_id' => $payload['external_id']]);
         }
-        
-        return response()->json(['message' => 'Webhook received successfully'], 200);
+
+        return response()->json(['message' => 'Webhook processed']);
     }
 }
