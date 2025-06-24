@@ -23,6 +23,9 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Admin\Auth\NewPasswordController;
+use App\Http\Controllers\LegalController;
 
 use App\Http\Controllers\Siswa\ProfileController as SiswaProfileController;
 use App\Http\Controllers\Siswa\TagihanController as SiswaTagihanController;
@@ -53,6 +56,9 @@ Route::get('/pembayaran/gagal', [PaymentController::class, 'failure'])->name('pa
 Route::get('/pendaftaran', [RegistrationController::class, 'create'])->name('pendaftaran.create');
 Route::post('/pendaftaran', [RegistrationController::class, 'store'])->name('pendaftaran.store');
 Route::get('/display', [DisplayController::class, 'index'])->name('display.index');
+Route::get('/syarat-ketentuan', [LegalController::class, 'terms'])->name('legal.terms');
+Route::get('/kebijakan-privasi', [LegalController::class, 'privacy'])->name('legal.privacy');
+Route::get('/ketentuan-pengembalian', [LegalController::class, 'refund'])->name('legal.refund');
 Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoiceCallback'])->name('webhooks.xendit.invoice');
 
 Route::get('/dashboard', function () {
@@ -80,6 +86,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::post('login', [AdminAuthenticatedSessionController::class, 'store'])
                 ->middleware('guest');
+    
+    Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+                ->middleware('guest')
+                ->name('password.request');
+
+    Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+                ->middleware('guest')
+                ->name('password.email');
+
+    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+                ->middleware('guest')
+                ->name('password.reset');
+
+    Route::post('reset-password', [NewPasswordController::class, 'store'])
+                ->middleware('guest')
+                ->name('password.store');
 
     Route::middleware(['auth', 'verified'])->group(function () {
         

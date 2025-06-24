@@ -47,9 +47,10 @@ const submit = () => {
         <!-- Menggunakan struktur dari permintaan pengguna -->
         <div class="w-full max-w-md rounded-xl bg-white p-4 dark:bg-slate-800">
             <div class="mb-8 text-center">
-                <h2 class="mt-8 text-3xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white">
-                    Admin & Staff Login
-                </h2>
+                <Link href="/">
+                        <img class="h-auto w-auto dark:hidden" src="/images/logo-black.png" alt="Persija Development">
+                        <img class="h-auto w-auto hidden dark:block" src="/images/logo-white.png" alt="Persija Development">
+                    </Link>
                 <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
                     Selamat datang kembali! Silakan masuk ke akun Anda.
                 </p>
@@ -117,7 +118,7 @@ const submit = () => {
                     <div class="text-sm">
                         <Link
                             v-if="canResetPassword"
-                            :href="route('password.request')"
+                            :href="route('admin.password.request')"
                             class="font-medium text-indigo-600 hover:text-indigo-500 hover:underline dark:text-indigo-400 dark:hover:text-indigo-300"
                         >
                             Lupa kata sandi?

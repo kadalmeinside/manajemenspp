@@ -156,6 +156,14 @@ const logout = () => {
                     <slot />
                 </div>
             </main>
+            <footer class="py-6 px-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                <p>Copyright &copy; 2025 Persija Development</p>
+                <div class="mt-2 space-x-4">
+                    <Link :href="route('legal.terms')" class="hover:underline">Syarat & Ketentuan</Link>
+                    <span>&middot;</span>
+                    <Link :href="route('legal.refund')" class="hover:underline">Ketentuan Pengembalian</Link>
+                </div>
+            </footer>
         </div>
 
         <!-- Bottom Navbar untuk Mobile -->

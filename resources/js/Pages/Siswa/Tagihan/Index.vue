@@ -71,7 +71,7 @@ const getStatusClass = (status) => {
                             <div v-if="pendingInvoices.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-10">
                                 Tidak ada tagihan yang tertunda.
                             </div>
-                            <div v-else v-for="invoice in pendingInvoices" :key="invoice.id" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 space-y-3">
+                            <div v-else v-for="invoice in pendingInvoices" :key="invoice.id" class="bg-white mb-3 dark:bg-gray-800 rounded-lg shadow-sm p-4 space-y-3">
                                 <div class="flex justify-between items-start">
                                     <div>
                                         <p class="font-semibold text-gray-800 dark:text-gray-100">{{ invoice.description }}</p>

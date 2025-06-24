@@ -14,7 +14,7 @@ const heroSlides = ref([
     {
         title: 'SOCCER SCHOOL',
         subtitle: 'Cabang Ciledug',
-        image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2835&auto=format&fit=crop',
+        image: 'https://persijadevelopment.id/storage/promotion/banner/SSCiledug_banner_picture1726817974.jpg',
     },
     {
         title: 'SKILL DEVELOPMENT',
@@ -137,7 +137,7 @@ onUnmounted(() => { clearInterval(heroSlideInterval); });
                     </div>
                     <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg overflow-hidden group">
-                            <div class="h-56 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1598448375978-88b8f2d50228?q=80&w=2938&auto=format&fit=crop')"></div>
+                            <div class="h-56 bg-cover bg-center" style="background-image: url('https://persijadevelopment.id/assets/web_ss_pulomas1.jpg')"></div>
                             <div class="p-6">
                                 <h3 class="font-teko text-3xl font-bold text-gray-900 dark:text-white">SOCCER SCHOOL</h3>
                                 <p class="mt-2 text-gray-600 dark:text-gray-400">Program pembinaan penunjang untuk usia U10-U16 sebagai pintu masuk menuju jenjang elite sepak bola Indonesia.</p>
@@ -145,7 +145,7 @@ onUnmounted(() => { clearInterval(heroSlideInterval); });
                             </div>
                         </div>
                         <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg overflow-hidden group">
-                            <div class="h-56 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=2807&auto=format&fit=crop')"></div>
+                            <div class="h-56 bg-cover bg-center" style="background-image: url('http://persijadevelopment.id/assets/academy/lapangan-academy.jpg')"></div>
                             <div class="p-6">
                                 <h3 class="font-teko text-3xl font-bold text-gray-900 dark:text-white">ACADEMY BOARDING SCHOOL</h3>
                                 <p class="mt-2 text-gray-600 dark:text-gray-400">Pusat pelatihan terpadu yang memadukan pendidikan sepak bola profesional, pendidikan formal, dan pengembangan kepribadian.</p>
@@ -242,7 +242,7 @@ onUnmounted(() => { clearInterval(heroSlideInterval); });
             <section id="gallery" class="py-16 md:py-20 bg-black text-white">
                  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <!-- Navigasi Tab Galeri -->
-                    <div class="mb-12">
+                    <!-- <div class="mb-12">
                         <div class="flex items-end justify-between border-b-2 border-gray-700 pb-2">
                            <div>
                                 <h3 class="font-teko text-xl font-bold text-gray-400 uppercase">Foto</h3>
@@ -250,9 +250,9 @@ onUnmounted(() => { clearInterval(heroSlideInterval); });
                            </div>
                            <a href="#" class="text-sm font-semibold hover:text-red-500 transition">Lihat Semua &rarr;</a>
                         </div>
-                    </div>
+                    </div> -->
                     <!-- Konten Galeri Foto -->
-                    <Carousel :items="photoGalleries[0].images.map(img => ({ gambar: img }))" :show-text="false" />
+                    <!-- <Carousel :items="photoGalleries[0].images.map(img => ({ gambar: img }))" :show-text="false" /> -->
 
                     <!-- Galeri Video -->
                     <div class="mt-20">
