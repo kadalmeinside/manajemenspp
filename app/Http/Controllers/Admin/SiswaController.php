@@ -32,7 +32,13 @@ class SiswaController extends Controller
             abort(403);
         }
 
+        $user = $request->user();
         $query = Siswa::with(['kelas', 'user'])->orderBy('nama_siswa');
+
+        if ($user->hasRole('admin_kelas')) {
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
+            $query->whereIn('id_kelas', $managedKelasIds);
+        }
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -53,6 +59,10 @@ class SiswaController extends Controller
         }
 
         $siswaList = $query->paginate(10)->withQueryString();
+        $allKelasQuery = Kelas::orderBy('nama_kelas');
+        if ($user->hasRole('admin_kelas')) {
+            $allKelasQuery->whereIn('id_kelas', $user->managedClasses()->pluck('kelas.id_kelas'));
+        }
 
         return Inertia::render('Admin/Siswa/Index', [
             'siswaList' => $siswaList->through(fn($siswa) => [
@@ -65,7 +75,7 @@ class SiswaController extends Controller
                 'full_data_for_edit' => $this->getSiswaDataForEdit($siswa),
             ]),
             'filters' => $request->only(['search', 'kelas_id']),
-            'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']),
+            'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas']),
             'can' => [
                 'create_siswa' => $request->user()->can('manage_siswa'),
                 'edit_siswa' => $request->user()->can('manage_siswa'),

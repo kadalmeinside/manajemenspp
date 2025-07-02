@@ -184,4 +184,33 @@ class XenditService
         ]);
         return null;
     }
+
+    /**
+     * Membatalkan (expire) sebuah invoice di Xendit.
+     *
+     * @param string $invoiceId ID Invoice dari Xendit (contoh: inv_xxxxxxxx)
+     * @return array|null Respons dari Xendit
+     */
+    public function expireInvoice(string $invoiceId)
+    {
+        $encodedApiKey = base64_encode($this->apiKey . ':');
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Basic ' . $encodedApiKey,
+            'Content-Type' => 'application/json',
+        ])->post("{$this->baseUrl}/invoices/{$invoiceId}/expire!");
+
+        if ($response->successful()) {
+            Log::info('[Xendit Service] Invoice expired successfully.', ['xendit_invoice_id' => $invoiceId]);
+            return $response->json();
+        }
+
+        Log::error('[Xendit Service] Failed to expire invoice.', [
+            'xendit_invoice_id' => $invoiceId,
+            'status' => $response->status(),
+            'body' => $response->body()
+        ]);
+
+        return null;
+    }
 }

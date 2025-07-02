@@ -14,62 +14,72 @@ class LaporanController extends Controller
 {
     public function pembayaranBulanan(Request $request)
     {
-        if (!$request->user()->can('manage_all_tagihan')) { // Sesuaikan permission jika perlu
+        if (!$request->user()->can('manage_all_tagihan')) {
             abort(403);
         }
-
-        // 1. Tentukan filter tahun dan kelas
+        $user = $request->user();
         $selectedTahun = $request->input('tahun', now()->year);
         $selectedKelasId = $request->input('kelas_id');
 
-        // 2. Ambil query builder untuk siswa, terapkan filter jika ada
         $siswaQuery = Siswa::query()
             ->with('kelas')
             ->where('status_siswa', 'Aktif')
             ->orderBy('nama_siswa', 'asc');
 
-        if ($selectedKelasId) {
-            $siswaQuery->where('id_kelas', $selectedKelasId);
+        if ($user->hasRole('admin_kelas')) {
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
+            
+            // Filter siswa hanya dari kelas yang dikelola
+            $siswaQuery->whereIn('id_kelas', $managedKelasIds);
+
+            // Jika admin kelas memilih filter kelas, pastikan itu adalah kelas yang dia kelola
+            if ($selectedKelasId && !$managedKelasIds->contains($selectedKelasId)) {
+                abort(403, 'Anda tidak memiliki akses ke kelas ini.');
+            }
+        } else {
+            // Jika super admin, filter seperti biasa
+            if ($selectedKelasId) {
+                $siswaQuery->where('id_kelas', $selectedKelasId);
+            }
         }
 
         $siswas = $siswaQuery->get();
         $siswaIds = $siswas->pluck('id_siswa');
 
-        // 3. Ambil semua invoice SPP untuk siswa-siswa tersebut pada tahun yang dipilih
         $invoices = Invoice::whereIn('id_siswa', $siswaIds)
             ->whereYear('periode_tagihan', $selectedTahun)
-            ->where('type', 'spp') // <-- FILTER PENTING: Hanya ambil invoice tipe 'spp'
+            ->where('type', 'spp')
             ->get()
             ->keyBy(function ($item) {
-                // Buat key unik: 'idSiswa-bulan'
                 return $item->id_siswa . '-' . Carbon::parse($item->periode_tagihan)->month;
             });
 
-        // 4. Proses dan struktur data untuk dikirim ke view
         $laporanData = $siswas->map(function ($siswa) use ($invoices) {
             $statuses = [];
             for ($bulan = 1; $bulan <= 12; $bulan++) {
                 $key = $siswa->id_siswa . '-' . $bulan;
-                // Cek apakah ada invoice untuk siswa ini di bulan ini
                 if (isset($invoices[$key])) {
-                    $statuses[$bulan] = $invoices[$key]->status; // Gunakan kolom 'status'
+                    $statuses[$bulan] = $invoices[$key]->status; 
                 } else {
-                    $statuses[$bulan] = 'N/A'; // Not Available
+                    $statuses[$bulan] = 'N/A'; 
                 }
             }
             return [
                 'id_siswa' => $siswa->id_siswa,
                 'nama_siswa' => $siswa->nama_siswa,
                 'nama_kelas' => $siswa->kelas->nama_kelas ?? 'N/A',
-                'statuses' => $statuses, // Array status dari bulan 1 s/d 12
+                'statuses' => $statuses,
             ];
         });
 
-        // 5. Data untuk filter dropdown di frontend
-        $allKelas = Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']);
+        $allKelasQuery = Kelas::orderBy('nama_kelas');
+        if ($user->hasRole('admin_kelas')) {
+            $allKelasQuery->whereIn('id_kelas', $user->managedClasses()->pluck('kelas.id_kelas'));
+        }
+        
+        $allKelas = $allKelasQuery->get(['id_kelas', 'nama_kelas']);
         $years = range(date('Y'), date('Y') - 5);
 
-        // 6. Kirim semua data ke komponen Vue
         return Inertia::render('Admin/Laporan/PembayaranBulanan', [
             'laporanData' => $laporanData,
             'allKelas' => $allKelas,

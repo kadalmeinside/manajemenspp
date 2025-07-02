@@ -48,7 +48,34 @@ Route::get('/', function (Request $request) {
         }),
     ]);
 })->name('welcome'); 
-
+Route::get('/soccer-school', function (Request $request) {
+    return Inertia::render('Soccerschool', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'userIp' => $request->ip()
+    ]);
+})->name('soccer-school');
+Route::get('/academy', function (Request $request) {
+    return Inertia::render('Academy', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'userIp' => $request->ip()
+    ]);
+})->name('academy');
+Route::get('/persija-dna', function (Request $request) {
+    return Inertia::render('Persijadna', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'userIp' => $request->ip()
+    ]);
+})->name('persija-dna');
+Route::get('/kontak', function (Request $request) {
+    return Inertia::render('Kontak', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'userIp' => $request->ip()
+    ]);
+})->name('kontak'); 
 Route::get('/cek-tagihan', [CekTagihanController::class, 'showForm'])->name('tagihan.check_form');
 Route::post('/cek-tagihan', [CekTagihanController::class, 'checkStatus'])->name('tagihan.check_status');
 Route::get('/pembayaran/sukses', [PaymentController::class, 'success'])->name('payment.success');
@@ -114,7 +141,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity.index');
         });
 
-        Route::middleware(['role:admin|user'])->group(function() {
+        Route::middleware(['role:admin|user|admin_kelas'])->group(function() {
             Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
             Route::resource('kelas', KelasController::class);
             Route::get('siswa/export', [SiswaController::class, 'export'])->name('siswa.export');
@@ -122,6 +149,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');
             Route::resource('siswa', SiswaController::class);
             Route::resource('invoices', InvoiceController::class);
+            Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');
             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');
             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');
             Route::get('laporan/pembayaran-bulanan', [LaporanController::class, 'pembayaranBulanan'])->name('laporan.pembayaran_bulanan');

@@ -28,9 +28,17 @@ class InvoiceController extends Controller
             abort(403);
         }
 
+        $user = $request->user();
         $query = Invoice::with(['siswa.user', 'siswa.kelas'])->orderBy('created_at', 'desc');
 
-        // Filter berdasarkan pencarian
+        if ($user->hasRole('admin_kelas')) {
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
+            
+            $query->whereHas('siswa', function ($q_siswa) use ($managedKelasIds) {
+                $q_siswa->whereIn('id_kelas', $managedKelasIds);
+            });
+        }
+
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
@@ -42,14 +50,12 @@ class InvoiceController extends Controller
             });
         }
 
-        // Filter berdasarkan kelas siswa
         if ($request->filled('kelas_id') && $request->input('kelas_id') !== '') {
             $query->whereHas('siswa', function ($q_siswa) use ($request) {
                 $q_siswa->where('id_kelas', $request->input('kelas_id'));
             });
         }
 
-        // Filter berdasarkan status pembayaran
         if ($request->filled('status') && $request->input('status') !== '') {
             $query->where('status', $request->input('status'));
         }
@@ -57,6 +63,16 @@ class InvoiceController extends Controller
         $invoiceList = $query->paginate(10)->withQueryString();
         $statusPembayaranOptions = ['PENDING', 'PAID', 'EXPIRED', 'FAILED', 'REFUNDED'];
 
+        $allKelasQuery = Kelas::orderBy('nama_kelas');
+        $allSiswaQuery = Siswa::with('user:id,email')->orderBy('nama_siswa');
+        if ($user->hasRole('admin_kelas')) {
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
+            $allKelasQuery->whereIn('id_kelas', $managedKelasIds);
+            $allSiswaQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+
+        //dd($allSiswaQuery->get(['id_siswa', 'nama_siswa','email_wali', 'id_user', 'jumlah_spp_custom', 'admin_fee_custom', 'id_kelas']));
+        
         return Inertia::render('Admin/Invoices/Index', [
             'invoiceList' => $invoiceList->through(function ($invoice) {
                 return [
@@ -69,11 +85,12 @@ class InvoiceController extends Controller
                     'due_date_formatted' => Carbon::parse($invoice->due_date)->isoFormat('D MMM YY'),
                     'xendit_payment_url' => $invoice->xendit_payment_url,
                     'created_at_formatted' => $invoice->created_at->isoFormat('D MMM YY, HH:mm'),
+                    'recreated_from_id' => $invoice->recreated_from_id,
                 ];
             }),
             'filters' => $request->only(['search', 'kelas_id', 'status']),
-            'allSiswa' => Siswa::orderBy('nama_siswa')->with('user')->get(['id_siswa', 'nama_siswa', 'id_user', 'jumlah_spp_custom', 'admin_fee_custom', 'id_kelas']),
-            'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas', 'biaya_spp_default']),
+            'allSiswa' => $allSiswaQuery->get(),
+            'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas', 'biaya_spp_default']),
             'allStatus' => $statusPembayaranOptions,
             'can' => ['create_invoice' => $request->user()->can('manage_all_tagihan')]
         ]);
@@ -160,74 +177,69 @@ class InvoiceController extends Controller
         $siswa = Siswa::with('user')->findOrFail($validated['id_siswa']);
         $bulan = $validated['periode_tagihan_bulan'];
         $tahun = $validated['periode_tagihan_tahun'];
+        \Carbon\Carbon::setLocale('id');
         $periodeTagihan = Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
-        $tanggalJatuhTempo = Carbon::parse($validated['tanggal_jatuh_tempo'])->endOfDay();
-
-        // Cek duplikasi invoice
-        $existingInvoice = Invoice::where('id_siswa', $validated['id_siswa'])
-            ->where('type', 'spp')
-            ->whereDate('periode_tagihan', $periodeTagihan->toDateString())
-            ->first();
-
-        if ($existingInvoice) {
-            return Redirect::back()->withErrors(['periode_tagihan_bulan' => 'Tagihan SPP untuk siswa ini pada periode tersebut sudah ada.'])->withInput();
-        }
         
-        $adminFee = $validated['admin_fee_ditagih'] ?? 0;
-        $totalTagihan = (float)($validated['jumlah_spp_ditagih'] + $adminFee);
+        try {
+            DB::transaction(function () use ($request, $validated, $siswa, $periodeTagihan, $xenditService, $tahun, $bulan) {
+                
+                $lockedSiswa = Siswa::where('id_siswa', $validated['id_siswa'])->lockForUpdate()->first();
 
-        $invoice = Invoice::create([
-            'id_siswa' => $siswa->id_siswa,
-            'user_id' => $request->user()->id,
-            'type' => 'spp',
-            'description' => "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa}",
-            'periode_tagihan' => $periodeTagihan,
-            'amount' => $validated['jumlah_spp_ditagih'],
-            'admin_fee' => $adminFee,
-            'total_amount' => $totalTagihan,
-            'due_date' => $tanggalJatuhTempo,
-            'status' => 'PENDING',
-            'external_id_xendit' => 'SPP-'.$siswa->id_siswa.'-'.$tahun.str_pad($bulan, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
-        ]);
-        
-        $payerInfo = [
-            'email' => $siswa->user?->email,
-            'name' => $siswa->nama_siswa,
-            'phone' => $siswa->nomor_telepon_wali,
-        ];
+                $existingInvoice = Invoice::where('id_siswa', $lockedSiswa->id_siswa)
+                    ->where('type', 'spp')
+                    ->whereDate('periode_tagihan', $periodeTagihan->toDateString())
+                    ->first();
 
-        $notificationChannels = $request->boolean('send_whatsapp_notif') ? ['email', 'whatsapp'] : ['email'];
-        
-        $xenditInvoiceData = $xenditService->createInvoice(
-            (float)$invoice->amount,
-            (float)$invoice->admin_fee,
-            $invoice->description,
-            $payerInfo,
-            $invoice->external_id_xendit,
-            route('payment.success'),
-            route('payment.failure'),
-            Carbon::parse($invoice->due_date),
-            $notificationChannels
-        );
+                if ($existingInvoice) {
+                    throw new \Exception('Tagihan SPP untuk siswa ini pada periode tersebut sudah ada.');
+                }
 
-        $flashMessage = 'Invoice berhasil dibuat.';
-        $flashType = 'success';
+                $adminFee = $validated['admin_fee_ditagih'] ?? 0;
+                $totalTagihan = (float)($validated['jumlah_spp_ditagih'] + $adminFee);
+                $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$lockedSiswa->nama_siswa} (NIS: {$lockedSiswa->nis})";
 
-        if ($xenditInvoiceData && isset($xenditInvoiceData['invoice_url'])) {
-            $invoice->update([
-                'xendit_invoice_id' => $xenditInvoiceData['id'],
-                'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
-                'status' => $xenditInvoiceData['status'],
-            ]);
-        } else {
-            Log::error('Gagal membuat invoice Xendit untuk invoice ID: ' . $invoice->id);
-            $flashMessage = 'Invoice berhasil dibuat di sistem, tetapi gagal membuat link pembayaran Xendit.';
-            $flashType = 'warning';
+                $invoice = Invoice::create([
+                    'id_siswa' => $lockedSiswa->id_siswa,
+                    'user_id' => $request->user()->id,
+                    'type' => 'spp',
+                    'description' => $deskripsi,
+                    'periode_tagihan' => $periodeTagihan,
+                    'amount' => $validated['jumlah_spp_ditagih'],
+                    'admin_fee' => $adminFee,
+                    'total_amount' => $totalTagihan,
+                    'due_date' => Carbon::parse($validated['tanggal_jatuh_tempo'])->endOfDay(),
+                    'status' => 'PENDING',
+                    'external_id_xendit' => 'SPP-'.$lockedSiswa->id_siswa.'-'.$tahun.str_pad($bulan, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
+                ]);
+
+                $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
+                $notificationChannels = $request->boolean('send_whatsapp_notif') ? ['email', 'whatsapp'] : ['email'];
+                
+                $xenditInvoiceData = $xenditService->createInvoice(
+                    (float)$invoice->amount, (float)$invoice->admin_fee, $invoice->description,
+                    $payerInfo, $invoice->external_id_xendit, route('payment.success'),
+                    route('payment.failure'), Carbon::parse($invoice->due_date), $notificationChannels
+                );
+
+                if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
+                    throw new \Exception('Gagal membuat invoice pembayaran di Xendit.');
+                }
+
+                $invoice->update([
+                    'xendit_invoice_id' => $xenditInvoiceData['id'],
+                    'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
+                    'status' => $xenditInvoiceData['status'],
+                ]);
+            });
+
+        } catch (Throwable $e) {
+            Log::error('Gagal membuat invoice individual: ' . $e->getMessage());
+            return Redirect::back()->withErrors(['periode_tagihan_bulan' => $e->getMessage()])->withInput();
         }
 
         return Redirect::route('admin.invoices.index')->with([
-            'message' => $flashMessage,
-            'type' => $flashType,
+            'message' => 'Invoice berhasil dibuat dan link pembayaran telah digenerate.',
+            'type' => 'success',
         ]);
     }
 
@@ -252,6 +264,7 @@ class InvoiceController extends Controller
         $kelas = Kelas::findOrFail($validated['id_kelas']);
         $bulan = $validated['periode_tagihan_bulan'];
         $tahun = $validated['periode_tagihan_tahun'];
+        \Carbon\Carbon::setLocale('id');
         $periodeTagihan = Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
         $tanggalJatuhTempo = Carbon::parse($validated['tanggal_jatuh_tempo'])->endOfDay();
 
@@ -269,48 +282,61 @@ class InvoiceController extends Controller
         }
 
         $berhasilDibuat = 0;
-        $gagalXendit = 0;
+        $gagalDibuat = 0;
         
         foreach ($siswaDiKelas as $siswa) {
-            $jumlahSPP = ($validated['jenis_jumlah_spp'] === 'manual') ? $validated['jumlah_spp_manual'] : ($siswa->jumlah_spp_custom ?? $kelas->biaya_spp_default ?? 0);
-            $adminFee = ($validated['jenis_admin_fee'] === 'manual') ? ($validated['admin_fee_manual'] ?? 0) : ($siswa->admin_fee_custom ?? 0);
-            $totalTagihan = (float)($jumlahSPP + $adminFee);
+            try {
+                DB::transaction(function () use ($siswa, $validated, $kelas, $periodeTagihan, $tanggalJatuhTempo, $request, $xenditService, $tahun, $bulan) {
+                    $jumlahSPP = ($validated['jenis_jumlah_spp'] === 'manual') ? $validated['jumlah_spp_manual'] : ($siswa->jumlah_spp_custom ?? $kelas->biaya_spp_default ?? 0);
+                    $adminFee = ($validated['jenis_admin_fee'] === 'manual') ? ($validated['admin_fee_manual'] ?? 0) : ($siswa->admin_fee_custom ?? 0);
+                    $totalTagihan = (float)($jumlahSPP + $adminFee);
 
-            if ($totalTagihan < 10000) { continue; }
+                    if ($totalTagihan < 10000) {
+                        return;
+                    }
 
-            $invoice = Invoice::create([
-                'id_siswa' => $siswa->id_siswa,
-                'user_id' => $request->user()->id,
-                'type' => 'spp',
-                'description' => "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa}",
-                'periode_tagihan' => $periodeTagihan,
-                'amount' => $jumlahSPP,
-                'admin_fee' => $adminFee,
-                'total_amount' => $totalTagihan,
-                'due_date' => $tanggalJatuhTempo,
-                'status' => 'PENDING',
-                'external_id_xendit' => 'SPP-'.$siswa->id_siswa.'-'.$tahun.str_pad($bulan, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
-            ]);
+                    $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
 
-            $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
-            $notificationChannels = $request->boolean('send_whatsapp_notif') ? ['email', 'whatsapp'] : ['email'];
-            
-            $xenditInvoiceData = $xenditService->createInvoice((float)$jumlahSPP, (float)$adminFee, $invoice->description, $payerInfo, $invoice->external_id_xendit, route('payment.success'), route('payment.failure'), $tanggalJatuhTempo, $notificationChannels);
+                    $invoice = Invoice::create([
+                        'id_siswa' => $siswa->id_siswa,
+                        'user_id' => $request->user()->id,
+                        'type' => 'spp',
+                        'description' => $deskripsi,
+                        'periode_tagihan' => $periodeTagihan,
+                        'amount' => $jumlahSPP,
+                        'admin_fee' => $adminFee,
+                        'total_amount' => $totalTagihan,
+                        'due_date' => $tanggalJatuhTempo,
+                        'status' => 'PENDING',
+                        'external_id_xendit' => 'SPP-'.$siswa->id_siswa.'-'.$tahun.str_pad($bulan, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
+                    ]);
 
-            if ($xenditInvoiceData && isset($xenditInvoiceData['invoice_url'])) {
-                $invoice->update(['xendit_invoice_id' => $xenditInvoiceData['id'], 'xendit_payment_url' => $xenditInvoiceData['invoice_url'], 'status' => $xenditInvoiceData['status']]);
+                    $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
+                    $notificationChannels = $request->boolean('send_whatsapp_notif') ? ['email', 'whatsapp'] : ['email'];
+                    
+                    $xenditInvoiceData = $xenditService->createInvoice((float)$jumlahSPP, (float)$adminFee, $invoice->description, $payerInfo, $invoice->external_id_xendit, route('payment.success'), route('payment.failure'), $tanggalJatuhTempo, $notificationChannels);
+
+                    if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
+                        throw new \Exception("Gagal membuat link pembayaran Xendit untuk siswa: {$siswa->nama_siswa}");
+                    }
+
+                    $invoice->update(['xendit_invoice_id' => $xenditInvoiceData['id'], 'xendit_payment_url' => $xenditInvoiceData['invoice_url'], 'status' => $xenditInvoiceData['status']]);
+                });
+
                 $berhasilDibuat++;
-            } else {
-                $gagalXendit++;
-                Log::error("[Bulk Store] Gagal membuat invoice Xendit untuk siswa: {$siswa->id_siswa}", ['external_id' => $invoice->external_id_xendit]);
+
+            } catch (Throwable $e) {
+                $gagalDibuat++;
+                Log::error("[Bulk Store Sync] Gagal memproses invoice untuk siswa: {$siswa->id_siswa}. Error: " . $e->getMessage());
+                continue; 
             }
         }
 
-        $message = "{$berhasilDibuat} tagihan berhasil dibuat dengan invoice Xendit.";
-        if ($gagalXendit > 0) { $message .= " {$gagalXendit} tagihan gagal terhubung ke Xendit."; }
-        if ($berhasilDibuat === 0 && $gagalXendit === 0 && $siswaDiKelas->isNotEmpty()) { $message = 'Tidak ada tagihan baru yang dibuat (kemungkinan semua siswa sudah memiliki tagihan atau jumlah tagihan 0).'; }
+        $message = "Proses selesai. {$berhasilDibuat} tagihan berhasil dibuat.";
+        if ($gagalDibuat > 0) { $message .= " {$gagalDibuat} tagihan gagal dibuat."; }
+        if ($berhasilDibuat === 0 && $gagalDibuat === 0 && $siswaDiKelas->isNotEmpty()) { $message = 'Tidak ada tagihan baru yang dibuat (kemungkinan semua siswa sudah memiliki tagihan atau jumlah tagihan 0).'; }
 
-        return Redirect::route('admin.invoices.index')->with(['message' => $message, 'type' => ($gagalXendit > 0 || ($berhasilDibuat === 0 && $siswaDiKelas->isNotEmpty())) ? 'warning' : 'success']);
+        return Redirect::route('admin.invoices.index')->with(['message' => $message, 'type' => ($gagalDibuat > 0) ? 'warning' : 'success']);
     }
 
     /**
@@ -378,11 +404,107 @@ class InvoiceController extends Controller
         //
     }
 
+    public function recreate(Request $request, Invoice $invoice, XenditService $xenditService)
+    {
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        if ($invoice->status !== 'EXPIRED') {
+            return Redirect::back()->with([
+                'message' => 'Hanya invoice EXPIRED yang dapat dibuat ulang.',
+                'type' => 'error'
+            ]);
+        }
+
+        $originalInvoiceId = $invoice->recreated_from_id ?? $invoice->id;
+
+        $existingPending = Invoice::where('recreated_from_id', $originalInvoiceId)
+                                  ->where('status', 'PENDING')
+                                  ->exists();
+        
+        if ($existingPending) {
+            return Redirect::back()->with([
+                'message' => 'Sudah ada invoice pengganti yang aktif (status PENDING) untuk tagihan ini.',
+                'type' => 'error'
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use ($request, $invoice, $xenditService) {
+                
+                $lockedInvoice = Invoice::where('id', $invoice->id)->lockForUpdate()->first();
+                $recreatedInvoice = $lockedInvoice->replicate([
+                    'id', 'xendit_invoice_id', 'xendit_payment_url', 'external_id_xendit', 
+                    'status', 'paid_at', 'recreated_from_id'
+                ]);
+
+                $recreatedInvoice->recreated_from_id = $originalInvoiceId; 
+                $recreatedInvoice->status = 'PENDING';
+                $recreatedInvoice->due_date = now()->addDays(3)->endOfDay();
+                $recreatedInvoice->description = $lockedInvoice->description;
+                $recreatedInvoice->external_id_xendit = 'RE-'.$lockedInvoice->external_id_xendit . '-' . strtoupper(Str::random(2));
+
+                // Panggil Xendit
+                $payerInfo = ['email' => $lockedInvoice->siswa->user?->email, 'name' => $lockedInvoice->siswa->nama_siswa, 'phone' => $lockedInvoice->siswa->nomor_telepon_wali];
+                
+                $xenditInvoiceData = $xenditService->createInvoice(
+                    (float)$recreatedInvoice->amount, (float)$recreatedInvoice->admin_fee, $recreatedInvoice->description,
+                    $payerInfo, $recreatedInvoice->external_id_xendit, route('payment.success'),
+                    route('payment.failure'), Carbon::parse($recreatedInvoice->due_date), ['email', 'whatsapp']
+                );
+
+                if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
+                    throw new \Exception('Gagal membuat link pembayaran baru di Xendit.');
+                }
+
+                $recreatedInvoice->xendit_invoice_id = $xenditInvoiceData['id'];
+                $recreatedInvoice->xendit_payment_url = $xenditInvoiceData['invoice_url'];
+                $recreatedInvoice->save();
+
+            });
+
+        } catch (Throwable $e) {
+            Log::error('Gagal membuat ulang invoice: ' . $e->getMessage());
+            return Redirect::back()->withErrors(['recreate_error' => $e->getMessage()])->withInput();
+        }
+
+        return Redirect::back()->with(['message' => 'Invoice baru berhasil dibuat ulang.', 'type' => 'success']);
+    }
+
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Invoice $invoice)
+    public function destroy(Request $request, Invoice $invoice, XenditService $xenditService)
     {
-        //
+        if (!$request->user()->can('manage_all_tagihan')) { 
+            abort(403);
+        }
+
+        if ($invoice->status !== 'PENDING') {
+            return Redirect::back()->with([
+                'message' => 'Hanya invoice dengan status PENDING yang dapat dibatalkan.',
+                'type' => 'error'
+            ]);
+        }
+
+        $xenditResponse = $xenditService->expireInvoice($invoice->xendit_invoice_id);
+
+        if ($xenditResponse && isset($xenditResponse['status']) && $xenditResponse['status'] === 'EXPIRED') {
+            $invoice->update([
+                'status' => 'EXPIRED',
+                'xendit_callback_payload' => $xenditResponse,
+            ]);
+            return Redirect::back()->with([
+                'message' => 'Invoice berhasil dibatalkan.',
+                'type' => 'success'
+            ]);
+        }
+
+        Log::error('Gagal membatalkan invoice di Xendit.', ['invoice_id' => $invoice->id]);
+        return Redirect::back()->with([
+            'message' => 'Gagal membatalkan invoice di sisi penyedia pembayaran. Silakan coba lagi.',
+            'type' => 'error'
+        ]);
     }
 }

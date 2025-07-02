@@ -1,18 +1,18 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { XCircleIcon, CheckCircleIcon, InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'; // Sesuaikan jika Anda menggunakan icon lain
-import { XMarkIcon } from '@heroicons/vue/20/solid'; // Icon tutup
+import { XMarkIcon } from '@heroicons/vue/20/solid'; 
 
 const props = defineProps({
     message: String,
     type: {
         type: String,
-        default: 'info', // Default type if not specified
-        validator: (value) => ['success', 'danger', 'warning', 'info'].includes(value),
+        default: 'info',
+        validator: (value) => ['success', 'error','danger', 'warning', 'info'].includes(value),
     },
     duration: {
         type: Number,
-        default: 5000, // Durasi default 5 detik
+        default: 5000, 
     },
 });
 
@@ -21,6 +21,7 @@ let timeoutId = null;
 
 const toastClasses = {
     success: 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900 dark:border-green-700 dark:text-green-200',
+    error: 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900 dark:border-red-700 dark:text-red-200',
     danger: 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900 dark:border-red-700 dark:text-red-200',
     warning: 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-200',
     info: 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200',
@@ -28,6 +29,7 @@ const toastClasses = {
 
 const iconComponent = {
     success: CheckCircleIcon,
+    error: XCircleIcon,
     danger: XCircleIcon,
     warning: ExclamationTriangleIcon,
     info: InformationCircleIcon,
@@ -35,23 +37,20 @@ const iconComponent = {
 
 const closeToast = () => {
     showToast.value = false;
-    clearTimeout(timeoutId); // Pastikan timeout di-clear saat ditutup manual
+    clearTimeout(timeoutId);
 };
 
-// Watch for changes in message prop to show the toast
 watch(() => props.message, (newMessage) => {
     if (newMessage) {
         showToast.value = true;
-        // Set timeout to hide the toast automatically
         timeoutId = setTimeout(() => {
             showToast.value = false;
         }, props.duration);
     } else {
-        // If message becomes empty, hide toast and clear timeout
         showToast.value = false;
         clearTimeout(timeoutId);
     }
-}, { immediate: true }); // Run immediately on component mount if message is already present
+}, { immediate: true });
 </script>
 
 <template>

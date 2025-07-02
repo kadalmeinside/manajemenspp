@@ -32,6 +32,8 @@ class Invoice extends Model
         'xendit_invoice_id',
         'xendit_payment_url',
         'external_id_xendit',
+        'xendit_callback_payload',
+        'recreated_from_id',
     ];
 
     protected $casts = [
@@ -51,6 +53,11 @@ class Invoice extends Model
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn(string $eventName) => "Invoice #{$this->id} untuk '{$this->siswa->nama_siswa}' telah di-{$eventName}")
             ->useLogName('Invoice');
+    }
+
+    public function originalInvoice()
+    {
+        return $this->belongsTo(Invoice::class, 'recreated_from_id');
     }
 
     public function siswa()

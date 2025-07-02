@@ -10,8 +10,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import Toast from '@/Components/Toast.vue';
-// Jika Anda membuat komponen Pagination.vue, uncomment dan gunakan. Jika tidak, render manual.
-// import Pagination from '@/Components/Pagination.vue';
+
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
@@ -22,6 +21,7 @@ const page = usePage();
 const users = computed(() => page.props.users);
 const filters = computed(() => page.props.filters || {}); // Default ke objek kosong jika tidak ada
 const allRoles = computed(() => page.props.allRoles || []);
+const allKelas = computed(() => page.props.allKelas || []);
 const can = computed(() => page.props.can || {});
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
@@ -36,7 +36,8 @@ const form = useForm({
     email: '',
     password: '',
     password_confirmation: '',
-    roles: [] // Array nama role
+    roles: [],
+    kelas_ids: [],
 });
 
 // Search and Filter
@@ -76,9 +77,14 @@ const openEditModal = (user) => {
     form.email = user.email;
     form.password = '';
     form.password_confirmation = '';
-    form.roles = user.roles_array ? [...user.roles_array] : []; // Ambil dari roles_array
+    form.roles = user.roles_array ? [...user.roles_array] : [];
+    form.kelas_ids = user.managedKelasIds ? [...user.managedKelasIds] : [];
     showUserModal.value = true;
 };
+
+const showKelasSelection = computed(() => {
+    return form.roles.includes('admin_kelas');
+});
 
 const closeModal = () => {
     showUserModal.value = false;
@@ -271,6 +277,23 @@ watch(users, (newComputedUsers) => {
                         </div>
                         <InputError class="mt-2" :message="form.errors.roles" />
                     </div>
+
+                    <transition
+                        enter-active-class="transition ease-out duration-200"
+                        enter-from-class="opacity-0 -translate-y-2"
+                        enter-to-class="opacity-100 translate-y-0">
+                        <div v-if="showKelasSelection">
+                            <InputLabel value="Tugaskan ke Kelas" />
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Pilih satu atau lebih kelas yang akan dikelola oleh user ini.</p>
+                            <div class="mt-2 max-h-48 overflow-y-auto border dark:border-gray-700 rounded-md p-2 grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <label v-for="kelas in allKelas" :key="kelas.id_kelas" class="flex items-center">
+                                    <Checkbox :value="kelas.id_kelas" v-model:checked="form.kelas_ids" />
+                                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ kelas.nama_kelas }}</span>
+                                </label>
+                            </div>
+                            <InputError class="mt-2" :message="form.errors.kelas_ids" />
+                        </div>
+                    </transition>
 
                     <div class="mt-6 flex justify-end space-x-3 pt-4 border-t dark:border-gray-700">
                         <SecondaryButton @click="closeModal" type="button"> Cancel </SecondaryButton>

@@ -51,6 +51,11 @@ class User extends Authenticatable
         ];
     }
 
+    public function managedClasses()
+    {
+        return $this->belongsToMany(Kelas::class, 'kelas_user', 'user_id', 'kelas_id');
+    }
+    
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

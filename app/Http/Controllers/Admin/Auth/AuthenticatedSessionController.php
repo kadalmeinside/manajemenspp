@@ -33,7 +33,7 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
-        if (!$user->hasAnyRole(['admin', 'user', 'staff_akademik'])) {
+        if (!$user->hasAnyRole(['admin', 'user','admin_kelas', 'staff_akademik'])) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

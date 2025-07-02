@@ -22,10 +22,16 @@ class DashboardController extends Controller
             'bulan' => 'nullable|integer|between:1,12',
         ]);
         
+        $user = $request->user();
         $selectedTahun = $request->input('tahun', now()->year);
         $selectedBulan = $request->input('bulan', now()->month);
         $selectedDate = Carbon::create($selectedTahun, $selectedBulan, 1);
         $previousMonthDate = $selectedDate->copy()->subMonth();
+
+        $managedKelasIds = null;
+        if ($user->hasRole('admin_kelas')) {
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
+        }
 
         $calculateChange = function ($current, $previous) {
             if ($previous == 0) { return $current > 0 ? 100.0 : 0.0; }
@@ -33,15 +39,41 @@ class DashboardController extends Controller
         };
 
         // 1. Kartu Statistik
-        $totalSiswaAktif = Siswa::where('status_siswa', 'Aktif')->count();
-        $siswaBaruBulanIni = Siswa::whereMonth('created_at', $selectedBulan)->whereYear('created_at', $selectedTahun)->count();
-        $siswaBaruBulanLalu = Siswa::whereMonth('created_at', $previousMonthDate->month)->whereYear('created_at', $previousMonthDate->year)->count();
-        $pendapatanBulanIni = Invoice::where('status', 'PAID')->whereMonth('paid_at', $selectedBulan)->whereYear('paid_at', $selectedTahun)->sum('total_amount');
-        $pendapatanBulanLalu = Invoice::where('status', 'PAID')->whereMonth('paid_at', $previousMonthDate->month)->whereYear('paid_at', $previousMonthDate->year)->sum('total_amount');
-        $tagihanTertundaBulanIni = Invoice::where('status', 'PENDING')->where('type', 'spp')->whereMonth('periode_tagihan', $selectedBulan)->whereYear('periode_tagihan', $selectedTahun)->count();
+        $totalSiswaAktifQuery = Siswa::where('status_siswa', 'Aktif');
+        $siswaBaruBulanIniQuery = Siswa::whereMonth('created_at', $selectedBulan)->whereYear('created_at', $selectedTahun);
+        $siswaBaruBulanLaluQuery = Siswa::whereMonth('created_at', $previousMonthDate->month)->whereYear('created_at', $previousMonthDate->year);
+        
+        $pendapatanBulanIniQuery = Invoice::where('status', 'PAID')->whereMonth('paid_at', $selectedBulan)->whereYear('paid_at', $selectedTahun);
+        $pendapatanBulanLaluQuery = Invoice::where('status', 'PAID')->whereMonth('paid_at', $previousMonthDate->month)->whereYear('paid_at', $previousMonthDate->year);
+        $tagihanTertundaBulanIniQuery = Invoice::where('status', 'PENDING')->where('type', 'spp')->whereMonth('periode_tagihan', $selectedBulan)->whereYear('periode_tagihan', $selectedTahun);
+
+        if ($managedKelasIds) {
+            $totalSiswaAktifQuery->whereIn('id_kelas', $managedKelasIds);
+            $siswaBaruBulanIniQuery->whereIn('id_kelas', $managedKelasIds);
+            $siswaBaruBulanLaluQuery->whereIn('id_kelas', $managedKelasIds);
+            $pendapatanBulanIniQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $pendapatanBulanLaluQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $tagihanTertundaBulanIniQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+        }
+
+        $totalSiswaAktif = $totalSiswaAktifQuery->count();
+        $siswaBaruBulanIni = $siswaBaruBulanIniQuery->count();
+        $siswaBaruBulanLalu = $siswaBaruBulanLaluQuery->count();
+        $pendapatanBulanIni = $pendapatanBulanIniQuery->sum('total_amount');
+        $pendapatanBulanLalu = $pendapatanBulanLaluQuery->sum('total_amount');
+        $tagihanTertundaBulanIni = $tagihanTertundaBulanIniQuery->count();
 
         // 2. Data Grafik
-        $pendapatanPerBulan = Invoice::select(DB::raw('YEAR(paid_at) as tahun'), DB::raw('MONTH(paid_at) as bulan'), DB::raw('SUM(total_amount) as total'))->where('status', 'PAID')->whereBetween('paid_at', [$selectedDate->copy()->subMonths(5)->startOfMonth(), $selectedDate->copy()->endOfMonth()])->groupBy('tahun', 'bulan')->orderBy('tahun', 'asc')->orderBy('bulan', 'asc')->get();
+        $pendapatanPerBulanQuery = Invoice::select(DB::raw('YEAR(paid_at) as tahun'), DB::raw('MONTH(paid_at) as bulan'), DB::raw('SUM(total_amount) as total'))->where('status', 'PAID')->whereBetween('paid_at', [$selectedDate->copy()->subMonths(5)->startOfMonth(), $selectedDate->copy()->endOfMonth()]);
+        $statusTagihanBulanIniQuery = Invoice::select('status', DB::raw('count(*) as total'))->where('type', 'spp')->whereMonth('periode_tagihan', $selectedBulan)->whereYear('periode_tagihan', $selectedTahun);
+
+        if ($managedKelasIds) {
+            $pendapatanPerBulanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $statusTagihanBulanIniQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+        }
+        
+        $pendapatanPerBulan = $pendapatanPerBulanQuery->groupBy('tahun', 'bulan')->orderBy('tahun', 'asc')->orderBy('bulan', 'asc')->get();
+        $statusTagihanBulanIni = $statusTagihanBulanIniQuery->groupBy('status')->pluck('total', 'status');
         $labelsGrafikPendapatan = [];
         $dataGrafikPendapatan = [];
         for ($i = 5; $i >= 0; $i--) {
@@ -53,12 +85,22 @@ class DashboardController extends Controller
             $key = $pendapatan->tahun . '-' . $pendapatan->bulan;
             if (isset($dataGrafikPendapatan[$key])) { $dataGrafikPendapatan[$key] = $pendapatan->total; }
         }
-        $statusTagihanBulanIni = Invoice::select('status', DB::raw('count(*) as total'))->where('type', 'spp')->whereMonth('periode_tagihan', $selectedBulan)->whereYear('periode_tagihan', $selectedTahun)->groupBy('status')->pluck('total', 'status');
+        
 
         // 3. Aktivitas Terbaru
-        $pembayaranTerakhir = Invoice::where('status', 'PAID')->with('siswa')->latest('paid_at')->limit(5)->get();
-        $siswaBaru = Siswa::latest('tanggal_bergabung')->limit(5)->get();
-        $siswaPerKelas = Kelas::withCount(['siswa' => fn($q) => $q->where('status_siswa', 'Aktif')])->orderBy('nama_kelas')->get();
+        $pembayaranTerakhirQuery = Invoice::where('status', 'PAID')->with('siswa')->latest('paid_at');
+        $siswaBaruQuery = Siswa::latest('tanggal_bergabung');
+        $siswaPerKelasQuery = Kelas::withCount(['siswa' => fn($q) => $q->where('status_siswa', 'Aktif')])->orderBy('nama_kelas');
+
+        if ($managedKelasIds) {
+            $pembayaranTerakhirQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $siswaBaruQuery->whereIn('id_kelas', $managedKelasIds);
+            $siswaPerKelasQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+
+        $pembayaranTerakhir = $pembayaranTerakhirQuery->limit(5)->get();
+        $siswaBaru = $siswaBaruQuery->limit(5)->get();
+        $siswaPerKelas = $siswaPerKelasQuery->get();
         
         // 4. Proses Latar Belakang Terbaru (PENAMBAHAN BARU)
         $latestJobs = JobBatch::with('user:id,name')->latest()->limit(5)->get();

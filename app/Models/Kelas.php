@@ -40,4 +40,9 @@ class Kelas extends Model
     {
         return $this->hasMany(Siswa::class, 'id_kelas', 'id_kelas');
     }
+
+    public function managers()
+    {
+        return $this->belongsToMany(User::class, 'kelas_user', 'kelas_id', 'user_id');
+    }
 }

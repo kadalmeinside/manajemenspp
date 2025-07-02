@@ -11,7 +11,7 @@ import TextInput from '@/Components/TextInput.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import Toast from '@/Components/Toast.vue';
 import Dropdown from '@/Components/Dropdown.vue';
-import { PlusIcon, EyeIcon, ChevronDownIcon, PencilIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { PlusIcon, EyeIcon, ChevronDownIcon, PencilIcon, TrashIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/vue/20/solid';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 
@@ -31,6 +31,10 @@ const flashType = computed(() => page.props.flash?.type || 'info');
 const showIndividualModal = ref(false);
 const showBulkByClassModal = ref(false);
 const showBulkAllModal = ref(false);
+const showCancelConfirmModal = ref(false);
+const invoiceToCancel = ref(null);
+const showRecreateConfirmModal = ref(false);
+const invoiceToRecreate = ref(null); 
 
 // Data untuk form periode
 const currentYear = new Date().getFullYear();
@@ -42,18 +46,18 @@ const defaultJatuhTempo = new Date(currentYear, new Date().getMonth() + 1, 10).t
 const formIndividual = useForm({
     id_siswa: '',
     periode_tagihan_bulan: new Date().getMonth() + 1,
-    periode_tagihan_tahun: currentYear,
+    periode_tagihan_tahun: new Date().getFullYear(),
     jumlah_spp_ditagih: '',
     admin_fee_ditagih: 0,
-    tanggal_jatuh_tempo: defaultJatuhTempo,
+    tanggal_jatuh_tempo: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().slice(0,10),
     send_whatsapp_notif: true,
 });
 
 const formBulkByClass = useForm({
     id_kelas: '',
     periode_tagihan_bulan: new Date().getMonth() + 1,
-    periode_tagihan_tahun: currentYear,
-    tanggal_jatuh_tempo: defaultJatuhTempo,
+    periode_tagihan_tahun: new Date().getFullYear(),
+    tanggal_jatuh_tempo: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().slice(0,10),
     jenis_jumlah_spp: 'default',
     jumlah_spp_manual: null,
     jenis_admin_fee: 'default',
@@ -63,12 +67,14 @@ const formBulkByClass = useForm({
 
 const formBulkAll = useForm({
     periode_tagihan_bulan: new Date().getMonth() + 1,
-    periode_tagihan_tahun: currentYear,
-    tanggal_jatuh_tempo: defaultJatuhTempo,
+    periode_tagihan_tahun: new Date().getFullYear(),
+    tanggal_jatuh_tempo: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().slice(0,10),
     send_whatsapp_notif: true,
 });
 
-// Search and Filters
+const cancelActionForm = useForm({});
+const recreateActionForm = useForm({});
+
 const searchQuery = ref(filters.search || '');
 const selectedKelasId = ref(filters.kelas_id || '');
 const selectedStatus = ref(filters.status || '');
@@ -87,7 +93,6 @@ const submitFilters = () => {
 watch([searchQuery, selectedKelasId, selectedStatus], debounce(submitFilters, 300));
 
 
-// Modal Functions
 const openCreateIndividualModal = () => { formIndividual.reset(); showIndividualModal.value = true; };
 const closeIndividualModal = () => { showIndividualModal.value = false; };
 
@@ -97,7 +102,6 @@ const closeBulkByClassModal = () => { showBulkByClassModal.value = false; };
 const openBulkAllModal = () => { formBulkAll.reset(); showBulkAllModal.value = true; };
 const closeBulkAllModal = () => { showBulkAllModal.value = false; };
 
-// Auto-fill SPP
 watch(() => formIndividual.id_siswa, (newSiswaId) => {
     if (newSiswaId) {
         const siswa = allSiswa.value.find(s => s.id_siswa === newSiswaId);
@@ -115,11 +119,10 @@ watch(() => formIndividual.id_siswa, (newSiswaId) => {
     }
 });
 
-// Form Submission
 const submitIndividualForm = () => {
     formIndividual.post(route('admin.invoices.store'), {
         preserveScroll: true,
-        onSuccess: () => {
+        onFinish: () => {
             closeIndividualModal();
         },
     });
@@ -128,14 +131,50 @@ const submitIndividualForm = () => {
 const submitBulkByClassForm = () => {
     formBulkByClass.post(route('admin.invoices.bulk_store'), {
         preserveScroll: true,
-        onSuccess: () => { closeBulkByClassModal(); },
+        onFinish: () => { 
+            closeBulkByClassModal(); 
+        },
     });
 };
 
 const submitBulkAllForm = () => {
     formBulkAll.post(route('admin.invoices.bulk_store_all'), {
         preserveScroll: true,
-        onSuccess: () => { closeBulkAllModal(); },
+        onFinish: () => { 
+            closeBulkAllModal(); 
+        },
+    });
+};
+
+const confirmCancelInvoice = (invoice) => {
+    invoiceToCancel.value = invoice;
+    showCancelConfirmModal.value = true;
+};
+
+const cancelInvoice = () => {
+    if (!invoiceToCancel.value) return;
+    cancelActionForm.delete(route('admin.invoices.destroy', invoiceToCancel.value.id), {
+        preserveScroll: true,
+        onFinish: () => {
+            showCancelConfirmModal.value = false;
+            invoiceToCancel.value = null;
+        },
+    });
+};
+
+const confirmRecreateInvoice = (invoice) => {
+    invoiceToRecreate.value = invoice;
+    showRecreateConfirmModal.value = true;
+};
+
+const recreateInvoice = () => {
+    if (!invoiceToRecreate.value) return;
+    recreateActionForm.post(route('admin.invoices.recreate', invoiceToRecreate.value.id), {
+        preserveScroll: true,
+        onFinish: () => {
+            showRecreateConfirmModal.value = false;
+            invoiceToRecreate.value = null;
+        }
     });
 };
 
@@ -152,6 +191,18 @@ const getStatusClass = (status) => {
     if (status === 'PENDING') return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
     if (status === 'EXPIRED' || status === 'FAILED') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+};
+
+const formatDescription = (desc) => {
+    if (!desc) return { main: '', detail: '' };
+    const parts = desc.split(' - ');
+    if (parts.length > 1) {
+        return {
+            main: parts[0],
+            detail: parts.slice(1).join(' - ')
+        };
+    }
+    return { main: desc, detail: '' };
 };
 </script>
 
@@ -220,13 +271,27 @@ const getStatusClass = (status) => {
                                         {{ invoice.siswa_nama }} <br>
                                         <span class="text-xs text-gray-500">{{ invoice.kelas_nama }}</span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500 whitespace-normal">{{ invoice.description }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.total_amount_formatted }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <div class="font-medium text-gray-900 dark:text-white">{{ formatDescription(invoice.description).main }}</div>
+                                        <div class="text-gray-500">{{ formatDescription(invoice.description).detail }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-500 ">{{ invoice.total_amount_formatted }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.due_date_formatted }}</td>
                                     <td class="px-6 py-4 text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(invoice.status)">{{ invoice.status }}</span></td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.created_at_formatted }}</td>
-                                    <td class="px-6 py-4 text-right text-sm font-medium">
-                                        <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-blue-600 hover:text-blue-900 p-1 inline-flex items-center"><EyeIcon class="h-5 w-5 mr-1"/> Lihat</a>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div class="flex items-center justify-end space-x-2">
+                                            <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-blue-600 hover:text-blue-900 p-1" title="Lihat Invoice Xendit"><EyeIcon class="h-5 w-5" /></a>
+                                            
+                                            <button v-if="invoice.status === 'PENDING' && can?.create_invoice" @click="confirmCancelInvoice(invoice)" class="text-gray-400 hover:text-red-600 p-1" title="Batalkan Invoice"><XCircleIcon class="h-5 w-5" /></button>
+                                            
+                                            <button v-if="invoice.status === 'EXPIRED' && can?.create_invoice" 
+                                                    @click="confirmRecreateInvoice(invoice)" 
+                                                    class="text-gray-400 hover:text-green-600 p-1" 
+                                                    title="Buat Ulang Invoice">
+                                                <ArrowPathIcon class="h-5 w-5" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -248,6 +313,44 @@ const getStatusClass = (status) => {
                 </div>
             </div>
         </div>
+
+        <Modal :show="showCancelConfirmModal" :closeable="!cancelActionForm.processing" @close="showCancelConfirmModal = false" maxWidth="md">
+            <div class="p-6 relative">
+                 <div v-if="cancelActionForm.processing" class="absolute inset-0 bg-white/70 dark:bg-gray-800/70 flex items-center justify-center z-20 rounded-lg">
+                    <svg class="animate-spin h-8 w-8 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span class="ml-3 text-gray-700 dark:text-gray-300">Memproses...</span>
+                </div>
+                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Konfirmasi Pembatalan Invoice</h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Apakah Anda yakin ingin membatalkan invoice ini? Status akan berubah menjadi EXPIRED dan link pembayaran tidak akan berlaku lagi.
+                </p>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <SecondaryButton @click="showCancelConfirmModal = false" :disabled="cancelActionForm.processing">Tidak</SecondaryButton>
+                    <DangerButton @click="cancelInvoice" :class="{ 'opacity-25': cancelActionForm.processing }" :disabled="cancelActionForm.processing">
+                        {{ cancelActionForm.processing ? 'Memproses...' : 'Ya, Batalkan Invoice' }}
+                    </DangerButton>
+                </div>
+            </div>
+        </Modal>
+
+        <Modal :show="showRecreateConfirmModal" :closeable="!recreateActionForm.processing" @close="showRecreateConfirmModal = false" maxWidth="md">
+            <div class="p-6 relative">
+                 <div v-if="recreateActionForm.processing" class="absolute inset-0 bg-white/70 dark:bg-gray-800/70 flex items-center justify-center z-20 rounded-lg">
+                    <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span class="ml-3 text-gray-700 dark:text-gray-300">Memproses...</span>
+                </div>
+                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Konfirmasi Buat Ulang Invoice</h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Anda akan membuat invoice baru berdasarkan tagihan yang sudah kedaluwarsa ini. Invoice lama akan tetap ada sebagai riwayat. Lanjutkan?
+                </p>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <SecondaryButton @click="showRecreateConfirmModal = false" :disabled="recreateActionForm.processing">Tidak</SecondaryButton>
+                    <PrimaryButton @click="recreateInvoice" :class="{ 'opacity-25': recreateActionForm.processing }" :disabled="recreateActionForm.processing">
+                        {{ recreateActionForm.processing ? 'Memproses...' : 'Ya, Buat Ulang' }}
+                    </PrimaryButton>
+                </div>
+            </div>
+        </Modal>
 
         <Modal :show="showIndividualModal" @close="closeIndividualModal" :maxWidth="'2xl'">
             <div v-if="formIndividual.processing" class="absolute inset-0 bg-white/70 dark:bg-gray-800/70 z-50 flex items-center justify-center rounded-lg">

@@ -42,6 +42,10 @@ class RoleAndPermissionSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->givePermissionTo(Permission::all()); 
 
+        $adminKelasRole = Role::firstOrCreate(['name' => 'admin_kelas', 'guard_name' => 'web']);
+        $adminKelasRole->givePermissionTo('manage_siswa');
+        $adminKelasRole->givePermissionTo('manage_all_tagihan');
+
         // User
         $userRole = Role::firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
         $userRole->givePermissionTo([

@@ -1,31 +1,40 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import JobStatusToast from '@/Components/JobStatusToast.vue';
-import NavLink from '@/Components/NavLink.vue';
+import Modal from '@/Components/Modal.vue';
+import DangerButton from '@/Components/DangerButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
+import JobStatusToast from '@/Components/JobStatusToast.vue';
 import {
-    HomeIcon,
-    UsersIcon,
-    UserCircleIcon,
-    ShieldCheckIcon,
-    Cog6ToothIcon,
-    ArrowLeftStartOnRectangleIcon,
-    XMarkIcon,
-    ChevronDownIcon,
-    BellIcon,
-    BuildingOfficeIcon,
-    UserGroupIcon,
-    DocumentChartBarIcon,
-    ChartBarIcon,
-    ClipboardDocumentListIcon,
+    HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
+    XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
+    ChevronRightIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
 
+// --- STATE UNTUK LOGOUT CONFIRMATION ---
+const showLogoutConfirmModal = ref(false);
+
+const confirmLogout = () => {
+    nextTick(() => {
+        showLogoutConfirmModal.value = true;
+    });
+};
+
+const logout = () => {
+    router.post(route('logout'), {
+        onSuccess: () => {
+            showLogoutConfirmModal.value = false;
+        }
+    });
+};
+
+// --- STATE UNTUK JOB NOTIFICATION ---
 const showJobToast = ref(false);
 const jobStatus = ref('');
 const jobMessage = ref('');
@@ -35,12 +44,10 @@ onMounted(() => {
     if (window.Echo && user.value) {
         window.Echo.private(`App.Models.User.${user.value.id}`)
             .listen('.mass-invoice.status', (e) => {
-                console.log('Event received:', e);
                 jobStatus.value = e.status;
                 jobMessage.value = e.message;
                 jobProgress.value = e.progress;
                 showJobToast.value = true;
-
                 if (e.status === 'finished' || e.status === 'failed') {
                     setTimeout(() => { showJobToast.value = false; }, 8000);
                 }
@@ -48,10 +55,9 @@ onMounted(() => {
     }
 });
 
-// --- STATE & PROPS ---
+// --- STATE & PROPS LAINNYA ---
 const desktopSidebarOpen = ref(true);
 const mobileSidebarOpen = ref(false);
-
 const userRoles = computed(() => page.props.auth?.user?.roles || []);
 const userPermissions = computed(() => page.props.auth?.user?.permissions || []);
 const userName = computed(() => page.props.auth?.user?.name ?? 'User');
@@ -59,6 +65,12 @@ const userInitial = computed(() => userName.value.charAt(0).toUpperCase());
 const appSettings = computed(() => page.props.app_settings || {});
 const appName = computed(() => appSettings.value.app_name || 'Manajemen SPP');
 const appLogo = computed(() => appSettings.value.app_logo || null);
+
+// --- STATE UNTUK MENU EXPANDABLE ---
+const openMenus = ref({});
+function toggleMenu(menuKey) {
+    openMenus.value[menuKey] = !openMenus.value[menuKey];
+}
 
 // --- THEME MANAGEMENT ---
 const themes = {
@@ -69,24 +81,10 @@ const themes = {
     teal: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a' },
     rose: { 50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af', 400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c', 800: '#9f1239', 900: '#881337' },
 };
-
 const currentTheme = ref(localStorage.getItem('app-theme') || 'indigo');
-
 const applyTheme = (themeName) => {
     const themeColors = themes[themeName];
-    if (!themeColors) {
-        console.warn(`Theme "${themeName}" not found. Falling back to indigo.`);
-        const fallback = themes['indigo'];
-        if (fallback) {
-            for (const [shade, color] of Object.entries(fallback)) {
-                root.style.setProperty(`--color-primary-${shade}`, color);
-            }
-            localStorage.setItem('app-theme', 'indigo');
-            currentTheme.value = 'indigo';
-        }
-        return;
-    }
-
+    if (!themeColors) { applyTheme('indigo'); return; }
     const root = document.documentElement;
     for (const [shade, color] of Object.entries(themeColors)) {
         root.style.setProperty(`--color-primary-${shade}`, color);
@@ -94,73 +92,75 @@ const applyTheme = (themeName) => {
     localStorage.setItem('app-theme', themeName);
     currentTheme.value = themeName;
 };
+watch(currentTheme, (newTheme) => applyTheme(newTheme));
+onMounted(() => applyTheme(currentTheme.value));
 
-watch(currentTheme, (newTheme) => {
-    applyTheme(newTheme);
-});
-
-onMounted(() => {
-    applyTheme(currentTheme.value);
-});
 
 // --- HELPERS ---
 const hasRole = (roleName) => userRoles.value.includes(roleName);
 const hasPermission = (permissionName) => userPermissions.value.includes(permissionName);
-
 function isLinkActive(pattern) {
     if (!pattern) return false;
     const currentRoute = route().current();
     if (!currentRoute) return false;
     return route().current(pattern) || currentRoute.startsWith(pattern.replace('.*', '.'));
 }
-
-const logout = () => { router.post(route('logout')); };
-
-
-// --- MENU DEFINITION (REVISED & SIMPLIFIED) ---
-const sidebarMenu = computed(() => {
-    // Menu untuk Admin & Staff
-    if (hasRole('admin') || hasRole('user')) {
-        return [
-            { type: 'heading', label: 'Utama' },
-            { type: 'link', name: 'Dashboard', icon: HomeIcon, route: 'admin.dashboard', current: 'admin.dashboard' },
-
-            { type: 'heading', label: 'Manajemen' },
-            { type: 'link', name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: ChartBarIcon, current: 'admin.laporan.*', permission: 'manage_all_tagihan' },
-            { type: 'link', name: 'Manajemen Tagihan', route: 'admin.invoices.index', icon: DocumentChartBarIcon, current: 'admin.invoices.*', permission: 'manage_all_tagihan' },
-            { type: 'link', name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', permission: 'manage_siswa' },
-            { type: 'link', name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', permission: 'manage_kelas' },
-
-            { type: 'heading', label: 'Pengaturan Sistem', permission: 'manage users' },
-            { type: 'link', name: 'Users', route: 'admin.users.index', icon: UsersIcon, current: 'admin.users.*', permission: 'manage users' },
-            { type: 'link', name: 'Roles', route: 'admin.roles.index', icon: UserCircleIcon, current: 'admin.roles.*', permission: 'manage roles' },
-            { type: 'link', name: 'Permissions', route: 'admin.permissions.index', icon: ShieldCheckIcon, current: 'admin.permissions.*', permission: 'manage permissions' },
-            { type: 'link', name: 'Pengaturan Aplikasi', route: 'admin.settings.index', icon: Cog6ToothIcon, current: 'admin.settings.*', permission: 'manage application settings' },
-            { type: 'link', name: 'Riwayat Proses', route: 'admin.jobs.index', icon: DocumentChartBarIcon, current: 'admin.jobs.*', permission: 'manage application settings' },
-            { type: 'link', name: 'Log Aktivitas', route: 'admin.activity.index', icon: ClipboardDocumentListIcon, current: 'admin.activity.index', permission: 'manage users' },
-        ];
+function isMenuActive(menuItem) {
+    if (isLinkActive(menuItem.current)) return true;
+    if (menuItem.children && menuItem.children.length > 0) {
+        return menuItem.children.some(child => isLinkActive(child.current));
     }
+    return false;
+}
 
-    // Menu untuk Siswa
-    if (hasRole('siswa')) {
-        return [
-            { type: 'heading', label: 'Utama' },
-            { type: 'link', name: 'Dashboard', icon: HomeIcon, route: 'dashboard', current: 'dashboard' },
-            { type: 'link', name: 'Profil Saya', route: 'siswa.profil.show', icon: UserCircleIcon, current: 'siswa.profil.*' },
-            { type: 'link', name: 'Tagihan Saya', route: 'siswa.tagihan.index', icon: DocumentChartBarIcon, current: 'siswa.tagihan.*' },
-        ];
-    }
 
-    // Default menu jika tidak ada role yang cocok
-    return [
-        { type: 'heading', label: 'Utama' },
-        { type: 'link', name: 'Dashboard', icon: HomeIcon, route: 'admin.dashboard', current: 'admin.dashboard' },
+// --- MENU DEFINITIONS ---
+const mainMenu = computed(() => {
+    const dashboardItem = {
+        name: 'Dashboard', icon: HomeIcon,
+        route: hasRole('admin') || hasRole('staff_akademik') ? 'admin.dashboard' : 'dashboard',
+        current: hasRole('admin') || hasRole('staff_akademik') ? 'admin.dashboard' : 'dashboard',
+    };
+    const siswaMenuItems = [
+        { name: 'Profil Saya', route: 'siswa.profil.show', icon: UserCircleIcon, current: 'siswa.profil.*', requiredRole: 'siswa' },
+        { name: 'Tagihan Saya', route: 'siswa.tagihan.index', icon: DocumentChartBarIcon, current: 'siswa.tagihan.*', requiredRole: 'siswa' },
     ];
+    return [dashboardItem, ...siswaMenuItems.filter(item => hasRole(item.requiredRole))];
 });
+
+const adminMenu = [
+    { name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: ChartBarIcon, current: 'admin.laporan.*', requiredPermission: 'manage_all_tagihan' },
+    { name: 'Manajemen Invoice', route: 'admin.invoices.index', icon: DocumentChartBarIcon, current: 'admin.invoices.*', requiredPermission: 'manage_all_tagihan' },
+    { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', requiredPermission: 'manage_siswa' },
+    { name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', requiredPermission: 'manage_kelas' },
+];
+
+const systemMenu = {
+    name: 'Pengaturan Sistem',
+    icon: Cog6ToothIcon,
+    current: 'admin.users.*,admin.roles.*,admin.permissions.*,admin.settings.*,admin.jobs.*,admin.activity.index',
+    requiredPermission: 'manage users',
+    children: [
+        { name: 'Users', route: 'admin.users.index', icon: UsersIcon, current: 'admin.users.*', requiredPermission: 'manage users' },
+        { name: 'Roles', route: 'admin.roles.index', icon: UserCircleIcon, current: 'admin.roles.*', requiredPermission: 'manage roles' },
+        { name: 'Permissions', route: 'admin.permissions.index', icon: ShieldCheckIcon, current: 'admin.permissions.*', requiredPermission: 'manage permissions' },
+        { name: 'Pengaturan Aplikasi', route: 'admin.settings.index', icon: Cog6ToothIcon, current: 'admin.settings.*', requiredPermission: 'manage application settings' },
+        { name: 'Riwayat Proses', route: 'admin.jobs.index', icon: ChartBarIcon, current: 'admin.jobs.*', requiredPermission: 'manage application settings' },
+        { name: 'Log Aktivitas', route: 'admin.activity.index', icon: DocumentChartBarIcon, current: 'admin.activity.index', requiredPermission: 'manage users' },
+    ]
+};
+
+const canViewAdminMenu = computed(() => adminMenu.some(item => hasPermission(item.requiredPermission)));
+const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermission));
+
 </script>
 
 <template>
-    <div class="relative min-h-screen md:flex bg-gray-100 dark:bg-gray-900">
+    <Head :title="$page.props.pageTitle || 'Admin Area'">
+        <link rel="icon" type="image/x-icon" :href="$page.props.app_settings?.app_logo ? `/storage/${$page.props.app_settings.app_logo}` : '/favicon.ico'">
+    </Head>
+
+    <div class="relative h-screen flex overflow-hidden bg-gray-100 dark:bg-gray-900">
         <div v-if="mobileSidebarOpen" @click="mobileSidebarOpen = false" class="fixed inset-0 bg-black bg-opacity-50 z-20 transition-opacity md:hidden" aria-hidden="true"></div>
 
         <aside :class="[
@@ -169,7 +169,7 @@ const sidebarMenu = computed(() => {
                     desktopSidebarOpen ? 'md:w-64' : 'md:w-20'
                 ]">
             <div class="h-16 flex items-center justify-between px-4 bg-black/20 flex-shrink-0">
-                <Link :href="hasRole('admin') || hasRole('staff_akademik') ? route('admin.dashboard') : route('dashboard')" @click="mobileSidebarOpen = false" class="flex items-center overflow-hidden">
+                <Link :href="hasRole('admin') ? route('admin.dashboard') : route('dashboard')" @click="mobileSidebarOpen = false" class="flex items-center overflow-hidden">
                     <img v-if="appLogo" :src="`/storage/${appLogo}`" alt="App Logo" class="block h-9 w-auto">
                     <ApplicationLogo v-else class="block h-9 w-auto fill-current text-white" />
                     
@@ -182,20 +182,51 @@ const sidebarMenu = computed(() => {
             </div>
 
             <nav class="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-                <template v-for="(item, index) in sidebarMenu" :key="index">
-                    <!-- Tampilkan Heading -->
-                    <h3 v-if="item.type === 'heading'" v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 pt-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        {{ item.label }}
-                    </h3>
-                    
-                    <!-- Tampilkan Link, cek permission jika ada -->
-                    <Link v-if="item.type === 'link' && (!item.permission || hasPermission(item.permission))"
-                          :href="item.route ? route(item.route) : '#'"
-                          @click="mobileSidebarOpen = false"
-                          :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isLinkActive(item.current) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
-                        <component :is="item.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
-                        <span v-show="desktopSidebarOpen || mobileSidebarOpen">{{ item.name }}</span>
-                    </Link>
+                <h3 v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 pt-2 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Utama</h3>
+                <template v-for="item in mainMenu" :key="item.name">
+                    <div v-if="!item.requiredRole || hasRole(item.requiredRole)">
+                        <Link :href="item.route ? route(item.route) : '#'"
+                              @click="mobileSidebarOpen = false"
+                              :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
+                            <component :is="item.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
+                            <span v-show="desktopSidebarOpen || mobileSidebarOpen">{{ item.name }}</span>
+                        </Link>
+                    </div>
+                </template>
+
+                <template v-if="canViewAdminMenu">
+                    <h3 v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 pt-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Manajemen</h3>
+                    <template v-for="item in adminMenu" :key="item.name">
+                         <Link v-if="hasPermission(item.requiredPermission)"
+                               :href="item.route ? route(item.route) : '#'"
+                               @click="mobileSidebarOpen = false"
+                               :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
+                            <component :is="item.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
+                            <span v-show="desktopSidebarOpen || mobileSidebarOpen">{{ item.name }}</span>
+                        </Link>
+                    </template>
+                </template>
+
+                <!-- PERBAIKAN: Tampilkan menu sistem sebagai dropdown -->
+                <template v-if="canViewSystemMenu">
+                    <h3 v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 pt-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sistem</h3>
+                     <div>
+                        <button @click="toggleMenu('system')" :class="['w-full flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(systemMenu) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
+                            <component :is="systemMenu.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
+                            <span class="flex-1 text-left" v-show="desktopSidebarOpen || mobileSidebarOpen">{{ systemMenu.name }}</span>
+                            <component :is="openMenus['system'] ? ChevronDownIcon : ChevronRightIcon" v-show="desktopSidebarOpen || mobileSidebarOpen" class="ml-1 flex-shrink-0 h-4 w-4 transform transition-transform duration-150" />
+                        </button>
+                        <div v-show="openMenus['system']" class="mt-1 ml-4 pl-1 space-y-1 border-l border-[--color-primary-700]">
+                             <template v-for="child in systemMenu.children" :key="child.name">
+                                <Link v-if="hasPermission(child.requiredPermission)"
+                                      :href="child.route ? route(child.route) : '#'"
+                                      @click="mobileSidebarOpen = false"
+                                      :class="['block px-2 py-1.5 text-sm font-medium rounded-md', isLinkActive(child.current) ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-[--color-primary-700]']">
+                                    <span v-show="desktopSidebarOpen || mobileSidebarOpen">{{ child.name }}</span>
+                                </Link>
+                             </template>
+                        </div>
+                    </div>
                 </template>
             </nav>
         </aside>
@@ -263,9 +294,16 @@ const sidebarMenu = computed(() => {
                                                 <button @click="currentTheme = 'rose'" title="Rose" class="h-6 w-6 rounded-full bg-rose-500 focus:outline-none ring-2 ring-offset-2 dark:ring-offset-gray-800" :class="currentTheme === 'rose' ? 'ring-rose-500' : 'ring-transparent'"></button>
                                             </div>
                                         </div>
-                                        <DropdownLink :href="route('logout')" method="post" as="button">
-                                            <ArrowLeftStartOnRectangleIcon class="mr-2 h-4 w-4 inline-block text-gray-400" /> Keluar
-                                        </DropdownLink>
+                                        
+                                        <button
+                                            type="button"
+                                            @click.stop.prevent="confirmLogout"
+                                            class="w-full flex items-center px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        >
+                                            <ArrowLeftStartOnRectangleIcon class="mr-2 h-4 w-4 inline-block text-gray-400" />
+                                            Keluar
+                                        </button>
+                                        
                                     </template>
                                 </Dropdown>
                             </div>
@@ -274,12 +312,38 @@ const sidebarMenu = computed(() => {
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-6">
-                <slot />
+            <main class="flex-1 overflow-y-auto px-6">
+                <div class="pb-12">
+                    <slot />
+                </div>
             </main>
         </div>
+        
+        <JobStatusToast 
+            :show="showJobToast"
+            :status="jobStatus"
+            :message="jobMessage"
+            :progress="jobProgress"
+            @close="showJobToast = false"
+        />
+
+        <Modal :show="showLogoutConfirmModal" @close="showLogoutConfirmModal = false" maxWidth="sm">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    Konfirmasi Keluar
+                </h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Apakah Anda yakin ingin keluar dari akun Anda?
+                </p>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <SecondaryButton @click="showLogoutConfirmModal = false">Batal</SecondaryButton>
+                    <DangerButton @click="logout" :class="{ 'opacity-25': router.processing }" :disabled="router.processing">
+                        Ya, Keluar
+                    </DangerButton>
+                </div>
+            </div>
+        </Modal>
     </div>
-    <JobStatusToast :show="showJobToast" :status="jobStatus" :message="jobMessage" :progress="jobProgress" @close="showJobToast = false" />
 </template>
 
 <style scoped>
