@@ -15,6 +15,13 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            backdropBlur: {
+                sm: '4px',
+                DEFAULT: '8px',
+                md: '12px',
+                lg: '16px',
+                xl: '24px',
+            },
         },
     },
 
