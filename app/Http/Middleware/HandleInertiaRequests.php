@@ -56,6 +56,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [ // Pastikan flash message di-handle
                 'message' => fn () => $request->session()->get('message'),
                 'type' => fn () => $request->session()->get('type'),
+                'success' => fn () => $request->session()->get('success'),
+                'completed_data' => fn () => $request->session()->get('completed_data'),
             ],
             'app_settings' => function () {
                 return Cache::rememberForever('app_settings', function () {

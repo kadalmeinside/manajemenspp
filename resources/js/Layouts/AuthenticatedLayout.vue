@@ -141,6 +141,8 @@ const systemMenu = {
     current: 'admin.users.*,admin.roles.*,admin.permissions.*,admin.settings.*,admin.jobs.*,admin.activity.index',
     requiredPermission: 'manage users',
     children: [
+        { name: 'Dokumen Legal', route: 'admin.legal-documents.index', icon: DocumentChartBarIcon, current: 'admin.legal-documents.*', requiredPermission: 'manage application settings' },
+        { name: 'Log Aktivitas', route: 'admin.activity.index', icon: DocumentChartBarIcon, current: 'admin.activity.index', requiredPermission: 'manage users' },
         { name: 'Users', route: 'admin.users.index', icon: UsersIcon, current: 'admin.users.*', requiredPermission: 'manage users' },
         { name: 'Roles', route: 'admin.roles.index', icon: UserCircleIcon, current: 'admin.roles.*', requiredPermission: 'manage roles' },
         { name: 'Permissions', route: 'admin.permissions.index', icon: ShieldCheckIcon, current: 'admin.permissions.*', requiredPermission: 'manage permissions' },

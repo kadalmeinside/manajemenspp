@@ -19,7 +19,7 @@ const form = useForm({
     nama_siswa: '',
     tanggal_lahir: '',
     id_kelas: '',
-    user_name: '', // Nama Wali
+    user_name: '', 
     email_wali: '',
     nomor_telepon_wali: '',
     user_password: '',

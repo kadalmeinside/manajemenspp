@@ -25,6 +25,8 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Admin\Auth\NewPasswordController;
+use App\Http\Controllers\Admin\LegalDocumentController;
+use App\Http\Controllers\ReRegistrationController;
 use App\Http\Controllers\LegalController;
 
 use App\Http\Controllers\Siswa\ProfileController as SiswaProfileController;
@@ -86,6 +88,10 @@ Route::get('/display', [DisplayController::class, 'index'])->name('display.index
 Route::get('/syarat-ketentuan', [LegalController::class, 'terms'])->name('legal.terms');
 Route::get('/kebijakan-privasi', [LegalController::class, 'privacy'])->name('legal.privacy');
 Route::get('/ketentuan-pengembalian', [LegalController::class, 'refund'])->name('legal.refund');
+Route::get('/daftar-ulang', [ReRegistrationController::class, 'create'])->name('re-register.create');
+Route::get('/daftar-academy', [ReRegistrationController::class, 'createAcademy'])->name('re-register-academy.create');
+Route::get('/daftar-ss', [ReRegistrationController::class, 'createSs'])->name('re-register-ss.create');
+Route::post('/daftar-ulang', [ReRegistrationController::class, 'store'])->name('re-register.store');
 Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoiceCallback'])->name('webhooks.xendit.invoice');
 
 Route::get('/dashboard', function () {
@@ -136,6 +142,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::resource('roles', RoleController::class);
             Route::resource('permissions', PermissionController::class);
             Route::resource('users', UserController::class);
+            Route::resource('legal-documents', LegalDocumentController::class);
             Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
             Route::post('settings', [SettingsController::class, 'update'])->name('settings.update');
             Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity.index');

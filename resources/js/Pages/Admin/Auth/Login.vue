@@ -47,10 +47,12 @@ const submit = () => {
         <!-- Menggunakan struktur dari permintaan pengguna -->
         <div class="w-full max-w-md rounded-xl bg-white p-4 dark:bg-slate-800">
             <div class="mb-8 text-center">
-                <Link href="/">
+                <div class="px-12">
+                    <Link href="/">
                         <img class="h-auto w-auto dark:hidden" src="/images/logo-black.png" alt="Persija Development">
                         <img class="h-auto w-auto hidden dark:block" src="/images/logo-white.png" alt="Persija Development">
                     </Link>
+                </div>
                 <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
                     Selamat datang kembali! Silakan masuk ke akun Anda.
                 </p>
