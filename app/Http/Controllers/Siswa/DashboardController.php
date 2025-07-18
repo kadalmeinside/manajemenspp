@@ -25,28 +25,45 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Ambil tagihan berikutnya yang belum lunas
-        $upcomingInvoice = $siswa->invoices()
+        // --- PERUBAHAN LOGIKA ---
+        // Mengambil SEMUA tagihan tertunggak (bukan hanya satu)
+        $overdueInvoices = $siswa->invoices()
+            ->where('type', 'spp')
             ->whereIn('status', ['PENDING', 'EXPIRED'])
-            ->orderBy('due_date', 'asc')
-            ->first();
+            ->where('periode_tagihan', '<=', now()) // Kondisi: sampai dengan bulan ini
+            ->orderBy('periode_tagihan', 'asc')
+            ->get();
 
-        // Ambil ringkasan pembayaran
+        // Menghitung total dari tagihan yang tertunggak
+        $overdueTotalAmount = $overdueInvoices->sum('total_amount');
+        // --- AKHIR PERUBAHAN LOGIKA ---
+
+
+        // Ringkasan pembayaran keseluruhan (tetap sama)
         $totalPaid = $siswa->invoices()->where('status', 'PAID')->sum('total_amount');
         $totalUnpaid = $siswa->invoices()->whereIn('status', ['PENDING', 'EXPIRED'])->sum('total_amount');
 
         return Inertia::render('Siswa/Dashboard', [
             'pageTitle' => 'Dashboard',
             'siswaName' => $siswa->nama_siswa,
-            'upcomingInvoice' => $upcomingInvoice ? [
-                'id' => $upcomingInvoice->id,
-                'description' => $upcomingInvoice->description,
-                'total_amount_formatted' => 'Rp ' . number_format($upcomingInvoice->total_amount, 0, ',', '.'),
-                'due_date_formatted' => Carbon::parse($upcomingInvoice->due_date)->isoFormat('D MMMM YYYY'),
-                'can_pay' => in_array($upcomingInvoice->status, ['PENDING']),
-                'xendit_payment_url' => $upcomingInvoice->xendit_payment_url,
-                'status' => $upcomingInvoice->status,
-            ] : null,
+            
+            // --- PROPS BARU ---
+            // Mengirim daftar tagihan tertunggak
+            'overdueInvoices' => $overdueInvoices->map(function ($invoice) {
+                return [
+                    'id' => $invoice->id,
+                    'description' => $invoice->description,
+                    'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
+                    'periode_formatted' => Carbon::parse($invoice->periode_tagihan)->isoFormat('MMMM YYYY'),
+                ];
+            }),
+            // Mengirim total nominal tertunggak
+            'overdueTotal' => [
+                'formatted' => 'Rp ' . number_format($overdueTotalAmount, 0, ',', '.'),
+                'count' => $overdueInvoices->count(),
+            ],
+            // --- AKHIR PROPS BARU ---
+
             'paymentSummary' => [
                 'total_paid_formatted' => 'Rp ' . number_format($totalPaid, 0, ',', '.'),
                 'total_unpaid_formatted' => 'Rp ' . number_format($totalUnpaid, 0, ',', '.'),

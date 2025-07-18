@@ -507,4 +507,5 @@ class InvoiceController extends Controller
             'type' => 'error'
         ]);
     }
+
 }

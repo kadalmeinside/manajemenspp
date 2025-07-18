@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions; 
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Siswa extends Model
 {
-    use HasFactory, HasUuids, LogsActivity;
+    use HasFactory, HasUuids, LogsActivity, SoftDeletes;
 
     protected $table = 'siswa';
     protected $primaryKey = 'id_siswa';
@@ -43,10 +44,10 @@ class Siswa extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['nama_siswa', 'status_siswa', 'id_kelas']) // Hanya log perubahan pada kolom ini
-            ->logOnlyDirty() // Hanya log jika ada perubahan (saat update)
+            ->logOnly(['nama_siswa', 'status_siswa', 'id_kelas']) 
+            ->logOnlyDirty() 
             ->setDescriptionForEvent(fn(string $eventName) => "Data siswa telah di-{$eventName}")
-            ->useLogName('Siswa'); // Nama log untuk kategori
+            ->useLogName('Siswa'); 
     }
 
     public function kelas()
@@ -62,5 +63,14 @@ class Siswa extends Model
     public function invoices()
     {
         return $this->hasMany(Invoice::class, 'id_siswa', 'id_siswa');
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Siswa $siswa) {
+            if ($siswa->user) {
+                $siswa->user->delete();
+            }
+        });
     }
 }

@@ -276,9 +276,11 @@ class SiswaController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Siswa $siswa)
+    public function destroy(Request $request, Siswa $siswa)
     {
-        $this->authorize('manage_siswa');
+        if (!$request->user()->can('manage_siswa')) {
+            abort(403);
+        }
 
         DB::transaction(function () use ($siswa) {
             if ($siswa->user) {

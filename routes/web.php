@@ -174,6 +174,8 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
         Route::get('/profil', [SiswaProfileController::class, 'show'])->name('profil.show');
         Route::get('/tagihan', [SiswaTagihanController::class, 'index'])->name('tagihan.index');
         Route::post('/invoices/{invoice}/pay', [SiswaTagihanController::class, 'createPaymentToken'])->name('tagihan.pay');
+        Route::post('/invoices/bulk-pay', [SiswaTagihanController::class, 'createBulkPayment'])->name('invoices.bulk_pay');
+        Route::post('/tagihan/pay', [SiswaTagihanController::class, 'createUnifiedPayment'])->name('invoices.unified_pay');
 });
 
 require __DIR__.'/auth.php';

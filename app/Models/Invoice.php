@@ -45,6 +45,16 @@ class Invoice extends Model
         'total_amount' => 'decimal:2',
     ];
 
+    public function childInvoices()
+    {
+        return $this->belongsToMany(Invoice::class, 'invoice_relations', 'parent_invoice_id', 'child_invoice_id');
+    }
+
+    public function parentInvoice()
+    {
+        return $this->belongsToMany(Invoice::class, 'invoice_relations', 'child_invoice_id', 'parent_invoice_id');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
