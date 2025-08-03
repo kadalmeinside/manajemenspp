@@ -46,16 +46,10 @@ const submit = () => {
 
         <!-- Menggunakan struktur dari permintaan pengguna -->
         <div class="w-full max-w-md rounded-xl bg-white p-4 dark:bg-slate-800">
-             <div class="mb-8 text-center">
-                <div class="px-12">
-                    <Link href="/">
-                        <img class="h-auto w-auto dark:hidden" src="/images/logo-black.png" alt="Persija Development">
-                        <img class="h-auto w-auto hidden dark:block" src="/images/logo-white.png" alt="Persija Development">
-                    </Link>
-                </div>
-                <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                    Selamat datang kembali! Silakan masuk ke akun Anda.
-                </p>
+            <div class="mb-8 text-center">
+                <h2 class="text-xl font-extrabold text-gray-900 dark:text-white">
+                    Masuk ke Akun Anda
+                </h2>
                 <p v-if="status" class="mt-3 rounded-md bg-green-50 p-3 text-sm text-green-700 dark:bg-green-700 dark:text-green-50">
                     {{ status }}
                 </p>
