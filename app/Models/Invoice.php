@@ -34,6 +34,7 @@ class Invoice extends Model
         'external_id_xendit',
         'xendit_callback_payload',
         'recreated_from_id',
+        'parent_payment_id',
     ];
 
     protected $casts = [
@@ -55,6 +56,11 @@ class Invoice extends Model
         return $this->belongsToMany(Invoice::class, 'invoice_relations', 'child_invoice_id', 'parent_invoice_id');
     }
 
+    public function paymentParent()
+    {
+        return $this->belongsTo(Invoice::class, 'parent_payment_id');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -69,6 +75,7 @@ class Invoice extends Model
     {
         return $this->belongsTo(Invoice::class, 'recreated_from_id');
     }
+    
 
     public function siswa()
     {

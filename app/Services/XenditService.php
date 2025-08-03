@@ -83,18 +83,16 @@ class XenditService
             'description' => $description,
             'payer_email' => $payerInfo['email'] ?? null,
             'customer' => [
-                'given_names' => $payerInfo['name'] ?? null,
+                'given_names' => $payerInfo['name'] ?? 'Siswa',
                 'email' => $payerInfo['email'] ?? null,
                 'mobile_number' => $payerInfo['phone'] ?? null,
             ],
             'invoice_duration' => (int) $invoiceDurationInSeconds,
             'notification_channels' => $notificationChannels,
-            'success_redirect_url' => $successRedirectUrl,
+            'success_redirect_url' => $successRedirectUrl, 
             'failure_redirect_url' => $failureRedirectUrl,
             'currency' => 'IDR',
             'payment_methods' => $this->getPaymentMethods(),
-            'success_redirect_url' => route('payment.success'),
-            'failure_redirect_url' => route('payment.failure'),
         ];
 
         if ($adminFee > 0) {

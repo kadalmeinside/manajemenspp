@@ -40,8 +40,8 @@ class DashboardController extends Controller
 
 
         // Ringkasan pembayaran keseluruhan (tetap sama)
-        $totalPaid = $siswa->invoices()->where('status', 'PAID')->sum('total_amount');
-        $totalUnpaid = $siswa->invoices()->whereIn('status', ['PENDING', 'EXPIRED'])->sum('total_amount');
+        $totalPaidQuery = $siswa->invoices()->where('type', 'spp')->where('status', 'PAID');
+        $totalUnpaidQuery = $siswa->invoices()->where('type', 'spp')->whereIn('status', ['PENDING', 'EXPIRED']);
 
         return Inertia::render('Siswa/Dashboard', [
             'pageTitle' => 'Dashboard',
@@ -65,10 +65,10 @@ class DashboardController extends Controller
             // --- AKHIR PROPS BARU ---
 
             'paymentSummary' => [
-                'total_paid_formatted' => 'Rp ' . number_format($totalPaid, 0, ',', '.'),
-                'total_unpaid_formatted' => 'Rp ' . number_format($totalUnpaid, 0, ',', '.'),
-                'total_paid_count' => $siswa->invoices()->where('status', 'PAID')->count(),
-                'total_unpaid_count' => $siswa->invoices()->whereIn('status', ['PENDING', 'EXPIRED'])->count(),
+                'total_paid_formatted' => 'Rp ' . number_format($totalPaidQuery->sum('total_amount'), 0, ',', '.'),
+                'total_unpaid_formatted' => 'Rp ' . number_format($totalUnpaidQuery->sum('total_amount'), 0, ',', '.'),
+                'total_paid_count' => $totalPaidQuery->count(),
+                'total_unpaid_count' => $totalUnpaidQuery->count(),
             ],
         ]);
     }

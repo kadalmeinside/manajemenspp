@@ -71,12 +71,12 @@ class User extends Authenticatable
         return $this->hasOne(Siswa::class, 'id_user', 'id');
     }
 
-    protected static function booted(): void
-    {
-        static::deleting(function (User $user) {
-            if ($user->hasRole('siswa') && $user->siswa) {
-                $user->siswa->delete();
-            }
-        });
-    }
+    // protected static function booted(): void
+    // {
+    //     static::deleting(function (User $user) {
+    //         if ($user->hasRole('siswa') && $user->siswa) {
+    //             $user->siswa->delete();
+    //         }
+    //     });
+    // }
 }

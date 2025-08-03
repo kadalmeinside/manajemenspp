@@ -38,13 +38,22 @@ class DashboardController extends Controller
             return (($current - $previous) / $previous) * 100;
         };
 
-        // 1. Kartu Statistik
+        $incomeInvoiceTypes = ['spp', 'pendaftaran']; 
+
         $totalSiswaAktifQuery = Siswa::where('status_siswa', 'Aktif');
         $siswaBaruBulanIniQuery = Siswa::whereMonth('created_at', $selectedBulan)->whereYear('created_at', $selectedTahun);
         $siswaBaruBulanLaluQuery = Siswa::whereMonth('created_at', $previousMonthDate->month)->whereYear('created_at', $previousMonthDate->year);
         
-        $pendapatanBulanIniQuery = Invoice::where('status', 'PAID')->whereMonth('paid_at', $selectedBulan)->whereYear('paid_at', $selectedTahun);
-        $pendapatanBulanLaluQuery = Invoice::where('status', 'PAID')->whereMonth('paid_at', $previousMonthDate->month)->whereYear('paid_at', $previousMonthDate->year);
+        $pendapatanBulanIniQuery = Invoice::where('status', 'PAID')
+            ->whereIn('type', $incomeInvoiceTypes) 
+            ->whereMonth('paid_at', $selectedBulan)
+            ->whereYear('paid_at', $selectedTahun);
+
+        $pendapatanBulanLaluQuery = Invoice::where('status', 'PAID')
+            ->whereIn('type', $incomeInvoiceTypes)
+            ->whereMonth('paid_at', $previousMonthDate->month)
+            ->whereYear('paid_at', $previousMonthDate->year);
+
         $tagihanTertundaBulanIniQuery = Invoice::where('status', 'PENDING')->where('type', 'spp')->whereMonth('periode_tagihan', $selectedBulan)->whereYear('periode_tagihan', $selectedTahun);
 
         if ($managedKelasIds) {
@@ -63,8 +72,11 @@ class DashboardController extends Controller
         $pendapatanBulanLalu = $pendapatanBulanLaluQuery->sum('total_amount');
         $tagihanTertundaBulanIni = $tagihanTertundaBulanIniQuery->count();
 
-        // 2. Data Grafik
-        $pendapatanPerBulanQuery = Invoice::select(DB::raw('YEAR(paid_at) as tahun'), DB::raw('MONTH(paid_at) as bulan'), DB::raw('SUM(total_amount) as total'))->where('status', 'PAID')->whereBetween('paid_at', [$selectedDate->copy()->subMonths(5)->startOfMonth(), $selectedDate->copy()->endOfMonth()]);
+        $pendapatanPerBulanQuery = Invoice::select(DB::raw('YEAR(paid_at) as tahun'), DB::raw('MONTH(paid_at) as bulan'), DB::raw('SUM(total_amount) as total'))
+            ->where('status', 'PAID')
+            ->whereIn('type', $incomeInvoiceTypes)
+            ->whereBetween('paid_at', [$selectedDate->copy()->subMonths(5)->startOfMonth(), $selectedDate->copy()->endOfMonth()]);
+
         $statusTagihanBulanIniQuery = Invoice::select('status', DB::raw('count(*) as total'))->where('type', 'spp')->whereMonth('periode_tagihan', $selectedBulan)->whereYear('periode_tagihan', $selectedTahun);
 
         if ($managedKelasIds) {
@@ -86,9 +98,11 @@ class DashboardController extends Controller
             if (isset($dataGrafikPendapatan[$key])) { $dataGrafikPendapatan[$key] = $pendapatan->total; }
         }
         
+        $pembayaranTerakhirQuery = Invoice::where('status', 'PAID')
+            ->whereIn('type', $incomeInvoiceTypes)
+            ->with('siswa')
+            ->latest('paid_at');
 
-        // 3. Aktivitas Terbaru
-        $pembayaranTerakhirQuery = Invoice::where('status', 'PAID')->with('siswa')->latest('paid_at');
         $siswaBaruQuery = Siswa::latest('tanggal_bergabung');
         $siswaPerKelasQuery = Kelas::withCount(['siswa' => fn($q) => $q->where('status_siswa', 'Aktif')])->orderBy('nama_kelas');
 
@@ -102,7 +116,6 @@ class DashboardController extends Controller
         $siswaBaru = $siswaBaruQuery->limit(5)->get();
         $siswaPerKelas = $siswaPerKelasQuery->get();
         
-        // 4. Proses Latar Belakang Terbaru (PENAMBAHAN BARU)
         $latestJobs = JobBatch::with('user:id,name')->latest()->limit(5)->get();
 
         return Inertia::render('Admin/Dashboard', [
@@ -117,7 +130,6 @@ class DashboardController extends Controller
             'pembayaranTerakhir' => $pembayaranTerakhir->map(fn($invoice) => ['nama_siswa' => $invoice->siswa?->nama_siswa ?? 'N/A', 'total_tagihan_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'), 'tanggal_bayar' => Carbon::parse($invoice->paid_at)->diffForHumans()]),
             'siswaBaru' => $siswaBaru->map(fn($s) => ['nama_siswa' => $s->nama_siswa, 'tanggal_bergabung' => Carbon::parse($s->tanggal_bergabung)->isoFormat('D MMM YY')]),
             'siswaPerKelas' => $siswaPerKelas->map(fn($k) => ['nama_kelas' => $k->nama_kelas, 'jumlah_siswa' => $k->siswa_count]),
-            // PENAMBAHAN PROPS BARU
             'latestJobs' => $latestJobs->map(fn($job) => [
                 'id' => $job->id,
                 'name' => Str::limit($job->name, 35),

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Invoice; 
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class WebhookController extends Controller
 {
@@ -32,14 +34,12 @@ class WebhookController extends Controller
             return response()->json(['message' => 'Invoice not found']);
         }
 
-        // Hanya proses jika status PAID dan tipe-nya adalah pembayaran gabungan SPP
         if (strtoupper($payload['status']) === 'PAID' && $parentInvoice->type === 'pembayaran_spp_gabungan') {
             
             DB::beginTransaction();
             try {
                 $paidTimestamp = Carbon::parse($payload['paid_at']);
 
-                // Update Invoice Induk
                 $parentInvoice->update([
                     'status' => 'PAID',
                     'paid_at' => $paidTimestamp,
@@ -47,41 +47,56 @@ class WebhookController extends Controller
                 ]);
 
                 $siswa = $parentInvoice->siswa;
-                $monthlySpp = $siswa->jumlah_spp_custom;
-
-                if ($monthlySpp > 0) {
-                    // Hitung berapa bulan yang dibayar
-                    $numMonths = round($parentInvoice->total_amount / $monthlySpp);
-                    // Ambil periode awal dari invoice induk
+                $monthlySpp = (float)($siswa->jumlah_spp_custom ?? 0);
+                
+                if ($parentInvoice->amount > 0 && $monthlySpp > 0) {
+                    $numMonths = round($parentInvoice->amount / $monthlySpp);
                     $startPeriod = Carbon::parse($parentInvoice->periode_tagihan);
 
                     for ($i = 0; $i < $numMonths; $i++) {
                         $currentPeriod = $startPeriod->copy()->addMonths($i);
 
-                        // LOGIKA AJAIB: Update jika ada, atau Buat jika belum ada.
-                        Invoice::updateOrCreate(
-                            [
+                        // ### PERBAIKAN ###
+                        // Mengganti updateOrCreate dengan logika yang lebih robust (cari, lalu update/create)
+                        // untuk menangani perbedaan format tanggal.
+
+                        // 1. Cari invoice yang ada menggunakan whereDate untuk mengabaikan waktu.
+                        $invoice = Invoice::where('id_siswa', $siswa->id_siswa)
+                            ->where('type', 'spp')
+                            ->whereDate('periode_tagihan', $currentPeriod)
+                            ->first();
+
+                        // 2. Siapkan data yang akan disimpan.
+                        $data = [
+                            'user_id' => $parentInvoice->user_id,
+                            'description' => "Pembayaran SPP Bulan " . $currentPeriod->isoFormat('MMMM YYYY'),
+                            'amount' => $monthlySpp,
+                            'admin_fee' => 0,
+                            'total_amount' => $monthlySpp,
+                            'due_date' => $currentPeriod->copy()->endOfMonth(),
+                            'status' => 'PAID',
+                            'paid_at' => $paidTimestamp,
+                            'parent_payment_id' => $parentInvoice->id 
+                        ];
+
+                        if ($invoice) {
+                            // 3a. Jika invoice ditemukan, UPDATE.
+                            $invoice->update($data);
+                        } else {
+                            // 3b. Jika tidak ditemukan, CREATE baru.
+                            Invoice::create(array_merge([
                                 'id_siswa' => $siswa->id_siswa,
                                 'type' => 'spp',
-                                'periode_tagihan' => $currentPeriod->format('Y-m-d'),
-                            ],
-                            [
-                                'user_id' => $parentInvoice->user_id,
-                                'description' => "Pembayaran SPP Bulan " . $currentPeriod->isoFormat('MMMM YYYY'),
-                                'amount' => $monthlySpp,
-                                'total_amount' => $monthlySpp, // Asumsi admin fee custom ditangani terpisah/tidak ada
-                                'due_date' => $currentPeriod->copy()->endOfMonth(),
-                                'status' => 'PAID',
-                                'paid_at' => $paidTimestamp,
-                            ]
-                        );
+                                'periode_tagihan' => $currentPeriod,
+                            ], $data));
+                        }
                     }
                     Log::info("[Xendit Webhook] Successfully processed {$numMonths} SPP invoices for Parent Invoice ID: {$parentInvoice->id}");
                 }
                 
                 DB::commit();
 
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 DB::rollBack();
                 Log::error('[Xendit Webhook] FAILED to process unified SPP payment.', [
                     'parent_invoice_id' => $parentInvoice->id, 

@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
@@ -178,7 +179,6 @@ class SiswaController extends Controller
      */
     public function show(Request $request, Siswa $siswa)
     {
-        //$this->authorize('manage_siswa');
         if (!$request->user()->can('manage_siswa')) {
             abort(403);
         }
@@ -190,24 +190,31 @@ class SiswaController extends Controller
             ->distinct()->orderBy('year', 'desc')->pluck('year');
         
         $selectedTahun = $request->input('tahun', $availableYears->first() ?? now()->year);
-        $selectedType = $request->input('type', '');
 
-        $invoicesQuery = $siswa->invoices()->orderBy('created_at', 'desc');
+        $finalInvoiceTypes = ['spp', 'pendaftaran'];
+
+        $invoicesQuery = $siswa->invoices()
+            ->whereIn('type', $finalInvoiceTypes)
+            ->whereYear('periode_tagihan', $selectedTahun)
+            ->with('paymentParent') // Eager load relasi ke induk pembayaran
+            ->orderBy('periode_tagihan', 'desc');
+
+        $pendingInvoices = (clone $invoicesQuery)->where('status', 'PENDING')->get();
+        $paidInvoices = (clone $invoicesQuery)->where('status', 'PAID')->get();
+        $expiredInvoices = (clone $invoicesQuery)->whereIn('status', ['EXPIRED', 'FAILED'])->get();
         
-        if ($selectedType === 'spp') {
-            $invoicesQuery->where('type', 'spp')->whereYear('periode_tagihan', $selectedTahun);
-        } elseif ($selectedType) {
-            $invoicesQuery->where('type', $selectedType);
-        }
-        
-        $invoices = $invoicesQuery->get();
-        
+        //dd($paidInvoices);
+
         return Inertia::render('Admin/Siswa/Show', [
             'pageTitle' => 'Detail Siswa',
             'siswa' => $this->formatSiswaForDetail($siswa),
-            'invoices' => $invoices->map(fn($invoice) => $this->formatInvoiceForDetail($invoice)),
-            'filters' => ['tahun' => (int)$selectedTahun, 'type' => $selectedType],
+            'pendingInvoices' => $pendingInvoices->map(fn($invoice) => $this->formatInvoiceForDetail($invoice)),
+            'paidInvoices' => $paidInvoices->map(fn($invoice) => $this->formatInvoiceForDetail($invoice)),
+            'expiredInvoices' => $expiredInvoices->map(fn($invoice) => $this->formatInvoiceForDetail($invoice)),
+            'filters' => ['tahun' => (int)$selectedTahun],
             'availableYears' => $availableYears,
+            'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']),
+            'statusSiswaOptions' => ['Aktif', 'Tidak Aktif', 'Lulus', 'Keluar'],
         ]);
     }
 
@@ -215,12 +222,22 @@ class SiswaController extends Controller
         return [
             'id_siswa' => $siswa->id_siswa,
             'nama_siswa' => $siswa->nama_siswa,
+            'nis' => $siswa->nis,
+            'nomor_telepon_wali' => $siswa->nomor_telepon_wali,
+            'tanggal_lahir' => $siswa->tanggal_lahir?->format('Y-m-d'),
             'tanggal_lahir_formatted' => $siswa->tanggal_lahir?->isoFormat('D MMMM YYYY'),
             'status_siswa' => $siswa->status_siswa,
+            'id_kelas' => $siswa->id_kelas,
             'kelas_nama' => $siswa->kelas?->nama_kelas,
+            'user_name' => $siswa->user?->name,
             'email_wali' => $siswa->user?->email,
-            'nomor_telepon_wali' => $siswa->nomor_telepon_wali,
-            'tanggal_bergabung_formatted' => $siswa->tanggal_bergabung->isoFormat('D MMMM YYYY'),
+            'tanggal_bergabung' => $siswa->tanggal_bergabung?->format('Y-m-d'),
+            'tanggal_bergabung_formatted' => $siswa->tanggal_bergabung?->isoFormat('D MMMM YYYY'),
+            'jumlah_spp_custom' => $siswa->jumlah_spp_custom,
+            'admin_fee_custom' => $siswa->admin_fee_custom,
+            // Data baru yang sudah diformat untuk ditampilkan di biodata
+            'jumlah_spp_custom_formatted' => 'Rp ' . number_format($siswa->jumlah_spp_custom ?? 0, 0, ',', '.'),
+            'admin_fee_custom_formatted' => 'Rp ' . number_format($siswa->admin_fee_custom ?? 0, 0, ',', '.'),
         ];
     }
 
@@ -233,7 +250,12 @@ class SiswaController extends Controller
             'due_date_formatted' => Carbon::parse($invoice->due_date)->isoFormat('D MMM YY'),
             'paid_at_formatted' => $invoice->paid_at ? Carbon::parse($invoice->paid_at)->isoFormat('D MMM YY, HH:mm') : '-',
             'xendit_payment_url' => $invoice->xendit_payment_url,
-            'can_pay' => in_array($invoice->status, ['PENDING']),
+            // Menyertakan URL dari parent invoice jika ada
+            'paymentParent' => $invoice->paymentParent ? [
+                'id' => $invoice->paymentParent->id,
+                'description' => $invoice->paymentParent->description,
+                'xendit_payment_url' => $invoice->paymentParent->xendit_payment_url,
+            ] : null,
         ];
     }
 
@@ -270,7 +292,8 @@ class SiswaController extends Controller
             ]));
         });
 
-        return Redirect::route('admin.siswa.index')->with('message', 'Data siswa berhasil diperbarui.')->with('type', 'success');
+        //return Redirect::route('admin.siswa.index')->with('message', 'Data siswa berhasil diperbarui.')->with('type', 'success');
+        return back()->with('message', 'Data siswa berhasil diperbarui.')->with('type', 'success');
     }
 
     /**
@@ -319,23 +342,24 @@ class SiswaController extends Controller
 
         try {
             Excel::import(new SiswaImport, $request->file('file_import'));
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-             $failures = $e->failures();
-             $errorMessages = [];
-             foreach ($failures as $failure) {
-                 $errorMessages[] = "Baris {$failure->row()}: {$failure->errors()[0]} untuk atribut '{$failure->attribute()}'";
-             }
-             return Redirect::back()->with([
-                'message' => 'Gagal mengimpor data. Terdapat beberapa kesalahan: ' . implode(', ', $errorMessages),
+
+        } catch (ValidationException $e) { // <-- Pastikan menangkap exception yang ini
+            $failures = $e->failures();
+            $errorMessages = [];
+            foreach ($failures as $failure) {
+                $errorMessages[] = "Baris {$failure->row()}: {$failure->errors()[0]} pada kolom '{$failure->attribute()}'";
+            }
+            return Redirect::back()->with([
+                'message' => 'Gagal mengimpor data. Kesalahan: ' . implode('; ', $errorMessages),
                 'type' => 'error'
             ]);
+
         } catch (\Exception $e) {
             return Redirect::back()->with([
-                'message' => 'Terjadi kesalahan saat memproses file Anda: ' . $e->getMessage(),
+                'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
                 'type' => 'error'
             ]);
         }
-
 
         return Redirect::route('admin.siswa.index')->with([
             'message' => 'Data siswa berhasil diimpor.',

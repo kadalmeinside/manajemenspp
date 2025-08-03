@@ -133,6 +133,7 @@ const adminMenu = [
     { name: 'Manajemen Invoice', route: 'admin.invoices.index', icon: DocumentChartBarIcon, current: 'admin.invoices.*', requiredPermission: 'manage_all_tagihan' },
     { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', requiredPermission: 'manage_siswa' },
     { name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', requiredPermission: 'manage_kelas' },
+    { name: 'Manajemen Promo', route: 'admin.promos.index', icon: BuildingOfficeIcon, current: 'admin.promos.*', requiredPermission: 'manage_kelas' },
 ];
 
 const systemMenu = {

@@ -32,7 +32,7 @@
             <img src="https://siswa.persijadevelopment.id/images/logo-black.png" alt="Persija Development" style="height: 48px; width: auto;">
         </div>
 
-        <div class="header">Pendaftaran Ulang Berhasil!</div>
+        <div class="header">Pendaftaran Login Berhasil!</div>
         <p>
             Halo, <strong>{{ $registrationData['nama_wali'] }}</strong>,
         </p>
@@ -41,7 +41,7 @@
         </p>
         <table class="details-table">
             <tr>
-                <td>NIS Baru</td>
+                <td>ID Siswa</td>
                 <td><strong>{{ $registrationData['nis'] }}</strong></td>
             </tr>
             <tr>

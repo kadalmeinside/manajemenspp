@@ -88,7 +88,7 @@ const getShortDescription = (description) => {
                                 </div>
                             </div>
                         </div>
-                         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-md rounded-lg p-5">
+                        <!-- <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-md rounded-lg p-5">
                             <div class="flex items-start justify-between">
                                 <div class="w-0 flex-1">
                                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Total Kewajiban</p>
@@ -99,7 +99,7 @@ const getShortDescription = (description) => {
                                     <ClockIcon class="h-6 w-6 text-white"/>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                     </div>
 
                     <div class="text-center pt-4">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Siswa;
 
+use App\Exceptions\InsufficientSppDataException;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\XenditService;
@@ -32,22 +33,30 @@ class TagihanController extends Controller
         if (!$siswa) {
             return Inertia::render('Siswa/Tagihan/Index', [
                 'sppInvoices' => [],
+                'lastPaidPeriod' => null, // Kirim null jika siswa tidak ada
                 'siswa' => null,
                 'pageTitle' => 'Tagihan Saya',
                 'errorMessage' => 'Data siswa tidak dapat ditemukan.'
             ]);
         }
 
-        // HANYA MENGAMBIL INVOICE SPP YANG BELUM LUNAS
-        $sppInvoices = $siswa->invoices()
-                             ->where('type', 'spp')
-                             ->where('status', 'PENDING')
-                             ->orderBy('periode_tagihan', 'asc')
-                             ->get();
+        // 1. Ambil SEMUA invoice SPP yang statusnya PENDING
+        $pendingSppInvoices = $siswa->invoices()
+                               ->where('type', 'spp')
+                               ->where('status', 'PENDING')
+                               ->orderBy('periode_tagihan', 'asc')
+                               ->get();
+
+        // 2. Cari SATU invoice SPP terakhir yang statusnya PAID
+        $lastPaidInvoice = $siswa->invoices()
+                                ->where('type', 'spp')
+                                ->where('status', 'PAID')
+                                ->orderBy('periode_tagihan', 'desc')
+                                ->first();
 
         return Inertia::render('Siswa/Tagihan/Index', [
-            // Kirim data invoice yang sudah ada
-            'sppInvoices' => $sppInvoices->map(function ($invoice) {
+            // Kirim daftar invoice PENDING yang sudah ada
+            'sppInvoices' => $pendingSppInvoices->map(function ($invoice) {
                 return [
                     'id' => $invoice->id,
                     'description' => $invoice->description,
@@ -55,15 +64,17 @@ class TagihanController extends Controller
                     'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
                     'status' => $invoice->status,
                     'periode_tagihan' => $invoice->periode_tagihan->format('Y-m-d'),
-                    'is_projected' => false, // Tandai sebagai invoice asli
+                    'is_projected' => false,
                 ];
             }),
-            // Kirim data siswa untuk membuat proyeksi di frontend
+            
+            // Kirim periode terakhir yang lunas, atau null jika tidak ada
+            'lastPaidPeriod' => $lastPaidInvoice ? $lastPaidInvoice->periode_tagihan->format('Y-m-d') : null,
+            
             'siswa' => [
                 'id_siswa' => $siswa->id_siswa,
                 'jumlah_spp_custom' => (float) $siswa->jumlah_spp_custom,
                 'admin_fee_custom' => (float) $siswa->admin_fee_custom,
-                'tanggal_bergabung' => $siswa->tanggal_bergabung,
             ],
             'pageTitle' => 'Tagihan SPP',
         ]);
@@ -224,6 +235,7 @@ class TagihanController extends Controller
 
     public function createUnifiedPayment(Request $request, XenditService $xenditService)
     {
+        // 1. Validasi input dari frontend
         $validated = $request->validate([
             'periods' => 'required|array|min:1',
             'periods.*' => 'required|date_format:Y-m-d',
@@ -233,35 +245,88 @@ class TagihanController extends Controller
         $periods = collect($validated['periods'])->sort()->values();
 
         try {
+            // 2. Gunakan transaksi database untuk memastikan semua proses aman
             $parentInvoice = DB::transaction(function () use ($periods, $siswa, $xenditService, $request) {
-                // 2. Hitung total berdasarkan jumlah bulan & SPP custom siswa
-                $totalMonths = $periods->count();
-                $totalAmount = $totalMonths * $siswa->jumlah_spp_custom;
+                
+                // 3. LOGIKA "BERSIHKAN DAN GANTIKAN"
+                // Cari dan hapus semua invoice induk pembayaran sebelumnya yang masih PENDING
+                $oldParentInvoices = Invoice::where('id_siswa', $siswa->id_siswa)
+                    ->where('type', 'pembayaran_spp_gabungan')
+                    ->where('status', 'PENDING')
+                    ->get();
 
-                // 3. Buat deskripsi dinamis
+                foreach ($oldParentInvoices as $oldParent) {
+                    // (Sangat direkomendasikan) Panggil Xendit untuk mematikan link lama
+                    if ($oldParent->xendit_invoice_id) {
+                        $xenditService->expireInvoice($oldParent->xendit_invoice_id);
+                    }
+                    // Hapus record dari database Anda
+                    $oldParent->delete();
+                }
+
+                // 4. Hitung total pembayaran secara akurat
+                $totalSpp = 0;
+
+                // Hitung dari invoice yang sudah ada
+                $existingInvoices = $siswa->invoices()
+                    ->whereIn('periode_tagihan', $periods->toArray())
+                    ->where('type', 'spp')
+                    ->get();
+                $totalSpp += $existingInvoices->sum('total_amount');
+                
+                // Hitung dari invoice proyeksi (yang belum ada)
+                $existingPeriods = $existingInvoices->pluck('periode_tagihan')->map(fn($p) => $p->format('Y-m-d'));
+                $projectedPeriods = $periods->diff($existingPeriods);
+
+                if ($projectedPeriods->isNotEmpty()) {
+                    $sppPerBulan = (float)($siswa->jumlah_spp_custom ?? 0);
+                    if ($sppPerBulan <= 0) {
+                        throw new InsufficientSppDataException('Data nominal SPP Anda belum diatur untuk membuat tagihan baru.');
+                    }
+                    $totalSpp += $projectedPeriods->count() * $sppPerBulan;
+                }
+
+                // Tambahkan admin fee satu kali di akhir
+                $adminFee = (float)($siswa->admin_fee_custom ?? 0);
+                $totalAmount = $totalSpp + $adminFee;
+
+                if ($totalAmount <= 0) {
+                    throw new \Exception("Total tagihan tidak valid (Rp 0).");
+                }
+
+                // 5. Buat deskripsi yang seragam
+                Carbon::setLocale('id');
                 $startPeriod = Carbon::parse($periods->first());
                 $endPeriod = Carbon::parse($periods->last());
-                $description = "Pembayaran SPP Gabungan ({$totalMonths} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) untuk {$siswa->nama_siswa}";
+                $description = "Pembayaran SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
 
-                // 4. Buat Invoice Induk (Parent Invoice)
+                // 6. Buat invoice induk yang baru
                 $parentInvoice = Invoice::create([
                     'id_siswa' => $siswa->id_siswa,
                     'user_id' => $request->user()->id,
-                    'type' => 'pembayaran_spp_gabungan', // Tipe baru yang spesifik
+                    'type' => 'pembayaran_spp_gabungan',
                     'description' => $description,
-                    'periode_tagihan' => $startPeriod, // Simpan periode awal sebagai acuan
-                    'amount' => $totalAmount,
+                    'periode_tagihan' => $startPeriod,
+                    'amount' => $totalSpp,
+                    'admin_fee' => $adminFee,
                     'total_amount' => $totalAmount,
                     'due_date' => now()->addDay(),
                     'status' => 'PENDING',
                     'external_id_xendit' => 'UNIF-'.$siswa->id_siswa.'-'.strtoupper(Str::random(10)),
                 ]);
 
-                // 5. Buat link pembayaran di Xendit
+                // 7. Panggil XenditService dengan rincian biaya
                 $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
+                
                 $xenditInvoiceData = $xenditService->createInvoice(
-                    $totalAmount, 0, $parentInvoice->description, $payerInfo,
-                    $parentInvoice->external_id_xendit, route('payment.success'), route('payment.failure'), now()->addDay()
+                    $totalSpp,
+                    $adminFee,
+                    $parentInvoice->description, 
+                    $payerInfo,
+                    $parentInvoice->external_id_xendit, 
+                    route('payment.success'), 
+                    route('payment.failure'), 
+                    now()->addDay()
                 );
 
                 if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
@@ -276,12 +341,14 @@ class TagihanController extends Controller
                 return $parentInvoice;
             });
 
-            // 6. Arahkan siswa ke halaman pembayaran
+            // 8. Arahkan siswa ke halaman pembayaran Xendit
             return Inertia::location($parentInvoice->xendit_payment_url);
 
-        } catch (\Throwable $e) {
+        } catch (InsufficientSppDataException $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        } catch (Throwable $e) {
             Log::error('Gagal membuat pembayaran terpadu: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return back()->withErrors(['error' => 'Terjadi kesalahan sistem, silakan coba lagi.']);
+            return back()->withErrors(['error' => 'Terjadi kesalahan sistem, silakan coba lagi nanti.']);
         }
     }
 }

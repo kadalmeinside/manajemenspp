@@ -2,70 +2,94 @@
 import SiswaLayout from '@/Layouts/SiswaLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { CreditCardIcon, CheckCircleIcon, CalendarDaysIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
+import { CreditCardIcon, CheckCircleIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 
 const props = defineProps({
-    sppInvoices: Array,
+    sppInvoices: Array, // Daftar PENDING invoices
+    lastPaidPeriod: String, // Periode terakhir yang PAID
     siswa: Object,
     pageTitle: String,
     errors: Object,
 });
 
-// --- STATE ---
 const selectedPeriods = ref([]);
 
-// --- FORM ---
 const paymentForm = useForm({
     periods: [],
 });
 
-// --- COMPUTED PROPERTIES ---
 const displayList = computed(() => {
     if (!props.siswa) return [];
+
     const existingInvoices = props.sppInvoices.map(inv => ({ ...inv, is_projected: false }));
     const projectedInvoices = [];
-    const lastPeriod = existingInvoices.length > 0
-        ? new Date(existingInvoices[existingInvoices.length - 1].periode_tagihan)
-        : new Date();
-    const endOfYear = new Date(lastPeriod.getFullYear(), 11, 31);
-    let currentPeriod = new Date(lastPeriod.getFullYear(), lastPeriod.getMonth() + 1, 1);
+    
+    // ### LOGIKA BARU & LEBIH ROBUST UNTUK PROYEKSI ###
+    let startProjectionDate;
+    
+    if (existingInvoices.length > 0) {
+        // Jika ADA invoice PENDING: Mulai proyeksi dari bulan SETELAH invoice PENDING terakhir
+        const lastPeriod = new Date(existingInvoices[existingInvoices.length - 1].periode_tagihan);
+        startProjectionDate = new Date(Date.UTC(lastPeriod.getUTCFullYear(), lastPeriod.getUTCMonth() + 1, 1));
+    } else if (props.lastPaidPeriod) {
+        // Jika TIDAK ADA invoice PENDING, tapi ADA riwayat PAID: Mulai dari bulan SETELAH invoice PAID terakhir
+        const lastPeriod = new Date(props.lastPaidPeriod);
+        startProjectionDate = new Date(Date.UTC(lastPeriod.getUTCFullYear(), lastPeriod.getUTCMonth() + 1, 1));
+    } else {
+        // Jika TIDAK ADA PENDING dan TIDAK ADA PAID (siswa baru): Mulai dari AWAL BULAN INI
+        const today = new Date();
+        startProjectionDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+    }
+    
+    // Sisa logika untuk membuat proyeksi tetap sama
+    let currentPeriod = startProjectionDate;
+    const endOfYear = new Date(Date.UTC(currentPeriod.getUTCFullYear(), 11, 31));
 
     while (currentPeriod <= endOfYear) {
-        const periodString = currentPeriod.toISOString().slice(0, 10);
-        const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(currentPeriod);
+        const year = currentPeriod.getUTCFullYear();
+        const month = String(currentPeriod.getUTCMonth() + 1).padStart(2, '0');
+        const day = '01';
+        const periodString = `${year}-${month}-${day}`;
+        const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(currentPeriod);
+        
+        const sppAmount = props.siswa.jumlah_spp_custom || 0;
+
         projectedInvoices.push({
             id: `proj-${periodString}`,
-            description: `SPP ${monthName}`,
-            total_amount: props.siswa.jumlah_spp_custom,
-            total_amount_formatted: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(props.siswa.jumlah_spp_custom),
+            description: `SPP Bulan ${monthName}`,
+            total_amount: sppAmount,
+            total_amount_formatted: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(sppAmount),
             status: 'PROJECTED',
             periode_tagihan: periodString,
             is_projected: true,
         });
-        currentPeriod.setMonth(currentPeriod.getMonth() + 1);
+        
+        currentPeriod.setUTCMonth(currentPeriod.getUTCMonth() + 1);
     }
+
     return [...existingInvoices, ...projectedInvoices];
 });
 
-// --- FUNGSI UNTUK MEMOTONG DESKRIPSI ---
-const getShortDescription = (description) => {
-    if (!description) return '';
-    return description.split('-')[0].trim();
-};
 
 const totalSelectedAmount = computed(() => {
-    return displayList.value
+    if (selectedPeriods.value.length === 0) return 0;
+    
+    const totalSpp = displayList.value
         .filter(item => selectedPeriods.value.includes(item.periode_tagihan))
         .reduce((total, item) => total + item.total_amount, 0);
+        
+    const adminFee = props.siswa.admin_fee_custom || 0;
+    return totalSpp + adminFee;
 });
 
+
+// ... (Sisa fungsi-fungsi lainnya tidak perlu diubah) ...
 const totalSelectedAmountFormatted = computed(() => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalSelectedAmount.value);
 });
 
-// --- FUNCTIONS ---
 const updateSelection = (item, isChecked) => {
     const clickedIndex = displayList.value.findIndex(i => i.id === item.id);
     if (isChecked) {
@@ -89,9 +113,15 @@ const getStatusClass = (status) => ({
     'PENDING': 'bg-yellow-100 text-yellow-800',
     'PROJECTED': 'bg-blue-100 text-blue-800',
 }[status] || 'bg-gray-100 text-gray-800');
+
+const getShortDescription = (description) => {
+    if (!description) return '';
+    return description.split('-')[0].trim();
+};
 </script>
 
 <template>
+    <!-- Template Anda tidak perlu diubah, karena sudah reaktif terhadap computed property -->
     <Head :title="pageTitle" />
     <SiswaLayout>
         <template #header>
@@ -120,10 +150,10 @@ const getStatusClass = (status) => ({
                 </div>
 
                 <div v-if="displayList.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <template v-for="item in displayList" :key="item.id">
+                    <template v-for="item in displayList">
                         <div @click="updateSelection(item, !selectedPeriods.includes(item.periode_tagihan))" 
                              class="bg-white dark:bg-gray-800 rounded-lg shadow-sm transition-all duration-200 mx-2 p-4 flex items-center space-x-4 cursor-pointer hover:shadow-md"
-                             :class="{ 'bg-indigo-100 dark:bg-indigo-700/50': selectedPeriods.includes(item.periode_tagihan) }">
+                             :class="{ 'bg-slate-100 dark:bg-slate-700/50': selectedPeriods.includes(item.periode_tagihan) }">
                             <Checkbox 
                                 :checked="selectedPeriods.includes(item.periode_tagihan)"
                                 @update:checked.stop="updateSelection(item, $event)"
@@ -133,7 +163,7 @@ const getStatusClass = (status) => ({
                                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.total_amount_formatted }}</p>
                             </div>
                             <span class="px-2 py-0.5 text-xs font-semibold rounded-full" :class="getStatusClass(item.status)">
-                                {{ item.is_projected ? '' : '' }}
+                                {{ item.is_projected ? 'Proyeksi' : 'Tersedia' }}
                             </span>
                         </div>
                     </template>
@@ -142,7 +172,7 @@ const getStatusClass = (status) => ({
                 <div v-else class="text-center text-gray-500 dark:text-gray-400 py-10 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                     <CheckCircleIcon class="mx-auto h-12 w-12 text-green-400" />
                     <h4 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">Semua Lunas!</h4>
-                    <p>Tidak ada tagihan SPP yang perlu dibayar saat ini.</p>
+                    <p>Tidak ada tagihan SPP yang perlu dibayar hingga akhir tahun.</p>
                 </div>
 
                 <div class="pb-24"></div> 

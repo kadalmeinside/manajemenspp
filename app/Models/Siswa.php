@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions; 
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class Siswa extends Model
 {
@@ -72,5 +74,34 @@ class Siswa extends Model
                 $siswa->user->delete();
             }
         });
+    }
+
+    public function generateNis()
+    {
+        // Jika siswa sudah punya NIS, jangan buat lagi.
+        if ($this->nis) {
+            return;
+        }
+
+        $yearMonth = Carbon::now()->format('Ym');
+
+        // 1. Cari siswa terakhir yang dibuat di bulan yang sama untuk mendapatkan nomor urut
+        $lastSiswa = self::where('nis', 'LIKE', $yearMonth . '%')
+                         ->orderBy('nis', 'desc')
+                         ->first();
+
+        $nextSequence = 1;
+        if ($lastSiswa && $lastSiswa->nis) {
+            // Ambil 4 digit terakhir dari NIS, ubah ke angka, lalu tambah 1
+            $lastSequence = (int) substr($lastSiswa->nis, -4);
+            $nextSequence = $lastSequence + 1;
+        }
+
+        // 2. Format nomor urut menjadi 4 digit dengan angka 0 di depan
+        $sequencePadded = Str::padLeft($nextSequence, 4, '0');
+
+        // 3. Gabungkan menjadi NIS baru dan simpan
+        $this->nis = $yearMonth . $sequencePadded;
+        $this->save();
     }
 }

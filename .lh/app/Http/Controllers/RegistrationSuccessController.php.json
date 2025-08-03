@@ -1,0 +1,22 @@
+{
+    "sourceFile": "app/Http/Controllers/RegistrationSuccessController.php",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1754202683407,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1754202723683,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -10,22 +10,13 @@\n {\n     /**\n      * Menampilkan halaman setelah pendaftaran dan pembayaran berhasil.\n      */\n-    public function show(Request $request)\n+    public function show(Request $request, Siswa $siswa)\n     {\n-        $siswaId = $request->session()->pull('registration_success_siswa_id');\n+        // Tidak perlu lagi memeriksa session, karena data siswa sudah dijamin ada\n+        // berkat Route Model Binding.\n \n-        // if (!$siswaId) {\n-        //     return redirect()->route('welcome');\n-        // }\n-\n-        // $siswa = Siswa::find($siswaId);\n-\n-        // if (!$siswa) {\n-        //     return redirect()->route('welcome');\n-        // }\n-\n         return Inertia::render('Public/RegistrationSuccess', [\n             'pageTitle' => 'Pendaftaran Berhasil',\n             'siswaName' => $siswa->nama_siswa,\n             'adminContact' => '0811-2626-323',\n"
+                }
+            ],
+            "date": 1754202683407,
+            "name": "Commit-0",
+            "content": "<?php\n\nnamespace App\\Http\\Controllers;\n\nuse App\\Models\\Siswa;\nuse Illuminate\\Http\\Request;\nuse Inertia\\Inertia;\n\nclass RegistrationSuccessController extends Controller\n{\n    /**\n     * Menampilkan halaman setelah pendaftaran dan pembayaran berhasil.\n     */\n    public function show(Request $request)\n    {\n        $siswaId = $request->session()->pull('registration_success_siswa_id');\n\n        // if (!$siswaId) {\n        //     return redirect()->route('welcome');\n        // }\n\n        // $siswa = Siswa::find($siswaId);\n\n        // if (!$siswa) {\n        //     return redirect()->route('welcome');\n        // }\n\n        return Inertia::render('Public/RegistrationSuccess', [\n            'pageTitle' => 'Pendaftaran Berhasil',\n            'siswaName' => $siswa->nama_siswa,\n            'adminContact' => '0811-2626-323',\n            'instagramUrl' => 'https://www.instagram.com/persija.ac/',\n        ]);\n    }\n}\n"
+        }
+    ]
+}
