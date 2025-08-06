@@ -83,7 +83,8 @@ onUnmounted(() => {
                     </nav>
 
                     <div class="hidden md:flex items-center space-x-2">
-                        <Link :href="route('tagihan.check_form')" class="bg-white text-gray-900 font-bold py-2 px-5 rounded-md text-sm hover:bg-gray-200 transition-colors">Bayar SPP</Link>
+                        <Link :href="route('login')" class="bg-red text-white/80 font-bold py-2 px-5 rounded-md text-sm hover:bg-red-200 transition-colors">Login</Link>
+                        <Link :href="route('tagihan.spp.form')" class="bg-white text-gray-900 font-bold py-2 px-5 rounded-md text-sm hover:bg-gray-200 transition-colors">Bayar SPP</Link>
                     </div>
 
                     <div class="md:hidden">

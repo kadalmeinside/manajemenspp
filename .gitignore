@@ -22,3 +22,10 @@ laravel.log
 
 # NPM dependency lock file
 package-lock.json
+
+# Folder public/storage (symlink)
+/public/storage
+
+# Folder ekstensi VS Code
+.history/
+.lh/

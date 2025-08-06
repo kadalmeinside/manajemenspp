@@ -126,7 +126,7 @@ onUnmounted(() => { clearInterval(heroSlideInterval); });
                                     Bergabunglah dengan program pembinaan elite Persija. Latih potensimu dengan metodologi standar tim utama untuk menjadi generasi juara.
                                 </p>
                                 <div class="mt-8">
-                                    <Link :href="route('pendaftaran.create')" class="inline-block bg-red-600 text-white font-bold py-3 px-8 rounded-lg text-base md:text-lg hover:bg-red-500 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-600/30">
+                                    <Link :href="route('register-ss.create')" class="inline-block bg-red-600 text-white font-bold py-3 px-8 rounded-lg text-base md:text-lg hover:bg-red-500 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-red-600/30">
                                         DAFTAR SEKARANG
                                     </Link>
                                 </div>
@@ -184,7 +184,7 @@ onUnmounted(() => { clearInterval(heroSlideInterval); });
                                         <div>
                                             <h3 class="card-title">{{ cabang.nama_kelas }}</h3>
                                             <p class="card-subtitle">{{ cabang.deskripsi }}</p>
-                                            <Link :href="route('pendaftaran.create')" class="card-button mt-4">Daftar</Link>
+                                            <Link :href="route('register-ss.create')" class="card-button mt-4">Daftar</Link>
                                         </div>
                                     </div>
                                     <div v-if="cabang.isNew" class="absolute top-4 right-4 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full z-30">BARU</div>

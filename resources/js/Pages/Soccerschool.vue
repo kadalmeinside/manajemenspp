@@ -307,7 +307,7 @@ onMounted(() => {
                                 </li>
                             </ul>
                             <div class="mt-8">
-                                <Link :href="route('pendaftaran.create')" class="btn btn-primary">Daftar Online Sekarang</Link>
+                                <Link :href="route('register-ss.create')" class="btn btn-primary">Daftar Online Sekarang</Link>
                             </div>
                         </div>
                         <div class="relative">
@@ -340,7 +340,7 @@ onMounted(() => {
                                         </li>
                                     </ul>
                                     <div class="mt-6">
-                                         <Link :href="route('pendaftaran.create')" class="btn btn-primary w-full">Daftar Online Sekarang</Link>
+                                         <Link :href="route('register-ss.create')" class="btn btn-primary w-full">Daftar Online Sekarang</Link>
                                     </div>
                                 </div>
                             </div>
@@ -391,7 +391,7 @@ onMounted(() => {
                     </div>
                 </div>
                  <div class="p-4 bg-gray-50 border-t">
-                    <Link :href="route('pendaftaran.create')" class="btn btn-primary w-full">Daftar di Cabang {{ selectedBranch.name }}</Link>
+                    <Link :href="route('register-ss.create')" class="btn btn-primary w-full">Daftar di Cabang {{ selectedBranch.name }}</Link>
                 </div>
             </div>
         </div>

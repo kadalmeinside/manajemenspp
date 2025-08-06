@@ -242,7 +242,7 @@ const facilities = ref([
                              </ul>
                              <div class="mt-8 flex flex-col sm:flex-row gap-4">
                                 <a href="https://persijadevelopment.id/file/Booklet-Persija-AC-2023.pdf" target="_blank" class="btn btn-secondary">Download Booklet</a>
-                                <Link :href="route('pendaftaran.create')" class="btn btn-primary">Daftar Sekarang</Link>
+                                <Link :href="route('register-academy.create')" class="btn btn-primary">Daftar Sekarang</Link>
                              </div>
                         </div>
                     </div>
