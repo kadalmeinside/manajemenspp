@@ -1,0 +1,18 @@
+{
+    "sourceFile": "resources/js/Pages/Public/SppSuccess.vue",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1754382838510,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1754382838510,
+            "name": "Commit-0",
+            "content": "<script setup>\nimport { Head, Link, usePage } from '@inertiajs/vue3';\nimport { computed } from 'vue';\nimport ApplicationLogo from '@/Components/ApplicationLogo.vue';\nimport { CheckCircleIcon } from '@heroicons/vue/24/solid';\n\nconst props = defineProps({\n    pageTitle: String,\n    siswaName: String,\n});\n\nconst page = usePage();\nconst appLogo = computed(() => page.props.app_settings?.app_logo ? `/storage/${page.props.app_settings.app_logo}` : null);\n</script>\n\n<template>\n    <Head :title=\"pageTitle\" />\n    <div class=\"relative min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-4 sm:p-6\">\n        <!-- Background Image -->\n        <div class=\"fixed inset-0 z-0\">\n            <div class=\"absolute inset-0 bg-cover bg-center\" style=\"background-image: url('/images/bg_registration.webp');\"></div>\n            <div class=\"absolute inset-0 bg-black/60\"></div>\n        </div>\n\n        <main class=\"w-full max-w-2xl mx-auto z-10 text-center\">\n            <div class=\"bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg shadow-2xl rounded-xl p-8 md:p-12\">\n                <CheckCircleIcon class=\"mx-auto h-16 w-16 text-green-500\" />\n                \n                <h1 class=\"mt-4 text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white\">\n                    Pembayaran Berhasil!\n                </h1>\n                <p class=\"mt-2 text-gray-600 dark:text-gray-300\">\n                    Terima kasih, pembayaran untuk siswa atas nama <strong>{{ siswaName }}</strong> telah kami terima.\n                </p>\n                \n                <div class=\"mt-8\">\n                    <Link :href=\"route('tagihan.spp.form')\" class=\"text-sm font-medium text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300\">\n                        &larr; Kembali ke Halaman Cek SPP\n                    </Link>\n                </div>\n            </div>\n        </main>\n    </div>\n</template>\n"
+        }
+    ]
+}

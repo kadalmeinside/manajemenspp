@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 10,
+            "activePatchIndex": 15,
             "patches": [
                 {
                     "date": 1754202041374,
@@ -48,6 +48,26 @@
                 {
                     "date": 1754202827182,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -96,16 +96,15 @@\n // Route::get('/daftar-ss', [ReRegistrationController::class, 'createSs'])->name('re-register-ss.create');\n Route::post('/daftar-ulang', [ReRegistrationController::class, 'store'])->name('re-register.store');\n Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoiceCallback'])->name('webhooks.xendit.invoice');\n \n-Route::middleware('web')->group(function () {\n-    Route::get('/daftar-academy', [RegistrationController::class, 'createAcademy'])->name('register-academy.create');\n-    Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('register-ss.create');\n-    Route::post('/pendaftaran', [RegistrationController::class, 'store'])->name('pendaftaran.store');\n-    Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');\n-    Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->name('promo.validate');\n-});\n \n+Route::get('/daftar-academy', [RegistrationController::class, 'createAcademy'])->name('register-academy.create');\n+Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('register-ss.create');\n+Route::post('/pendaftaran', [RegistrationController::class, 'store'])->name('pendaftaran.store');\n+Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');\n+Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->name('promo.validate');\n+\n Route::get('/dashboard', function () {\n     if (auth()->check() && auth()->user()->hasRole('siswa')) {\n         return redirect()->route('siswa.dashboard');\n     }\n"
+                },
+                {
+                    "date": 1754378997511,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -197,5 +197,11 @@\n     Route::post('/cek-tagihan/create-user', 'createUserAndLink')->name('tagihan.create_user');\n     Route::post('/cek-tagihan/pay', 'createPublicPayment')->name('tagihan.check_pay'); // Route pembayaran baru\n });\n \n+Route::controller(CekSppController::class)->group(function () {\n+    Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');\n+    Route::post('/cek-spp', 'findSiswaByPhone')->name('tagihan.spp.find');\n+    Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');\n+});\n+\n require __DIR__.'/auth.php';\n"
+                },
+                {
+                    "date": 1754379385284,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -10,8 +10,9 @@\n use App\\Http\\Controllers\\Admin\\Auth\\AuthenticatedSessionController as AdminAuthenticatedSessionController;\n use App\\Http\\Controllers\\WebhookController;\n use App\\Http\\Controllers\\CekTagihanController;\n use App\\Http\\Controllers\\Public\\CheckTagihanController;\n+use App\\Http\\Controllers\\Public\\CekSppController;\n use App\\Http\\Controllers\\PaymentController;\n use App\\Http\\Controllers\\RegistrationController;\n use App\\Http\\Controllers\\DisplayController;\n use App\\Http\\Controllers\\Admin\\DashboardController;\n"
+                },
+                {
+                    "date": 1754380470631,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -202,7 +202,8 @@\n Route::controller(CekSppController::class)->group(function () {\n     Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');\n     Route::post('/cek-spp', 'findSiswaByPhone')->name('tagihan.spp.find');\n     Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');\n+    Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->name('tagihan.spp.pay');\n });\n \n require __DIR__.'/auth.php';\n"
+                },
+                {
+                    "date": 1754382763836,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -203,7 +203,8 @@\n     Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');\n     Route::post('/cek-spp', 'findSiswaByPhone')->name('tagihan.spp.find');\n     Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');\n     Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->name('tagihan.spp.pay');\n+    Route::get('/cek-spp/sukses/{siswa}', 'showSuccess')->name('tagihan.spp.success');\n });\n \n require __DIR__.'/auth.php';\n"
+                },
+                {
+                    "date": 1754386853284,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -202,8 +202,9 @@\n Route::controller(CekSppController::class)->group(function () {\n     Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');\n     Route::post('/cek-spp', 'findSiswaByPhone')->name('tagihan.spp.find');\n     Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');\n+    Route::post('/cek-spp/{siswa}/create-user', 'createUserAndLink')->name('tagihan.spp.create_user');\n     Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->name('tagihan.spp.pay');\n     Route::get('/cek-spp/sukses/{siswa}', 'showSuccess')->name('tagihan.spp.success');\n });\n \n"
                 }
             ],
             "date": 1754202041374,

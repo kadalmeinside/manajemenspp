@@ -1,0 +1,18 @@
+{
+    "sourceFile": "app/Providers/AppServiceProvider.php",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1754465460420,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1754465460420,
+            "name": "Commit-0",
+            "content": "<?php\n\nnamespace App\\Providers;\n\nuse Illuminate\\Support\\Facades\\Vite;\nuse Illuminate\\Support\\ServiceProvider;\nuse Illuminate\\Support\\Facades\\Event;\nuse Illuminate\\Auth\\Events\\Login;    \nuse App\\Listeners\\LogSuccessfulLogin; \n\nclass AppServiceProvider extends ServiceProvider\n{\n    /**\n     * Register any application services.\n     */\n    public function register(): void\n    {\n        //\n    }\n\n    /**\n     * Bootstrap any application services.\n     */\n    public function boot(): void\n    {\n        Vite::prefetch(concurrency: 3);\n\n        Event::listen(\n            Login::class,\n            LogSuccessfulLogin::class\n        );\n    }\n}\n"
+        }
+    ]
+}

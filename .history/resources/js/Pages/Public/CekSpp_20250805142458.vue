@@ -1,0 +1,203 @@
+<script setup>
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import { CreditCardIcon, ArrowPathIcon, UserIcon } from '@heroicons/vue/24/outline';
+import { XCircleIcon } from '@heroicons/vue/20/solid';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import Checkbox from '@/Components/Checkbox.vue';
+
+const props = defineProps({
+    pageTitle: String,
+    errors: Object,
+    foundSiswa: Array, // Daftar siswa yang ditemukan
+    selectedSiswa: Object, // Siswa yang sudah dipilih
+    sppInvoices: Array,
+    lastPaidPeriod: String,
+    searchedPhone: String, // Untuk mengisi kembali form
+});
+
+const page = usePage();
+const appLogo = computed(() => page.props.app_settings?.app_logo ? `/storage/${page.props.app_settings.app_logo}` : null);
+
+// --- State & Forms ---
+const isSearching = ref(false);
+const isRedirecting = ref(false);
+
+const lookupForm = useForm({
+    nomor_telepon_wali: props.searchedPhone || '',
+});
+
+const selectedPeriods = ref([]);
+const paymentForm = useForm({ periods: [] });
+
+// --- Logika Halaman Tagihan (jika selectedSiswa ada) ---
+const displayList = computed(() => {
+    if (!props.selectedSiswa) return [];
+    const existingInvoices = (props.sppInvoices || []).map(inv => ({ ...inv, is_projected: false }));
+    const projectedInvoices = [];
+    let startProjectionDate;
+    if (existingInvoices.length > 0) {
+        const lastPeriod = new Date(existingInvoices[existingInvoices.length - 1].periode_tagihan);
+        startProjectionDate = new Date(Date.UTC(lastPeriod.getUTCFullYear(), lastPeriod.getUTCMonth() + 1, 1));
+    } else if (props.lastPaidPeriod) {
+        const lastPeriod = new Date(props.lastPaidPeriod);
+        startProjectionDate = new Date(Date.UTC(lastPeriod.getUTCFullYear(), lastPeriod.getUTCMonth() + 1, 1));
+    } else {
+        const today = new Date();
+        startProjectionDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+    }
+    let currentPeriod = startProjectionDate;
+    const endOfYear = new Date(Date.UTC(currentPeriod.getUTCFullYear(), 11, 31));
+    while (currentPeriod <= endOfYear) {
+        const year = currentPeriod.getUTCFullYear();
+        const month = String(currentPeriod.getUTCMonth() + 1).padStart(2, '0');
+        const day = '01';
+        const periodString = `${year}-${month}-${day}`;
+        const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(currentPeriod);
+        const totalAmount = (props.selectedSiswa.jumlah_spp_custom || 0);
+        projectedInvoices.push({
+            id: `proj-${periodString}`,
+            description: `SPP Bulan ${monthName}`,
+            total_amount: totalAmount,
+            total_amount_formatted: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalAmount),
+            status: 'PROJECTED',
+            periode_tagihan: periodString,
+            is_projected: true,
+        });
+        currentPeriod.setUTCMonth(currentPeriod.getUTCMonth() + 1);
+    }
+    return [...existingInvoices, ...projectedInvoices];
+});
+
+const totalSelectedAmount = computed(() => {
+    if (selectedPeriods.value.length === 0) return 0;
+    const totalSpp = displayList.value.filter(item => selectedPeriods.value.includes(item.periode_tagihan)).reduce((total, item) => total + item.total_amount, 0);
+    const adminFee = props.selectedSiswa.admin_fee_custom || 0;
+    return totalSpp + adminFee;
+});
+
+const totalSelectedAmountFormatted = computed(() => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalSelectedAmount.value));
+
+const submitLookup = () => {
+    isSearching.value = true;
+    lookupForm.post(route('tagihan.spp.find'), {
+        onFinish: () => isSearching.value = false,
+    });
+};
+
+const updateSelection = (item, isChecked) => {
+    const clickedIndex = displayList.value.findIndex(i => i.id === item.id);
+    if (isChecked) {
+        if (clickedIndex === 0 || selectedPeriods.value.includes(displayList.value[clickedIndex - 1].periode_tagihan)) {
+            selectedPeriods.value.push(item.periode_tagihan);
+        }
+    } else {
+        const periodsToRemove = displayList.value.slice(clickedIndex).map(i => i.periode_tagihan);
+        selectedPeriods.value = selectedPeriods.value.filter(p => !periodsToRemove.includes(p));
+    }
+};
+
+const isItemDisabled = (index) => {
+    if (index === 0) return false; 
+    return !selectedPeriods.value.includes(displayList.value[index - 1].periode_tagihan);
+};
+
+const submitPayment = () => {
+    isRedirecting.value = true;
+    paymentForm.periods = selectedPeriods.value.sort();
+    paymentForm.post(route('tagihan.check_pay')); 
+};
+
+const getStatusClass = (status) => ({
+    'PENDING': 'bg-yellow-100 text-yellow-800',
+    'PROJECTED': 'bg-blue-100 text-blue-800',
+}[status] || 'bg-gray-100 text-gray-800');
+
+const getShortDescription = (description) => {
+    if (!description) return '';
+    return description.split('-')[0].trim();
+};
+</script>
+
+<template>
+    <Head :title="pageTitle" />
+    <div class="relative min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center p-4 sm:p-6">
+        <div class="fixed inset-0 z-0 bg-cover bg-center" style="background-image: url('/images/bg_registration.webp');">
+            <div class="absolute inset-0 bg-black/50"></div>
+        </div>
+
+        <div v-if="isRedirecting" class="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+            <ArrowPathIcon class="h-12 w-12 text-white animate-spin" />
+            <p class="text-white mt-4 text-lg">Mengarahkan ke halaman pembayaran...</p>
+        </div>
+
+        <main class="w-full max-w-4xl mx-auto z-10 flex-grow flex flex-col justify-center">
+            <header class="text-center mb-8">
+                <Link href="/" class="inline-block">
+                    <img v-if="appLogo" :src="appLogo" alt="App Logo" class="h-12 w-auto mx-auto">
+                    <ApplicationLogo v-else class="h-12 w-auto mx-auto text-white" />
+                </Link>
+            </header>
+
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-2xl rounded-xl p-6 md:p-8">
+                
+                <!-- TAMPILAN 1: FORM PENCARIAN -->
+                <div v-if="!foundSiswa && !selectedSiswa">
+                     <h1 class="text-2xl font-bold text-center text-gray-800 dark:text-white">{{ pageTitle }}</h1>
+                    <p class="mt-2 text-center text-gray-600 dark:text-gray-400">Masukkan No. Telepon Wali yang terdaftar.</p>
+                    <form @submit.prevent="submitLookup" class="mt-6 max-w-md mx-auto space-y-6 relative">
+                        <div v-if="isSearching" class="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex items-center justify-center rounded-md">
+                            <ArrowPathIcon class="h-8 w-8 text-gray-500 animate-spin" />
+                        </div>
+                        <div v-if="errors.lookup" class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-400 p-4" role="alert">
+                            <div class="flex">
+                                <div class="flex-shrink-0"><XCircleIcon class="h-5 w-5 text-red-400" aria-hidden="true" /></div>
+                                <div class="ml-3"><p class="text-sm font-medium text-red-800 dark:text-red-300">{{ errors.lookup }}</p></div>
+                            </div>
+                        </div>
+                        <div>
+                            <InputLabel for="nomor_telepon_wali" value="No. Telepon Wali" />
+                            <TextInput v-model="lookupForm.nomor_telepon_wali" id="nomor_telepon_wali" type="tel" required class="mt-1 block w-full" />
+                            <InputError :message="lookupForm.errors.nomor_telepon_wali" class="mt-2" />
+                        </div>
+                        <div>
+                            <PrimaryButton type="submit" :disabled="lookupForm.processing" class="w-full flex justify-center py-3">
+                                {{ lookupForm.processing ? 'Mencari...' : 'Cari Siswa' }}
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TAMPILAN 2: DAFTAR PILIHAN SISWA -->
+                <div v-else-if="foundSiswa">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Pilih Siswa</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Ditemukan {{ foundSiswa.length }} siswa dengan nomor telepon yang sama.</p>
+                    <div class="mt-4 border-t border-gray-200 dark:border-gray-700">
+                        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-600">
+                            <li v-for="siswa in foundSiswa" :key="siswa.id_siswa" class="flex items-center justify-between gap-x-6 py-4">
+                                <div class="flex min-w-0 gap-x-4">
+                                    <UserIcon class="h-10 w-10 flex-none rounded-full bg-gray-200 dark:bg-gray-700 p-2 text-gray-500" />
+                                    <div class="min-w-0 flex-auto">
+                                        <p class="text-sm font-semibold leading-6 text-gray-900 dark:text-white">{{ siswa.nama_siswa }}</p>
+                                        <p class="mt-1 truncate text-xs leading-5 text-gray-500 dark:text-gray-400">{{ siswa.kelas_nama }}</p>
+                                    </div>
+                                </div>
+                                <Link :href="route('tagihan.spp.show', siswa.id_siswa)" class="rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-600">Pilih</Link>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- TAMPILAN 3: HALAMAN TAGIHAN LENGKAP -->
+                <div v-else-if="selectedSiswa">
+                    <!-- Seluruh kode dari halaman tagihan yang sudah ada bisa diletakkan di sini -->
+                </div>
+
+            </div>
+        </main>
+    </div>
+</template>
