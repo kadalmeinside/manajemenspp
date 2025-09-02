@@ -2,13 +2,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
-import { ArrowLeftIcon, PencilIcon, LinkIcon } from '@heroicons/vue/20/solid';
+import { ArrowLeftIcon, PencilIcon, LinkIcon, BanknotesIcon } from '@heroicons/vue/20/solid';
 import { debounce } from 'lodash';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import Toast from '@/Components/Toast.vue'; // <-- Import Toast
+import Toast from '@/Components/Toast.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 
@@ -29,6 +29,7 @@ const props = defineProps({
 // --- State untuk Notifikasi Flash ---
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
+const flashKey = computed(() => page.props.flash?.key);
 
 // --- State untuk Filter & Tab ---
 const selectedTahun = ref(props.filters.tahun);
@@ -52,32 +53,29 @@ const form = useForm({
 });
 
 // --- Computed Property untuk Formatting Angka di Form ---
+const formatAndSanitize = (value) => {
+    if (value === null || value === undefined) return '';
+    const numericString = String(value).replace(/[^0-9]/g, '');
+    if (numericString === '') return '';
+    const number = parseInt(numericString, 10);
+    return new Intl.NumberFormat('id-ID').format(number);
+};
+
 const sppCustomFormatted = computed({
-  get() {
-    const numberValue = parseFloat(form.jumlah_spp_custom);
-    if (isNaN(numberValue)) return '';
-    return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(numberValue);
-  },
-  set(newValue) {
-    const numericString = newValue.replace(/[^0-9]/g, '');
-    form.jumlah_spp_custom = numericString ? parseInt(numericString, 10) : null;
-  }
+    get: () => formatAndSanitize(form.jumlah_spp_custom),
+    set: (newValue) => {
+        form.jumlah_spp_custom = newValue.replace(/[^0-9]/g, '');
+    }
 });
 
 const adminFeeCustomFormatted = computed({
-  get() {
-    const numberValue = parseFloat(form.admin_fee_custom);
-    if (isNaN(numberValue)) return '';
-    return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(numberValue);
-  },
-  set(newValue) {
-    const numericString = newValue.replace(/[^0-9]/g, '');
-    form.admin_fee_custom = numericString ? parseInt(numericString, 10) : null;
-  }
+    get: () => formatAndSanitize(form.admin_fee_custom),
+    set: (newValue) => {
+        form.admin_fee_custom = newValue.replace(/[^0-9]/g, '');
+    }
 });
 
 const openEditModal = () => {
-    // Isi form dengan data siswa saat ini
     form.nama_siswa = props.siswa.nama_siswa;
     form.user_name = props.siswa.user_name;
     form.email_wali = props.siswa.email_wali;
@@ -86,8 +84,8 @@ const openEditModal = () => {
     form.status_siswa = props.siswa.status_siswa;
     form.tanggal_lahir = props.siswa.tanggal_lahir;
     form.tanggal_bergabung = props.siswa.tanggal_bergabung;
-    form.jumlah_spp_custom = parseFloat(props.siswa.jumlah_spp_custom) || null;
-    form.admin_fee_custom = parseFloat(props.siswa.admin_fee_custom) || null;
+    form.jumlah_spp_custom = props.siswa.jumlah_spp_custom;
+    form.admin_fee_custom = props.siswa.admin_fee_custom;
     isEditModalOpen.value = true;
 };
 
@@ -102,6 +100,27 @@ const submitUpdate = () => {
         preserveScroll: true,
         onSuccess: () => closeModal(),
     });
+};
+
+// --- State & Logika untuk Modal Pembayaran Manual ---
+const showManualPayConfirmModal = ref(false);
+const invoiceToMarkAsPaid = ref(null);
+
+const confirmMarkAsPaid = (invoice) => {
+    invoiceToMarkAsPaid.value = invoice;
+    showManualPayConfirmModal.value = true;
+};
+
+const markAsPaid = () => {
+    if (invoiceToMarkAsPaid.value) {
+        router.patch(route('admin.invoices.mark_as_paid', invoiceToMarkAsPaid.value.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showManualPayConfirmModal.value = false;
+                invoiceToMarkAsPaid.value = null;
+            },
+        });
+    }
 };
 
 // --- Watcher untuk Filter Tahun ---
@@ -144,7 +163,7 @@ const getShortDescription = (description) => {
             </div>
         </template>
 
-         <Toast :message="flashMessage" :type="flashType" />
+        <Toast :message="flashMessage" :type="flashType" :flash-key="flashKey" />
 
         <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
             
@@ -232,7 +251,12 @@ const getShortDescription = (description) => {
                                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ getShortDescription(invoice.description) }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ invoice.total_amount_formatted }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ invoice.paid_at_formatted }}</td>
-                                    <td class="px-6 py-4 text-right text-sm font-medium"><a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-indigo-600 hover:text-indigo-900">Lihat</a></td>
+                                    <td class="px-6 py-4 text-right text-sm font-medium space-x-4">
+                                        <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-indigo-600 hover:text-indigo-900 inline-block">Lihat</a>
+                                        <button @click="confirmMarkAsPaid(invoice)" class="inline-flex items-center text-green-600 hover:text-green-900" title="Tandai Sudah Bayar (Manual)">
+                                            <BanknotesIcon class="h-5 w-5" />
+                                        </button>
+                                    </td>
                                 </tr>
                             </template>
                             <template v-if="activeTab === 'paid'">
@@ -353,5 +377,25 @@ const getShortDescription = (description) => {
             </div>
         </Modal>
 
+        <Modal :show="showManualPayConfirmModal" @close="showManualPayConfirmModal = false" maxWidth="md">
+            <div class="p-6">
+                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    Konfirmasi Pembayaran Manual
+                </h2>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Apakah Anda yakin ingin menandai invoice untuk <span class="font-semibold">{{ getShortDescription(invoiceToMarkAsPaid?.description) }}</span> sebagai LUNAS?
+                    <br><br>
+                    Aksi ini akan mencatat pembayaran sebagai transaksi manual (misal: tunai/transfer langsung) dan tidak dapat dibatalkan.
+                </p>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <SecondaryButton @click="showManualPayConfirmModal = false" type="button"> Batal </SecondaryButton>
+                    <PrimaryButton @click="markAsPaid" class="bg-green-600 hover:bg-green-700 focus:ring-green-500" :class="{ 'opacity-25': router.processing }" :disabled="router.processing">
+                        Ya, Tandai Lunas
+                    </PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+
     </AuthenticatedLayout>
 </template>
+

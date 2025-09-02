@@ -663,4 +663,33 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function markAsPaid(Request $request, Invoice $invoice)
+    {
+        // Pastikan hanya admin yang berwenang yang bisa mengakses
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        // Hanya invoice PENDING yang bisa ditandai lunas
+        if ($invoice->status !== 'PENDING') {
+            return Redirect::back()->with([
+                'message' => 'Hanya invoice dengan status PENDING yang dapat ditandai lunas.',
+                'type' => 'error'
+            ]);
+        }
+
+        // Update status invoice
+        $invoice->update([
+            'status' => 'PAID',
+            'paid_at' => now(),
+            'payment_method' => 'manual', // Tandai sebagai pembayaran manual
+        ]);
+
+        // Kirim notifikasi sukses
+        return Redirect::back()->with('flash', [
+            'type' => 'success',
+            'message' => 'Invoice berhasil ditandai sebagai LUNAS.'
+        ]);
+    }
+
 }

@@ -168,10 +168,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');
             Route::resource('siswa', SiswaController::class);
             Route::resource('invoices', InvoiceController::class);
-            Route::resource('promos', PromoController::class)->except(['show']);
+            Route::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');
             Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');
             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');
             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');
+            Route::resource('promos', PromoController::class)->except(['show']);
             Route::get('laporan/pembayaran-bulanan', [LaporanController::class, 'pembayaranBulanan'])->name('laporan.pembayaran_bulanan');
             Route::get('jobs', [\App\Http\Controllers\Admin\JobBatchController::class, 'index'])->name('jobs.index');
         });

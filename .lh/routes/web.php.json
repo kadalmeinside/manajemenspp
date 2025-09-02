@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 15,
+            "activePatchIndex": 18,
             "patches": [
                 {
                     "date": 1754202041374,
@@ -68,6 +68,18 @@
                 {
                     "date": 1754386853284,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -202,8 +202,9 @@\n Route::controller(CekSppController::class)->group(function () {\n     Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');\n     Route::post('/cek-spp', 'findSiswaByPhone')->name('tagihan.spp.find');\n     Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');\n+    Route::post('/cek-spp/{siswa}/create-user', 'createUserAndLink')->name('tagihan.spp.create_user');\n     Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->name('tagihan.spp.pay');\n     Route::get('/cek-spp/sukses/{siswa}', 'showSuccess')->name('tagihan.spp.success');\n });\n \n"
+                },
+                {
+                    "date": 1756787316335,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -167,8 +167,9 @@\n             Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');\n             Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');\n             Route::resource('siswa', SiswaController::class);\n             Route::resource('invoices', InvoiceController::class);\n+            oute::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');\n             Route::resource('promos', PromoController::class)->except(['show']);\n             Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');\n             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');\n             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');\n"
+                },
+                {
+                    "date": 1756787333641,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -168,12 +168,12 @@\n             Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');\n             Route::resource('siswa', SiswaController::class);\n             Route::resource('invoices', InvoiceController::class);\n             oute::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');\n-            Route::resource('promos', PromoController::class)->except(['show']);\n             Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');\n             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');\n             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');\n+            Route::resource('promos', PromoController::class)->except(['show']);\n             Route::get('laporan/pembayaran-bulanan', [LaporanController::class, 'pembayaranBulanan'])->name('laporan.pembayaran_bulanan');\n             Route::get('jobs', [\\App\\Http\\Controllers\\Admin\\JobBatchController::class, 'index'])->name('jobs.index');\n         });\n \n"
+                },
+                {
+                    "date": 1756787723042,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -167,9 +167,9 @@\n             Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');\n             Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');\n             Route::resource('siswa', SiswaController::class);\n             Route::resource('invoices', InvoiceController::class);\n-            oute::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');\n+            Route::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');\n             Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');\n             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');\n             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');\n             Route::resource('promos', PromoController::class)->except(['show']);\n"
                 }
             ],
             "date": 1754202041374,

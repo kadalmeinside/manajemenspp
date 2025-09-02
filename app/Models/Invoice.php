@@ -29,6 +29,7 @@ class Invoice extends Model
         'due_date',
         'paid_at',
         'status',
+        'payment_method',
         'xendit_invoice_id',
         'xendit_payment_url',
         'external_id_xendit',
