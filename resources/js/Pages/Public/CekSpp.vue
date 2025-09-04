@@ -53,16 +53,11 @@ const displayList = computed(() => {
     
     let startProjectionDate;
     
-    // Gunakan prop `lastPeriod` sebagai satu-satunya sumber kebenaran
     if (props.lastPeriod) {
-        // Parse string YYYY-MM-DD secara manual untuk menghindari pergeseran timezone
         const parts = props.lastPeriod.split('-').map(Number);
         const lastDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-        
-        // Mulai proyeksi dari bulan SETELAHNYA
         startProjectionDate = new Date(Date.UTC(lastDate.getUTCFullYear(), lastDate.getUTCMonth() + 1, 1));
     } else {
-        // Jika tidak ada histori sama sekali (siswa baru), mulai dari bulan ini
         const today = new Date();
         startProjectionDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
     }
@@ -122,7 +117,10 @@ const updateSelection = (item, isChecked) => {
     const clickedIndex = displayList.value.findIndex(i => i.id === item.id);
     if (isChecked) {
         if (clickedIndex === 0 || selectedPeriods.value.includes(displayList.value[clickedIndex - 1].periode_tagihan)) {
-            selectedPeriods.value.push(item.periode_tagihan);
+            // ### PERBAIKAN: Mencegah duplikat ###
+            if (!selectedPeriods.value.includes(item.periode_tagihan)) {
+                selectedPeriods.value.push(item.periode_tagihan);
+            }
         }
     } else {
         const periodsToRemove = displayList.value.slice(clickedIndex).map(i => i.periode_tagihan);
@@ -299,7 +297,11 @@ const getShortDescription = (description) => {
                                 @click="!isItemDisabled(index) && updateSelection(item, !selectedPeriods.includes(item.periode_tagihan))" 
                                 class="bg-white/50 dark:bg-gray-900/50 rounded-lg shadow-sm transition-all duration-200 p-4 flex items-center space-x-4"
                                 :class="{ 'bg-slate-200 dark:bg-slate-700': selectedPeriods.includes(item.periode_tagihan), 'cursor-pointer hover:shadow-md': !isItemDisabled(index), 'opacity-50 cursor-not-allowed': isItemDisabled(index) }">
-                                <Checkbox :checked="selectedPeriods.includes(item.periode_tagihan)" @update:checked="updateSelection(item, $event)" :disabled="isItemDisabled(index)" />
+                                <Checkbox 
+                                    :checked="selectedPeriods.includes(item.periode_tagihan)" 
+                                    @click.stop
+                                    @update:checked="updateSelection(item, $event)" 
+                                    :disabled="isItemDisabled(index)" />
                                 <div class="flex-1">
                                     <p class="font-medium text-gray-900 dark:text-white">{{ getShortDescription(item.description) }}</p>
                                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.total_amount_formatted }}</p>
