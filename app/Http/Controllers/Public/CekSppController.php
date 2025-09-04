@@ -17,21 +17,27 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
-use Illuminate\Validation\Rules;
 
 class CekSppController extends Controller
 {
-    // ... (fungsi showForm, findSiswaByPhone, showTagihan tetap sama) ...
-    public function showForm(): Response
+    /**
+     * Menampilkan form awal untuk cek SPP.
+     */
+    public function showForm(Request $request): Response
     {
         return Inertia::render('Public/CekSpp', [
             'pageTitle' => 'Cek SPP Siswa',
+            'searchedPhone' => $request->old('nomor_telepon_wali'),
         ]);
     }
 
+    /**
+     * Mencari siswa berdasarkan nomor telepon dan menampilkan daftar pilihan.
+     */
     public function findSiswaByPhone(Request $request)
     {
         $validated = $request->validate([
@@ -39,38 +45,63 @@ class CekSppController extends Controller
         ]);
 
         $phoneInput = $validated['nomor_telepon_wali'];
+        // Normalisasi nomor telepon untuk pencarian yang lebih fleksibel
         $normalizedPhone = preg_replace('/[\s\-\+]/', '', $phoneInput);
+        $possibleFormats = [
+            $normalizedPhone,
+            '0' . ltrim($normalizedPhone, '62'),
+            '62' . ltrim($normalizedPhone, '0')
+        ];
 
-        $siswas = Siswa::where(function ($query) use ($normalizedPhone) {
-                $query->where('nomor_telepon_wali', $normalizedPhone)
-                      ->orWhere('nomor_telepon_wali', '0' . ltrim($normalizedPhone, '62'))
-                      ->orWhere('nomor_telepon_wali', '62' . ltrim($normalizedPhone, '0'));
-            })
-            ->with('kelas:id_kelas,nama_kelas')
-            ->orderBy('nama_siswa')
-            ->get();
+        $foundSiswa = Siswa::whereIn('nomor_telepon_wali', array_unique($possibleFormats))
+                           ->with('kelas:id_kelas,nama_kelas')
+                           ->get();
 
-        if ($siswas->isEmpty()) {
-            return Redirect::back()->withErrors(['lookup' => 'Nomor telepon tidak terdaftar. Pastikan nomor yang Anda masukkan sudah benar.']);
+        if ($foundSiswa->isEmpty()) {
+            return Redirect::back()->withInput()->withErrors(['lookup' => 'Nomor telepon tidak terdaftar.']);
         }
 
+        // Jika hanya ditemukan satu siswa, langsung arahkan ke halaman tagihan
+        if ($foundSiswa->count() === 1) {
+            return Redirect::route('tagihan.spp.show', $foundSiswa->first()->id_siswa);
+        }
+
+        // Jika lebih dari satu, tampilkan halaman pilihan
         return Inertia::render('Public/CekSpp', [
             'pageTitle' => 'Pilih Siswa',
-            'foundSiswa' => $siswas->map(fn($siswa) => [
+            'foundSiswa' => $foundSiswa->map(fn($siswa) => [
                 'id_siswa' => $siswa->id_siswa,
                 'nama_siswa' => $siswa->nama_siswa,
-                'kelas_nama' => $siswa->kelas?->nama_kelas ?? 'Belum ada kelas',
+                'kelas_nama' => $siswa->kelas?->nama_kelas ?? 'Tanpa Kelas',
             ]),
             'searchedPhone' => $phoneInput,
         ]);
     }
 
-    public function showTagihan(Siswa $siswa)
+    /**
+     * Menampilkan halaman tagihan lengkap untuk siswa yang dipilih.
+     */
+    public function showTagihan(Request $request, Siswa $siswa): Response
     {
         $siswa->load('user');
 
-        $pendingSppInvoices = $siswa->invoices()->where('type', 'spp')->where('status', 'PENDING')->orderBy('periode_tagihan', 'asc')->get();
-        $lastPaidInvoice = $siswa->invoices()->where('type', 'spp')->where('status', 'PAID')->orderBy('periode_tagihan', 'desc')->first();
+        $pendingSppInvoices = $siswa->invoices()
+                               ->where('type', 'spp')->where('status', 'PENDING')
+                               ->orderBy('periode_tagihan', 'asc')->get();
+
+        $lastPaidInvoice = $siswa->invoices()
+                               ->where('type', 'spp')->where('status', 'PAID')
+                               ->orderBy('periode_tagihan', 'desc')->first();
+        
+        // Tentukan periode terakhir yang relevan (mana yang lebih baru)
+        $lastPendingPeriod = $pendingSppInvoices->last()?->periode_tagihan;
+        $lastPaidPeriod = $lastPaidInvoice?->periode_tagihan;
+        $lastPeriod = null;
+        if ($lastPendingPeriod && $lastPaidPeriod) {
+            $lastPeriod = $lastPendingPeriod->isAfter($lastPaidPeriod) ? $lastPendingPeriod : $lastPaidPeriod;
+        } else {
+            $lastPeriod = $lastPendingPeriod ?: $lastPaidPeriod;
+        }
 
         return Inertia::render('Public/CekSpp', [
             'pageTitle' => 'Tagihan SPP',
@@ -82,21 +113,22 @@ class CekSppController extends Controller
                 'admin_fee_custom' => (float) $siswa->admin_fee_custom,
                 'has_user_account' => $siswa->user()->exists(),
             ],
-            'sppInvoices' => $pendingSppInvoices->map(function ($invoice) {
-                return [
-                    'id' => $invoice->id,
-                    'description' => $invoice->description,
-                    'total_amount' => (float) $invoice->total_amount,
-                    'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
-                    'status' => $invoice->status,
-                    'periode_tagihan' => $invoice->periode_tagihan->format('Y-m-d'),
-                    'is_projected' => false,
-                ];
-            }),
-            'lastPaidPeriod' => $lastPaidInvoice ? $lastPaidInvoice->periode_tagihan->format('Y-m-d') : null,
+            'sppInvoices' => $pendingSppInvoices->map(fn($invoice) => [
+                'id' => $invoice->id,
+                'description' => $invoice->description,
+                'total_amount' => (float) $invoice->total_amount,
+                'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
+                'status' => $invoice->status,
+                'periode_tagihan' => $invoice->periode_tagihan->format('Y-m-d'),
+                'is_projected' => false,
+            ]),
+            'lastPeriod' => $lastPeriod ? $lastPeriod->format('Y-m-d') : null,
         ]);
     }
-
+    
+    /**
+     * Membuat akun user baru dan menautkannya ke data siswa.
+     */
     public function createUserAndLink(Request $request, Siswa $siswa)
     {
         if ($siswa->user()->exists()) {
@@ -139,7 +171,7 @@ class CekSppController extends Controller
     }
 
     /**
-     * Membuat pembayaran gabungan untuk alur Cek SPP.
+     * Membuat pembayaran gabungan untuk siswa yang dipilih.
      */
     public function createSppPayment(Request $request, Siswa $siswa, XenditService $xenditService)
     {
@@ -147,17 +179,15 @@ class CekSppController extends Controller
             'periods' => 'required|array|min:1',
             'periods.*' => 'required|date_format:Y-m-d',
         ]);
-
+        
         $periods = collect($validated['periods'])->sort()->values();
 
         try {
             $parentInvoice = DB::transaction(function () use ($periods, $siswa, $xenditService, $request) {
                 
                 $oldParentInvoices = Invoice::where('id_siswa', $siswa->id_siswa)
-                    ->where('type', 'pembayaran_spp_gabungan')
-                    ->where('status', 'PENDING')
+                    ->where('type', 'pembayaran_spp_gabungan')->where('status', 'PENDING')
                     ->get();
-
                 foreach ($oldParentInvoices as $oldParent) {
                     if ($oldParent->xendit_invoice_id) {
                         $xenditService->expireInvoice($oldParent->xendit_invoice_id);
@@ -178,9 +208,8 @@ class CekSppController extends Controller
                 }
 
                 $adminFee = (float)($siswa->admin_fee_custom ?? 0);
-                $totalAmount = $totalSpp + $adminFee;
 
-                if ($totalAmount <= 0) throw new \Exception("Total tagihan tidak valid (Rp 0).");
+                if (($totalSpp + $adminFee) <= 0) throw new \Exception("Total tagihan tidak valid (Rp 0).");
 
                 Carbon::setLocale('id');
                 $startPeriod = Carbon::parse($periods->first());
@@ -188,32 +217,23 @@ class CekSppController extends Controller
                 $description = "Pembayaran SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
 
                 $parentInvoice = Invoice::create([
-                    'id_siswa' => $siswa->id_siswa,
-                    'user_id' => $siswa->user?->id,
-                    'type' => 'pembayaran_spp_gabungan',
-                    'description' => $description,
-                    'periode_tagihan' => $startPeriod,
-                    'amount' => $totalSpp,
-                    'admin_fee' => $adminFee,
-                    'total_amount' => $totalAmount,
-                    'due_date' => now()->addDay(),
-                    'status' => 'PENDING',
+                    'id_siswa' => $siswa->id_siswa, 'user_id' => $siswa->user?->id,
+                    'type' => 'pembayaran_spp_gabungan', 'description' => $description,
+                    'periode_tagihan' => $startPeriod, 'amount' => $totalSpp,
+                    'admin_fee' => $adminFee, 'total_amount' => $totalSpp + $adminFee,
+                    'due_date' => now()->addDay(), 'status' => 'PENDING',
                     'external_id_xendit' => 'UNIF-'.$siswa->id_siswa.'-'.strtoupper(Str::random(10)),
                 ]);
-
-                $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
                 
-                // ### PERBAIKAN ###: Menggunakan route sukses yang baru
+                $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->user?->name ?? $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
                 $successUrl = route('tagihan.spp.success', ['siswa' => $siswa->id_siswa]);
-
+                
                 $xenditInvoiceData = $xenditService->createInvoice($totalSpp, $adminFee, $parentInvoice->description, $payerInfo, $parentInvoice->external_id_xendit, $successUrl, route('payment.failure'), now()->addDay());
-
                 if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
                     throw new \Exception('Gagal membuat link pembayaran gabungan di Xendit.');
                 }
                 
                 $parentInvoice->update(['xendit_invoice_id' => $xenditInvoiceData['id'], 'xendit_payment_url' => $xenditInvoiceData['invoice_url']]);
-
                 return $parentInvoice;
             });
 
@@ -222,15 +242,15 @@ class CekSppController extends Controller
         } catch (InsufficientSppDataException $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         } catch (Throwable $e) {
-            Log::error('Gagal membuat pembayaran publik: ' . $e->getMessage());
+            Log::error('Gagal membuat pembayaran SPP: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Terjadi kesalahan sistem, silakan coba lagi nanti.']);
         }
     }
 
     /**
-     * ### FUNGSI BARU: Menampilkan halaman sukses untuk pembayaran SPP ###
+     * Menampilkan halaman sukses setelah pembayaran SPP.
      */
-    public function showSuccess(Siswa $siswa): Response
+    public function showSuccess(Request $request, Siswa $siswa): Response
     {
         return Inertia::render('Public/SppSuccess', [
             'pageTitle' => 'Pembayaran Berhasil',
@@ -238,3 +258,4 @@ class CekSppController extends Controller
         ]);
     }
 }
+

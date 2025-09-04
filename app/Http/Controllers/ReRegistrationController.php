@@ -24,7 +24,7 @@ class ReRegistrationController extends Controller
      */
     public function create()
     {
-        $terms = LegalDocument::where('id', '0197d482-c41e-7390-a573-1e24cc504ea0')
+        $terms = LegalDocument::where('id', '0198746b-fe7f-72fe-94a7-f908482665b8')
                               ->latest('published_at')
                               ->first();
 
