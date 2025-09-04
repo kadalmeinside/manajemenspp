@@ -16,7 +16,7 @@ const props = defineProps({
     foundSiswa: Array,
     selectedSiswa: Object,
     sppInvoices: Array,
-    lastPaidPeriod: String,
+    lastPeriod: String,
     searchedPhone: String,
 });
 
@@ -44,24 +44,32 @@ const createUserForm = useForm({
 const selectedPeriods = ref([]);
 const paymentForm = useForm({ periods: [] });
 
-// --- Page Logic ---
+// --- Logika Halaman Tagihan ---
 const displayList = computed(() => {
     if (!props.selectedSiswa) return [];
+
     const existingInvoices = (props.sppInvoices || []).map(inv => ({ ...inv, is_projected: false }));
     const projectedInvoices = [];
+    
     let startProjectionDate;
-    if (existingInvoices.length > 0) {
-        const lastPeriod = new Date(existingInvoices[existingInvoices.length - 1].periode_tagihan);
-        startProjectionDate = new Date(Date.UTC(lastPeriod.getUTCFullYear(), lastPeriod.getUTCMonth() + 1, 1));
-    } else if (props.lastPaidPeriod) {
-        const lastPeriod = new Date(props.lastPaidPeriod);
-        startProjectionDate = new Date(Date.UTC(lastPeriod.getUTCFullYear(), lastPeriod.getUTCMonth() + 1, 1));
+    
+    // Gunakan prop `lastPeriod` sebagai satu-satunya sumber kebenaran
+    if (props.lastPeriod) {
+        // Parse string YYYY-MM-DD secara manual untuk menghindari pergeseran timezone
+        const parts = props.lastPeriod.split('-').map(Number);
+        const lastDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+        
+        // Mulai proyeksi dari bulan SETELAHNYA
+        startProjectionDate = new Date(Date.UTC(lastDate.getUTCFullYear(), lastDate.getUTCMonth() + 1, 1));
     } else {
+        // Jika tidak ada histori sama sekali (siswa baru), mulai dari bulan ini
         const today = new Date();
         startProjectionDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
     }
+    
     let currentPeriod = startProjectionDate;
     const endOfYear = new Date(Date.UTC(currentPeriod.getUTCFullYear(), 11, 31));
+
     while (currentPeriod <= endOfYear) {
         const year = currentPeriod.getUTCFullYear();
         const month = String(currentPeriod.getUTCMonth() + 1).padStart(2, '0');
@@ -168,7 +176,7 @@ const getShortDescription = (description) => {
 
             <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-2xl rounded-xl p-6 md:p-8 pb-32">
                 
-                <!-- VIEW 1: SEARCH FORM -->
+                <!-- Tampilan 1: Form Pencarian -->
                 <div v-if="!foundSiswa && !selectedSiswa">
                      <h1 class="text-2xl font-bold text-center text-gray-800 dark:text-white">{{ pageTitle }}</h1>
                     <p class="mt-2 text-center text-gray-600 dark:text-gray-400">Masukkan No. Telepon Wali yang terdaftar.</p>
@@ -194,7 +202,7 @@ const getShortDescription = (description) => {
                         </div>
                     </form>
 
-                    <!-- Help Section -->
+                    <!-- Bagian Bantuan -->
                     <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-6 max-w-md mx-auto">
                         <p>
                             Nomor Anda tidak terdaftar, padahal anak Anda sudah menjadi siswa aktif?
@@ -210,7 +218,7 @@ const getShortDescription = (description) => {
                     </div>
                 </div>
 
-                <!-- VIEW 2: STUDENT SELECTION LIST -->
+                <!-- Tampilan 2: Daftar Pilihan Siswa -->
                 <div v-else-if="foundSiswa">
                     <h3 class="text-xl font-bold text-gray-900 dark:text-white">Pilih Siswa</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Ditemukan {{ foundSiswa.length }} siswa dengan nomor telepon yang sama.</p>
@@ -228,13 +236,13 @@ const getShortDescription = (description) => {
                             </li>
                         </ul>
                     </div>
-                    <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-6 max-w-md mx-auto">
+                     <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-6 max-w-md mx-auto">
                         <p>
-                            Nomor Anda terdaftar untuk siswa lain ?
+                            Bukan siswa yang Anda cari?
                             <br class="sm:hidden" />
-                            Silakan hubungi kami melalui
+                             Silakan hubungi kami melalui
                             <a href="https://wa.me/62811386846" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-green-600 hover:text-green-500 hover:underline dark:text-green-500 dark:hover:text-green-400">
-                                +62 811-386-846 <span>WhatsApp</span> 
+                               <span>WhatsApp</span> 
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
                                     <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                                 </svg>
@@ -243,25 +251,21 @@ const getShortDescription = (description) => {
                     </div>
                 </div>
 
-                <!-- VIEW 3: FULL BILLING PAGE -->
+                <!-- Tampilan 3: Halaman Tagihan Lengkap -->
                 <div v-else-if="selectedSiswa">
                     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                         <div>
                             <h3 class="text-xl font-bold text-gray-900 dark:text-white">Tagihan untuk: {{ selectedSiswa.nama_siswa }}</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400">NIS: {{ selectedSiswa.nis }}</p>
                         </div>
-                        <Link :href="route('tagihan.spp.form')" class="text-sm text-indigo-600 hover:text-indigo-500">
-                           &larr; Cari dengan Nomor Lain
-                        </Link>
+                        <Link :href="route('tagihan.spp.form')" class="text-sm text-indigo-600 hover:text-indigo-500">&larr; Cari dengan Nomor Lain</Link>
                     </div>
                     
                     <div v-if="showSuccessCard" class="mt-8 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-lg text-center">
                         <CheckCircleIcon class="h-12 w-12 text-green-500 mx-auto" />
                         <h4 class="mt-4 font-bold text-gray-800 dark:text-white">Akun Berhasil Dibuat!</h4>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ flashMessage }}</p>
-                        <Link :href="route('login')" class="mt-4 inline-block">
-                            <PrimaryButton>Masuk Sekarang</PrimaryButton>
-                        </Link>
+                        <Link :href="route('login')" class="mt-4 inline-block"><PrimaryButton>Masuk Sekarang</PrimaryButton></Link>
                     </div>
                     
                     <div v-if="!selectedSiswa.has_user_account && !showSuccessCard" class="mt-8 p-6 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-lg">
@@ -294,16 +298,8 @@ const getShortDescription = (description) => {
                             <div v-for="(item, index) in displayList" :key="item.id"
                                 @click="!isItemDisabled(index) && updateSelection(item, !selectedPeriods.includes(item.periode_tagihan))" 
                                 class="bg-white/50 dark:bg-gray-900/50 rounded-lg shadow-sm transition-all duration-200 p-4 flex items-center space-x-4"
-                                :class="{ 
-                                    'bg-slate-200 dark:bg-slate-700': selectedPeriods.includes(item.periode_tagihan),
-                                    'cursor-pointer hover:shadow-md': !isItemDisabled(index),
-                                    'opacity-50 cursor-not-allowed': isItemDisabled(index)
-                                }">
-                                <Checkbox 
-                                    :checked="selectedPeriods.includes(item.periode_tagihan)" 
-                                    @update:checked="updateSelection(item, $event)"
-                                    :disabled="isItemDisabled(index)"
-                                />
+                                :class="{ 'bg-slate-200 dark:bg-slate-700': selectedPeriods.includes(item.periode_tagihan), 'cursor-pointer hover:shadow-md': !isItemDisabled(index), 'opacity-50 cursor-not-allowed': isItemDisabled(index) }">
+                                <Checkbox :checked="selectedPeriods.includes(item.periode_tagihan)" @update:checked="updateSelection(item, $event)" :disabled="isItemDisabled(index)" />
                                 <div class="flex-1">
                                     <p class="font-medium text-gray-900 dark:text-white">{{ getShortDescription(item.description) }}</p>
                                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.total_amount_formatted }}</p>
@@ -313,19 +309,11 @@ const getShortDescription = (description) => {
                                 </span>
                             </div>
                         </div>
-                    </div>
-                    <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-6 max-w-md mx-auto">
-                        <p>
-                            Ada tagihan yang tidak sesuai ?
-                            <br class="sm:hidden" />
-                            Silakan hubungi kami melalui
-                            <a href="https://wa.me/62811386846" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-green-600 hover:text-green-500 hover:underline dark:text-green-500 dark:hover:text-green-400">
-                                +62 811-386-846 <span>WhatsApp</span> 
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
-                                </svg>
-                            </a>.
-                        </p>
+                         <div v-else class="text-center py-10 text-gray-500 dark:text-gray-400">
+                            <CheckCircleIcon class="mx-auto h-12 w-12 text-green-400" />
+                            <p class="mt-2 font-medium">Semua tagihan lunas!</p>
+                            <p class="text-sm">Tidak ada tagihan yang perlu dibayar saat ini.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -352,3 +340,4 @@ const getShortDescription = (description) => {
         </main>
     </div>
 </template>
+
