@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 4,
+            "activePatchIndex": 7,
             "patches": [
                 {
                     "date": 1754378618897,
@@ -24,6 +24,18 @@
                 {
                     "date": 1754386790555,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -91,8 +91,49 @@\n             'lastPaidPeriod' => $lastPaidInvoice ? $lastPaidInvoice->periode_tagihan->format('Y-m-d') : null,\n         ]);\n     }\n \n+    public function createUserAndLink(Request $request, Siswa $siswa)\n+    {\n+        if ($siswa->user()->exists()) {\n+            return Redirect::back()->withErrors(['form' => 'Siswa ini sudah memiliki akun.']);\n+        }\n+\n+        $validated = $request->validate([\n+            'name' => 'required|string|max:255',\n+            'email' => 'required|string|email|max:255|unique:users',\n+            'password' => ['required', 'confirmed', Rules\\Password::defaults()],\n+        ]);\n+\n+        $user = User::create([\n+            'name' => $validated['name'],\n+            'email' => $validated['email'],\n+            'password' => Hash::make($validated['password']),\n+        ]);\n+        \n+        $siswa->update(['id_user' => $user->id]);\n+        $user->assignRole('siswa');\n+\n+        $dataForEmail = [\n+            'nama_wali' => $user->name,\n+            'nama_siswa' => $siswa->nama_siswa,\n+            'nis' => $siswa->nis,\n+            'login_url' => route('login'),\n+            'email_wali' => $user->email,\n+        ];\n+\n+        try {\n+            Mail::to($user->email)->send(new RegistrationSuccess($dataForEmail));\n+        } catch (\\Exception $e) {\n+            Log::error('Gagal mengirim email pendaftaran: ' . $e->getMessage());\n+        }\n+\n+        return Redirect::route('tagihan.spp.show', $siswa->id_siswa)->with('flash', [\n+            'type' => 'success',\n+            'message' => 'Akun berhasil dibuat! Anda sekarang bisa login melalui halaman utama.'\n+        ]);\n+    }\n+\n     /**\n      * Membuat pembayaran gabungan untuk alur Cek SPP.\n      */\n     public function createSppPayment(Request $request, Siswa $siswa, XenditService $xenditService)\n"
+                },
+                {
+                    "date": 1756955923336,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -12,8 +12,9 @@\n use Illuminate\\Support\\Facades\\DB;\n use Illuminate\\Support\\Facades\\Log;\n use Illuminate\\Support\\Facades\\Redirect;\n use Illuminate\\Support\\Str;\n+use Illuminate\\Validation\\Rules;\n use Inertia\\Inertia;\n use Inertia\\Response;\n use Throwable;\n \n"
+                },
+                {
+                    "date": 1756956048978,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -5,8 +5,9 @@\n use App\\Exceptions\\InsufficientSppDataException;\n use App\\Http\\Controllers\\Controller;\n use App\\Models\\Invoice;\n use App\\Models\\Siswa;\n+use App\\Models\\User;\n use App\\Services\\XenditService;\n use Carbon\\Carbon;\n use Illuminate\\Http\\Request;\n use Illuminate\\Support\\Facades\\DB;\n"
+                },
+                {
+                    "date": 1756956080916,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,22 +3,25 @@\n namespace App\\Http\\Controllers\\Public;\n \n use App\\Exceptions\\InsufficientSppDataException;\n use App\\Http\\Controllers\\Controller;\n+use App\\Mail\\RegistrationSuccess;\n use App\\Models\\Invoice;\n use App\\Models\\Siswa;\n use App\\Models\\User;\n use App\\Services\\XenditService;\n use Carbon\\Carbon;\n use Illuminate\\Http\\Request;\n use Illuminate\\Support\\Facades\\DB;\n+use Illuminate\\Support\\Facades\\Hash;\n use Illuminate\\Support\\Facades\\Log;\n+use Illuminate\\Support\\Facades\\Mail;\n use Illuminate\\Support\\Facades\\Redirect;\n use Illuminate\\Support\\Str;\n-use Illuminate\\Validation\\Rules;\n use Inertia\\Inertia;\n use Inertia\\Response;\n use Throwable;\n+use Illuminate\\Validation\\Rules;\n \n class CekSppController extends Controller\n {\n     // ... (fungsi showForm, findSiswaByPhone, showTagihan tetap sama) ...\n"
                 }
             ],
             "date": 1754378618897,

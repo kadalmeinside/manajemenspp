@@ -4,18 +4,23 @@ namespace App\Http\Controllers\Public;
 
 use App\Exceptions\InsufficientSppDataException;
 use App\Http\Controllers\Controller;
+use App\Mail\RegistrationSuccess;
 use App\Models\Invoice;
 use App\Models\Siswa;
+use App\Models\User;
 use App\Services\XenditService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
+use Illuminate\Validation\Rules;
 
 class CekSppController extends Controller
 {
