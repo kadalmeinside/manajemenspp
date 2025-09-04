@@ -67,21 +67,21 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($validated) {
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
             ]);
             
-            $user->assignRole($request->input('roles'));
+            $user->assignRole($validated['roles']);
 
-            if (in_array('admin_kelas', $request->input('roles')) && !empty($request->input('kelas_ids'))) {
-                $user->managedClasses()->attach($request->input('kelas_ids'));
+            if (in_array('admin_kelas', $validated['roles']) && !empty($validated['kelas_ids'])) {
+                $user->managedClasses()->attach($validated['kelas_ids']);
             }
         });
 
@@ -92,20 +92,19 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
-        $user->name = $validated['name'];
-        $user->email = $validated['email'];
-
-        DB::transaction(function () use ($request, $user) {
-            $input = $request->except('password');
-            if (!empty($request->input('password'))) {
-                $input['password'] = Hash::make($request->input('password'));
+        DB::transaction(function () use ($validated, $user) {
+            $input = $validated;
+            if (!empty($validated['password'])) {
+                $input['password'] = Hash::make($validated['password']);
+            } else {
+                unset($input['password']);
             }
             
             $user->update($input);
-            $user->syncRoles($request->input('roles'));
+            $user->syncRoles($validated['roles']);
 
-            if (in_array('admin_kelas', $request->input('roles'))) {
-                $user->managedClasses()->sync($request->input('kelas_ids', []));
+            if (in_array('admin_kelas', $validated['roles'])) {
+                $user->managedClasses()->sync($validated['kelas_ids'] ?? []);
             } else {
                 $user->managedClasses()->detach();
             }
@@ -113,7 +112,7 @@ class UserController extends Controller
 
         return Redirect::route('admin.users.index', $request->only(['search', 'role']))
             ->with([
-                'message' => 'User updated successfully.',
+                'message' => 'User berhasil diperbarui.',
                 'type' => 'success',
             ]);
     }
