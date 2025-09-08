@@ -29,7 +29,6 @@ const props = defineProps({
 // --- State untuk Notifikasi Flash ---
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
-const flashKey = computed(() => page.props.flash?.key);
 
 // --- State untuk Filter & Tab ---
 const selectedTahun = ref(props.filters.tahun);
@@ -52,28 +51,25 @@ const form = useForm({
     admin_fee_custom: null,
 });
 
-// --- Computed Property untuk Formatting Angka di Form ---
-const formatAndSanitize = (value) => {
-    if (value === null || value === undefined) return '';
-    const numericString = String(value).replace(/[^0-9]/g, '');
-    if (numericString === '') return '';
-    const number = parseInt(numericString, 10);
-    return new Intl.NumberFormat('id-ID').format(number);
+// ### FUNGSI YANG DIPERBARUI & DISEDERHANAKAN ###
+const createCurrencyFormatter = (formField) => {
+    return computed({
+        get() {
+            const numberValue = parseFloat(form[formField]);
+            if (isNaN(numberValue)) return '';
+            return new Intl.NumberFormat('id-ID').format(numberValue);
+        },
+        set(newValue) {
+            // Hanya bersihkan input dan simpan sebagai angka
+            const numericString = newValue.replace(/[^0-9]/g, '');
+            form[formField] = numericString ? parseInt(numericString, 10) : null;
+        }
+    });
 };
 
-const sppCustomFormatted = computed({
-    get: () => formatAndSanitize(form.jumlah_spp_custom),
-    set: (newValue) => {
-        form.jumlah_spp_custom = newValue.replace(/[^0-9]/g, '');
-    }
-});
+const sppCustomFormatted = createCurrencyFormatter('jumlah_spp_custom');
+const adminFeeCustomFormatted = createCurrencyFormatter('admin_fee_custom');
 
-const adminFeeCustomFormatted = computed({
-    get: () => formatAndSanitize(form.admin_fee_custom),
-    set: (newValue) => {
-        form.admin_fee_custom = newValue.replace(/[^0-9]/g, '');
-    }
-});
 
 const openEditModal = () => {
     form.nama_siswa = props.siswa.nama_siswa;
@@ -84,8 +80,8 @@ const openEditModal = () => {
     form.status_siswa = props.siswa.status_siswa;
     form.tanggal_lahir = props.siswa.tanggal_lahir;
     form.tanggal_bergabung = props.siswa.tanggal_bergabung;
-    form.jumlah_spp_custom = props.siswa.jumlah_spp_custom;
-    form.admin_fee_custom = props.siswa.admin_fee_custom;
+    form.jumlah_spp_custom = parseFloat(props.siswa.jumlah_spp_custom) || null;
+    form.admin_fee_custom = parseFloat(props.siswa.admin_fee_custom) || null;
     isEditModalOpen.value = true;
 };
 
@@ -102,7 +98,18 @@ const submitUpdate = () => {
     });
 };
 
-// --- State & Logika untuk Modal Pembayaran Manual ---
+watch(selectedTahun, debounce((value) => {
+    router.get(route('admin.siswa.show', props.siswa.id_siswa), {
+        tahun: value,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        only: ['pendingInvoices', 'paidInvoices', 'expiredInvoices', 'filters'],
+    });
+}, 300));
+
+// --- Logika untuk Pembayaran Manual ---
 const showManualPayConfirmModal = ref(false);
 const invoiceToMarkAsPaid = ref(null);
 
@@ -118,22 +125,11 @@ const markAsPaid = () => {
             onSuccess: () => {
                 showManualPayConfirmModal.value = false;
                 invoiceToMarkAsPaid.value = null;
-            },
+                router.reload({ only: ['pendingInvoices', 'paidInvoices', 'expiredInvoices'] });
+            }
         });
     }
 };
-
-// --- Watcher untuk Filter Tahun ---
-watch(selectedTahun, debounce((value) => {
-    router.get(route('admin.siswa.show', props.siswa.id_siswa), {
-        tahun: value,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-        only: ['pendingInvoices', 'paidInvoices', 'expiredInvoices', 'filters'],
-    });
-}, 300));
 
 // --- Helper Functions ---
 const getStatusClass = (status) => {
@@ -163,9 +159,9 @@ const getShortDescription = (description) => {
             </div>
         </template>
 
-        <Toast :message="flashMessage" :type="flashType" :flash-key="flashKey" />
+         <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+        <div class="pb-12 pt-4 max-w-7xl mx-auto space-y-8">
             
             <!-- Kartu Biodata Siswa -->
             <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg">
@@ -251,8 +247,8 @@ const getShortDescription = (description) => {
                                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ getShortDescription(invoice.description) }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ invoice.total_amount_formatted }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ invoice.paid_at_formatted }}</td>
-                                    <td class="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                        <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-indigo-600 hover:text-indigo-900 inline-block">Lihat</a>
+                                    <td class="px-6 py-4 text-right text-sm font-medium">
+                                        <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-indigo-600 hover:text-indigo-900 mr-3">Lihat</a>
                                         <button @click="confirmMarkAsPaid(invoice)" class="inline-flex items-center text-green-600 hover:text-green-900" title="Tandai Sudah Bayar (Manual)">
                                             <BanknotesIcon class="h-5 w-5" />
                                         </button>
@@ -377,6 +373,7 @@ const getShortDescription = (description) => {
             </div>
         </Modal>
 
+        <!-- Modal Konfirmasi Pembayaran Manual -->
         <Modal :show="showManualPayConfirmModal" @close="showManualPayConfirmModal = false" maxWidth="md">
             <div class="p-6">
                  <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -389,7 +386,7 @@ const getShortDescription = (description) => {
                 </p>
                 <div class="mt-6 flex justify-end space-x-3">
                     <SecondaryButton @click="showManualPayConfirmModal = false" type="button"> Batal </SecondaryButton>
-                    <PrimaryButton @click="markAsPaid" class="bg-green-600 hover:bg-green-700 focus:ring-green-500" :class="{ 'opacity-25': router.processing }" :disabled="router.processing">
+                    <PrimaryButton @click="markAsPaid" class="bg-green-600 hover:bg-green-700 focus:ring-green-500">
                         Ya, Tandai Lunas
                     </PrimaryButton>
                 </div>
@@ -398,4 +395,3 @@ const getShortDescription = (description) => {
 
     </AuthenticatedLayout>
 </template>
-

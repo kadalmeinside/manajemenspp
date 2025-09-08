@@ -17,36 +17,49 @@ class LaporanController extends Controller
         if (!$request->user()->can('manage_all_tagihan')) {
             abort(403);
         }
+
         $user = $request->user();
+
+        // Validasi dan siapkan filter
+        $request->validate([
+            'tahun' => 'nullable|integer',
+            'kelas_id' => 'nullable|uuid|exists:kelas,id_kelas',
+            'search' => 'nullable|string|max:100',
+        ]);
+
         $selectedTahun = $request->input('tahun', now()->year);
         $selectedKelasId = $request->input('kelas_id');
+        $searchQuery = $request->input('search');
 
+        // Query utama sekarang ada pada Siswa dengan paginasi
         $siswaQuery = Siswa::query()
             ->with('kelas')
             ->where('status_siswa', 'Aktif')
             ->orderBy('nama_siswa', 'asc');
 
+        // Terapkan filter hak akses untuk Admin Kelas
         if ($user->hasRole('admin_kelas')) {
             $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
-            
-            // Filter siswa hanya dari kelas yang dikelola
             $siswaQuery->whereIn('id_kelas', $managedKelasIds);
-
-            // Jika admin kelas memilih filter kelas, pastikan itu adalah kelas yang dia kelola
             if ($selectedKelasId && !$managedKelasIds->contains($selectedKelasId)) {
                 abort(403, 'Anda tidak memiliki akses ke kelas ini.');
             }
-        } else {
-            // Jika super admin, filter seperti biasa
-            if ($selectedKelasId) {
-                $siswaQuery->where('id_kelas', $selectedKelasId);
-            }
         }
 
-        $siswas = $siswaQuery->get();
-        $siswaIds = $siswas->pluck('id_siswa');
+        // Terapkan filter dari form
+        if ($selectedKelasId) {
+            $siswaQuery->where('id_kelas', $selectedKelasId);
+        }
+        if ($searchQuery) {
+            $siswaQuery->where('nama_siswa', 'LIKE', "%{$searchQuery}%");
+        }
 
-        $invoices = Invoice::whereIn('id_siswa', $siswaIds)
+        // Ambil data siswa per halaman
+        $siswas = $siswaQuery->paginate(15)->withQueryString();
+        $siswaIdsOnPage = $siswas->pluck('id_siswa');
+
+        // Ambil semua invoice yang relevan HANYA untuk siswa di halaman ini
+        $invoices = Invoice::whereIn('id_siswa', $siswaIdsOnPage)
             ->whereYear('periode_tagihan', $selectedTahun)
             ->where('type', 'spp')
             ->get()
@@ -54,15 +67,17 @@ class LaporanController extends Controller
                 return $item->id_siswa . '-' . Carbon::parse($item->periode_tagihan)->month;
             });
 
-        $laporanData = $siswas->map(function ($siswa) use ($invoices) {
+        // Buat data laporan dengan memetakan siswa yang sudah dipaginasi
+        $laporanData = $siswas->through(function ($siswa) use ($invoices) {
             $statuses = [];
             for ($bulan = 1; $bulan <= 12; $bulan++) {
                 $key = $siswa->id_siswa . '-' . $bulan;
-                if (isset($invoices[$key])) {
-                    $statuses[$bulan] = $invoices[$key]->status; 
-                } else {
-                    $statuses[$bulan] = 'N/A'; 
-                }
+                $statuses[$bulan] = [
+                    'status' => $invoices[$key]->status ?? 'N/A',
+                    'invoice_id' => $invoices[$key]->id ?? null,
+                    // ### PERUBAHAN: Menambahkan metode pembayaran ###
+                    'payment_method' => $invoices[$key]->payment_method ?? null,
+                ];
             }
             return [
                 'id_siswa' => $siswa->id_siswa,
@@ -71,22 +86,22 @@ class LaporanController extends Controller
                 'statuses' => $statuses,
             ];
         });
-
+        
+        // Data untuk filter di frontend
         $allKelasQuery = Kelas::orderBy('nama_kelas');
         if ($user->hasRole('admin_kelas')) {
             $allKelasQuery->whereIn('id_kelas', $user->managedClasses()->pluck('kelas.id_kelas'));
         }
-        
-        $allKelas = $allKelasQuery->get(['id_kelas', 'nama_kelas']);
-        $years = range(date('Y'), date('Y') - 5);
 
         return Inertia::render('Admin/Laporan/PembayaranBulanan', [
+            'pageTitle' => 'Laporan Rekap SPP Tahunan',
             'laporanData' => $laporanData,
-            'allKelas' => $allKelas,
-            'years' => $years,
+            'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas']),
+            'availableYears' => range(date('Y'), date('Y') - 5),
             'filters' => [
                 'tahun' => (int)$selectedTahun,
                 'kelas_id' => $selectedKelasId,
+                'search' => $searchQuery,
             ]
         ]);
     }
