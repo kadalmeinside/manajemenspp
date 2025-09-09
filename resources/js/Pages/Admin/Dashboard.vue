@@ -10,7 +10,6 @@ import { debounce } from 'lodash';
 // Registrasi komponen Chart.js
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement);
 
-// Mendefinisikan props yang diterima dari controller
 const props = defineProps({
     stats: Object,
     grafikPendapatan: Object,
@@ -18,22 +17,34 @@ const props = defineProps({
     pembayaranTerakhir: Array,
     siswaBaru: Array,
     siswaPerKelas: Array,
-    latestJobs: Array, // Prop yang sebelumnya belum digunakan
+    latestJobs: Array,
     filters: Object,
     availableYears: Array,
 });
 
 const pageTitle = "Dashboard Admin";
 
-// State untuk Tab Aktivitas
-const activeTab = ref('pembayaran'); // 'pembayaran', 'siswa', 'jobs'
+// --- State untuk Tab & Toggle ---
+const activeTab = ref('pembayaran');
+const activeRevenueView = ref('total'); // 'total', 'xendit', 'manual'
+
+// ### PEMBARUAN: Computed property untuk menampilkan pendapatan dinamis ###
+const displayedRevenue = computed(() => {
+    switch (activeRevenueView.value) {
+        case 'xendit':
+            return props.stats.pendapatan.xendit;
+        case 'manual':
+            return props.stats.pendapatan.manual;
+        default: // 'total'
+            return props.stats.pendapatan.total;
+    }
+});
 
 // Logika untuk filter bulan dan tahun
 const selectedTahun = ref(props.filters.tahun);
 const selectedBulan = ref(props.filters.bulan);
 const months = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, name: new Date(0, i).toLocaleString('id-ID', { month: 'long' }) }));
 
-// Fungsi untuk mengirim filter ke backend saat berubah
 const submitFilters = () => {
     router.get(route('admin.dashboard'), {
         tahun: selectedTahun.value,
@@ -111,8 +122,8 @@ const getJobStatusClass = (status) => {
             </h2>
         </template>
 
-        <div class="py-6">
-            <div class="max-w-7xl mx-auto sm:px-5 lg:px-5">
+        <div class="pb-12 pt-4">
+            <div class="max-w-7xl mx-auto">
                 <!-- Filter Section -->
                 <div class="mb-6 flex justify-end items-center gap-2">
                     <select v-model="selectedBulan" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
@@ -124,7 +135,7 @@ const getJobStatusClass = (status) => {
                 </div>
 
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <Link :href="route('admin.siswa.index')" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 group transition hover:shadow-lg hover:-translate-y-1">
                         <div class="flex items-start justify-between">
                             <div class="w-0 flex-1">
@@ -153,28 +164,42 @@ const getJobStatusClass = (status) => {
                             <span class="ml-1 text-gray-500 dark:text-gray-400">vs bulan lalu</span>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5">
-                        <div class="flex items-start justify-between">
-                            <div class="w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Pendapatan</p>
-                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(stats.pendapatan.value) }}</p>
-                            </div>
-                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-green-500">
-                                <BanknotesIcon class="h-6 w-6 text-white" />
+                    
+                    <!-- ### PEMBARUAN: Kartu pendapatan dengan toggle ### -->
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between">
+                                <div class="w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Pendapatan</p>
+                                    <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(displayedRevenue) }}</p>
+                                </div>
+                                <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-green-500">
+                                    <BanknotesIcon class="h-6 w-6 text-white" />
+                                </div>
                             </div>
                         </div>
-                        <div class="mt-4 flex items-center text-sm">
-                            <ArrowUpIcon v-if="stats.pendapatan.change >= 0" class="h-4 w-4 text-green-500 mr-1"/>
-                            <ArrowDownIcon v-else class="h-4 w-4 text-red-500 mr-1"/>
-                            <span :class="stats.pendapatan.change >= 0 ? 'text-green-600' : 'text-red-600'">{{ Math.abs(stats.pendapatan.change).toFixed(1) }}%</span>
-                            <span class="ml-1 text-gray-500 dark:text-gray-400">vs bulan lalu</span>
+                        <div>
+                            <div class="mt-4 flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-1 text-xs">
+                                <button @click="activeRevenueView = 'total'" :class="[activeRevenueView === 'total' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Total</button>
+                                <button @click="activeRevenueView = 'xendit'" :class="[activeRevenueView === 'xendit' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Xendit</button>
+                                <button @click="activeRevenueView = 'manual'" :class="[activeRevenueView === 'manual' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Manual</button>
+                            </div>
+                            <div v-if="activeRevenueView === 'total'" class="mt-3 flex items-center text-sm">
+                                <ArrowUpIcon v-if="stats.pendapatan.change >= 0" class="h-4 w-4 text-green-500 mr-1"/>
+                                <ArrowDownIcon v-else class="h-4 w-4 text-red-500 mr-1"/>
+                                <span :class="stats.pendapatan.change >= 0 ? 'text-green-600' : 'text-red-600'">{{ Math.abs(stats.pendapatan.change).toFixed(1) }}%</span>
+                                <span class="ml-1 text-gray-500 dark:text-gray-400">vs bulan lalu</span>
+                            </div>
+                            <div v-else class="mt-3 h-[20px]"></div> <!-- Placeholder for height consistency -->
                         </div>
                     </div>
+
                     <Link :href="route('admin.invoices.index', { status: 'PENDING', periode_bulan: filters.bulan, periode_tahun: filters.tahun })" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 group transition hover:shadow-lg hover:-translate-y-1">
                          <div class="flex items-start justify-between">
                             <div class="w-0 flex-1">
                                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Tagihan Tertunda</p>
-                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.tagihan_tertunda.value }}</p>
+                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.tagihan_tertunda.count }}</p>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ formatCurrency(stats.tagihan_tertunda.total_amount) }}</p>
                             </div>
                             <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-amber-500">
                                 <ClockIcon class="h-6 w-6 text-white" />
@@ -184,7 +209,7 @@ const getJobStatusClass = (status) => {
                 </div>
 
                 <!-- Grafik Section -->
-                <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+                <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
                     <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="p-6">
                             <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Pendapatan 6 Bulan Terakhir</h3>
@@ -207,7 +232,7 @@ const getJobStatusClass = (status) => {
                 </div>
 
                 <!-- Aktivitas & Laporan Section -->
-                <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+                <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
                     <!-- Kartu Aktivitas dengan Tab -->
                     <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="px-6 pt-6">
@@ -282,3 +307,4 @@ const getJobStatusClass = (status) => {
         </div>
     </AuthenticatedLayout>
 </template>
+

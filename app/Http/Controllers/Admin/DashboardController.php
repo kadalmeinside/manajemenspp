@@ -15,6 +15,11 @@ use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
+    public function __construct()
+    {
+        Carbon::setLocale('id');
+    }
+
     public function index(Request $request)
     {
         $request->validate([
@@ -70,7 +75,13 @@ class DashboardController extends Controller
         $siswaBaruBulanLalu = $siswaBaruBulanLaluQuery->count();
         $pendapatanBulanIni = $pendapatanBulanIniQuery->sum('total_amount');
         $pendapatanBulanLalu = $pendapatanBulanLaluQuery->sum('total_amount');
-        $tagihanTertundaBulanIni = $tagihanTertundaBulanIniQuery->count();
+        
+        // ### PEMBARUAN: Hitung pendapatan Xendit vs Manual ###
+        $pendapatanXenditBulanIni = (clone $pendapatanBulanIniQuery)->whereNull('payment_method')->sum('total_amount');
+        $pendapatanManualBulanIni = (clone $pendapatanBulanIniQuery)->where('payment_method', 'manual')->sum('total_amount');
+        
+        $tagihanTertundaBulanIniCount = $tagihanTertundaBulanIniQuery->count();
+        $tagihanTertundaBulanIniAmount = (clone $tagihanTertundaBulanIniQuery)->sum('total_amount');
 
         $pendapatanPerBulanQuery = Invoice::select(DB::raw('YEAR(paid_at) as tahun'), DB::raw('MONTH(paid_at) as bulan'), DB::raw('SUM(total_amount) as total'))
             ->where('status', 'PAID')
@@ -122,8 +133,17 @@ class DashboardController extends Controller
             'stats' => [
                 'total_siswa' => ['value' => $totalSiswaAktif],
                 'siswa_baru' => ['value' => $siswaBaruBulanIni, 'change' => $calculateChange($siswaBaruBulanIni, $siswaBaruBulanLalu)],
-                'pendapatan' => ['value' => $pendapatanBulanIni, 'change' => $calculateChange($pendapatanBulanIni, $pendapatanBulanLalu)],
-                'tagihan_tertunda' => ['value' => $tagihanTertundaBulanIni],
+                // ### PEMBARUAN: Kirim data pendapatan dalam struktur baru ###
+                'pendapatan' => [
+                    'total' => $pendapatanBulanIni,
+                    'change' => $calculateChange($pendapatanBulanIni, $pendapatanBulanLalu),
+                    'xendit' => $pendapatanXenditBulanIni,
+                    'manual' => $pendapatanManualBulanIni,
+                ],
+                'tagihan_tertunda' => [
+                    'count' => $tagihanTertundaBulanIniCount,
+                    'total_amount' => $tagihanTertundaBulanIniAmount,
+                ],
             ],
             'grafikPendapatan' => ['labels' => array_values($labelsGrafikPendapatan), 'data' => array_values($dataGrafikPendapatan)],
             'grafikStatusTagihan' => ['labels' => $statusTagihanBulanIni->keys(), 'data' => $statusTagihanBulanIni->values()],
