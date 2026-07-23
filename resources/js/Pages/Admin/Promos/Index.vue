@@ -112,7 +112,7 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
     <AuthenticatedLayout>
         <template #header>
             <div class="flex justify-between items-center">
-                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">{{ pageTitle }}</h2>
+                <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">{{ pageTitle }}</h2>
                 
             </div>
         </template>
@@ -133,53 +133,104 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                         </div>
                     </div>
 
-                    <div class="px-6 overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Promo</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diskon</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Periode Aktif</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                <tr v-if="promoList.data.length === 0">
-                                    <td colspan="7" class="px-6 py-10 text-center text-gray-500">Belum ada data promo.</td>
-                                </tr>
-                                <tr v-for="promo in promoList.data" :key="promo.id">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ promo.nama_promo }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                        <span v-if="promo.kode_promo" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ promo.kode_promo }}</span>
-                                        <span v-else class="text-gray-400 italic">Otomatis</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ promo.kelas.nama_kelas }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                        <span v-if="promo.tipe_diskon === 'persen'">{{ promo.nilai_diskon }}%</span>
-                                        <span v-else>{{ formatCurrency(promo.nilai_diskon) }}</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                        {{ formatDate(promo.tanggal_mulai) }} - {{ promo.tanggal_berakhir ? formatDate(promo.tanggal_berakhir) : 'Selamanya' }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full" :class="promo.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                                            {{ promo.is_active ? 'Aktif' : 'Tidak Aktif' }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                        <button @click="openEditModal(promo)" class="text-indigo-600 hover:text-indigo-900">
-                                            <PencilIcon class="h-5 w-5"/>
-                                        </button>
-                                        <button @click="openDeleteModal(promo)" class="text-red-600 hover:text-red-900">
-                                            <TrashIcon class="h-5 w-5"/>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="px-6 pb-4 overflow-x-auto">
+                        <!-- Tampilan Desktop (Table) -->
+                        <div class="hidden md:block">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Promo</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diskon</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Periode Aktif</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr v-if="promoList.data.length === 0">
+                                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">Belum ada data promo.</td>
+                                    </tr>
+                                    <tr v-for="promo in promoList.data" :key="promo.id">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ promo.nama_promo }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            <span v-if="promo.kode_promo" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ promo.kode_promo }}</span>
+                                            <span v-else class="text-gray-400 italic">Otomatis</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ promo.kelas.nama_kelas }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            <span v-if="promo.tipe_diskon === 'persen'">{{ promo.nilai_diskon }}%</span>
+                                            <span v-else>{{ formatCurrency(promo.nilai_diskon) }}</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {{ formatDate(promo.tanggal_mulai) }} - {{ promo.tanggal_berakhir ? formatDate(promo.tanggal_berakhir) : 'Selamanya' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full" :class="promo.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                                                {{ promo.is_active ? 'Aktif' : 'Tidak Aktif' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <button @click="openEditModal(promo)" class="text-indigo-600 hover:text-indigo-900">
+                                                <PencilIcon class="h-5 w-5"/>
+                                            </button>
+                                            <button @click="openDeleteModal(promo)" class="text-red-600 hover:text-red-900">
+                                                <TrashIcon class="h-5 w-5"/>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Tampilan Mobile (Card) -->
+                        <div class="block md:hidden space-y-4 mt-2">
+                            <div v-if="promoList.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                Belum ada data promo.
+                            </div>
+                            <div v-else v-for="promo in promoList.data" :key="'mob-'+promo.id" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col gap-2">
+                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2">
+                                    <div>
+                                        <h3 class="font-bold text-gray-900 dark:text-white leading-tight">{{ promo.nama_promo }}</h3>
+                                        <div class="mt-1">
+                                            <span v-if="promo.kode_promo" class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ promo.kode_promo }}</span>
+                                            <span v-else class="text-xs text-gray-400 italic">Otomatis</span>
+                                        </div>
+                                    </div>
+                                    <span :class="['px-2 py-1 inline-flex text-[10px] leading-tight font-semibold rounded-full', promo.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800']">
+                                        {{ promo.is_active ? 'Aktif' : 'Tidak Aktif' }}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-sm mt-1">
+                                    <div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Diskon</p>
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">
+                                            <span v-if="promo.tipe_diskon === 'persen'">{{ promo.nilai_diskon }}%</span>
+                                            <span v-else>{{ formatCurrency(promo.nilai_diskon) }}</span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Kelas</p>
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ promo.kelas.nama_kelas }}</p>
+                                    </div>
+                                    <div class="col-span-2 mt-1">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Periode</p>
+                                        <p class="text-xs font-medium text-gray-900 dark:text-gray-100">
+                                            {{ formatDate(promo.tanggal_mulai) }} - {{ promo.tanggal_berakhir ? formatDate(promo.tanggal_berakhir) : 'Selamanya' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="pt-3 mt-1 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                                    <button @click="openEditModal(promo)" class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100" title="Edit Promo">
+                                        <PencilIcon class="h-4 w-4" />
+                                    </button>
+                                    <button @click="openDeleteModal(promo)" class="p-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md hover:bg-red-100" title="Hapus Promo">
+                                        <TrashIcon class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <Pagination :links="promoList.links" class="p-6" />
                 </div>

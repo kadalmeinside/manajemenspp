@@ -84,6 +84,27 @@ class ReRegistrationController extends Controller
      */
     public function store(Request $request)
     {
+        $messages = [
+            'nama_siswa.required' => 'Nama lengkap siswa wajib diisi.',
+            'nama_siswa.string' => 'Nama siswa harus berupa teks.',
+            'nama_siswa.max' => 'Nama siswa maksimal 255 karakter.',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'id_kelas.required' => 'Pilihan cabang atau kelas wajib diisi.',
+            'id_kelas.exists' => 'Cabang atau kelas yang dipilih tidak valid.',
+            'user_name.required' => 'Nama lengkap wali wajib diisi.',
+            'user_name.string' => 'Nama wali harus berupa teks.',
+            'user_name.max' => 'Nama wali maksimal 255 karakter.',
+            'email_wali.required' => 'Alamat email wali wajib diisi.',
+            'email_wali.email' => 'Format alamat email tidak valid.',
+            'email_wali.unique' => 'Alamat email ini sudah terdaftar. Silakan gunakan email lain atau login.',
+            'nomor_telepon_wali.required' => 'Nomor WhatsApp wali wajib diisi.',
+            'user_password.required' => 'Password wajib diisi.',
+            'user_password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'terms.accepted' => 'Anda harus menyetujui syarat dan ketentuan yang berlaku.',
+            'legal_document_id.required' => 'Dokumen persetujuan wajib diisi.',
+        ];
+
         $validated = $request->validate([
             'nama_siswa' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
@@ -94,7 +115,11 @@ class ReRegistrationController extends Controller
             'user_password' => ['required', 'confirmed', Password::defaults()],
             'legal_document_id' => 'required|uuid|exists:legal_documents,id',
             'terms' => 'accepted',
-        ]);
+        ], $messages);
+
+        // Format proper case
+        $validated['nama_siswa'] = \Illuminate\Support\Str::title(strtolower(trim($validated['nama_siswa'])));
+        $validated['user_name'] = \Illuminate\Support\Str::title(strtolower(trim($validated['user_name'])));
 
         $siswaRole = Role::where('name', 'siswa')->firstOrFail();
         $newNis = '';

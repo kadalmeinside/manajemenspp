@@ -7,6 +7,8 @@ import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import Modal from '@/Components/Modal.vue';
+import FormStepper from '@/Components/FormStepper.vue';
+import axios from 'axios';
 
 const props = defineProps({
     pageTitle: String,
@@ -31,8 +33,9 @@ const form = useForm({
 const showTermsModal = ref(false);
 
 const handleTermsClick = () => {
-    // Jika syarat belum disetujui, buka modal.
-    if (!form.terms) {
+    if (form.terms) {
+        form.terms = false;
+    } else {
         showTermsModal.value = true;
     }
 };
@@ -42,23 +45,77 @@ const acceptTerms = () => {
     showTermsModal.value = false;
 };
 
+// Logika Multi-Siswa
+const emailExists = ref(false);
+const registeredChildren = ref([]);
+const isCheckingEmail = ref(false);
 
-const submit = () => {
-    // Validasi frontend sebelum mengirim ke server
-    form.clearErrors();
-    let hasClientErrors = false;
-
-    if (!form.nama_siswa) { form.setError('nama_siswa', 'Nama Lengkap Siswa wajib diisi.'); hasClientErrors = true; }
-    if (!form.tanggal_lahir) { form.setError('tanggal_lahir', 'Tanggal Lahir wajib diisi.'); hasClientErrors = true; }
-    if (!form.id_kelas) { form.setError('id_kelas', 'Silakan pilih cabang/kelas.'); hasClientErrors = true; }
-    if (!form.user_name) { form.setError('user_name', 'Nama Lengkap Wali wajib diisi.'); hasClientErrors = true; }
-    if (!form.email_wali) { form.setError('email_wali', 'Alamat Email Wali wajib diisi.'); hasClientErrors = true; }
-    if (!form.nomor_telepon_wali) { form.setError('nomor_telepon_wali', 'Nomor WhatsApp Wali wajib diisi.'); hasClientErrors = true; }
-    if (!form.user_password) { form.setError('user_password', 'Password wajib diisi.'); hasClientErrors = true; }
-    if (form.user_password && form.user_password !== form.user_password_confirmation) {
-        form.setError('user_password_confirmation', 'Konfirmasi password tidak cocok.');
-        hasClientErrors = true;
+const checkEmail = async () => {
+    if (!form.email_wali || !form.email_wali.includes('@')) return;
+    
+    isCheckingEmail.value = true;
+    try {
+        const response = await axios.post(route('pendaftaran.check-email'), {
+            email: form.email_wali
+        });
+        
+        if (response.data.exists) {
+            emailExists.value = true;
+            registeredChildren.value = response.data.children;
+            // Kosongkan konfirmasi password karena tidak diperlukan lagi
+            form.user_password_confirmation = '';
+        } else {
+            emailExists.value = false;
+            registeredChildren.value = [];
+        }
+    } catch (error) {
+        console.error("Gagal mengecek email", error);
+    } finally {
+        isCheckingEmail.value = false;
     }
+};
+
+const steps = [
+    { number: 1, title: 'Data Siswa' },
+    { number: 2, title: 'Data Wali & Akun' },
+    { number: 3, title: 'Konfirmasi' }
+];
+
+const currentStep = ref(1);
+
+const nextStep = () => {
+    form.clearErrors();
+    let hasError = false;
+
+    if (currentStep.value === 1) {
+        if (!form.nama_siswa) { form.setError('nama_siswa', 'Nama Lengkap Siswa wajib diisi.'); hasError = true; }
+        if (!form.tanggal_lahir) { form.setError('tanggal_lahir', 'Tanggal Lahir wajib diisi.'); hasError = true; }
+        if (!form.id_kelas) { form.setError('id_kelas', 'Silakan pilih cabang/kelas.'); hasError = true; }
+    } else if (currentStep.value === 2) {
+        if (!form.user_name) { form.setError('user_name', 'Nama Lengkap Wali wajib diisi.'); hasError = true; }
+        if (!form.nomor_telepon_wali) { form.setError('nomor_telepon_wali', 'Nomor WhatsApp Wali wajib diisi.'); hasError = true; }
+        if (!form.email_wali) { form.setError('email_wali', 'Alamat Email Wali wajib diisi.'); hasError = true; }
+        if (!form.user_password) { form.setError('user_password', 'Password wajib diisi.'); hasError = true; }
+        if (!emailExists.value && form.user_password && form.user_password !== form.user_password_confirmation) {
+            form.setError('user_password_confirmation', 'Konfirmasi password tidak cocok.');
+            hasError = true;
+        }
+    }
+
+    if (!hasError) {
+        currentStep.value++;
+    }
+};
+
+const prevStep = () => {
+    if (currentStep.value > 1) {
+        currentStep.value--;
+    }
+};
+const submit = () => {
+    let hasClientErrors = false;
+    form.clearErrors();
+
     if (!form.terms) { form.setError('terms', 'Anda harus menyetujui syarat dan ketentuan.'); hasClientErrors = true; }
 
     if (hasClientErrors) {
@@ -102,10 +159,12 @@ const formattedFee = computed(() => {
                     {{ errors.general }}
                 </div>
                 
+                <FormStepper :steps="steps" :currentStep="currentStep" />
+
                 <!-- Data Siswa -->
-                <fieldset class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <legend class="text-lg font-medium text-gray-900 dark:text-white">1. Data Diri Siswa</legend>
-                    <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
+                <div v-show="currentStep === 1" class="pt-2">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Data Diri Siswa</h3>
+                    <div class="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
                         <div class="sm:col-span-2">
                             <InputLabel for="nama_siswa" value="Nama Lengkap Siswa" required/>
                             <TextInput id="nama_siswa" v-model="form.nama_siswa" @input="form.clearErrors('nama_siswa')" type="text" class="mt-1 block w-full" placeholder="Cth: Budi Santoso" required />
@@ -125,12 +184,15 @@ const formattedFee = computed(() => {
                              <InputError :message="form.errors.id_kelas" class="mt-2" />
                         </div>
                     </div>
-                </fieldset>
+                    <div class="mt-8 flex justify-end">
+                        <PrimaryButton @click="nextStep" type="button" class="px-8 bg-red-600 hover:bg-red-700">Selanjutnya</PrimaryButton>
+                    </div>
+                </div>
 
                 <!-- Data Wali & Akun -->
-                <fieldset class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <legend class="text-lg font-medium text-gray-900 dark:text-white">2. Data Wali & Akun Login</legend>
-                    <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
+                <div v-show="currentStep === 2" class="pt-2">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Data Wali & Akun Login</h3>
+                    <div class="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
                         <div>
                             <InputLabel for="user_name" value="Nama Lengkap Wali" required/>
                             <TextInput id="user_name" v-model="form.user_name" @input="form.clearErrors('user_name')" type="text" class="mt-1 block w-full" placeholder="Cth: Ayah Budi" required />
@@ -143,50 +205,77 @@ const formattedFee = computed(() => {
                         </div>
                         <div class="sm:col-span-2">
                             <InputLabel for="email_wali" value="Alamat Email Wali (untuk login)" required/>
-                            <TextInput id="email_wali" v-model="form.email_wali" @input="form.clearErrors('email_wali')" type="email" class="mt-1 block w-full" placeholder="Cth: wali.budi@email.com" required />
+                            <div class="relative">
+                                <TextInput id="email_wali" v-model="form.email_wali" @input="form.clearErrors('email_wali'); emailExists = false;" @blur="checkEmail" type="email" class="mt-1 block w-full" placeholder="Cth: wali.budi@email.com" required />
+                                <div v-if="isCheckingEmail" class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                </div>
+                            </div>
                             <InputError :message="form.errors.email_wali" class="mt-2" />
+                            
+                            <!-- Banner Multi Siswa -->
+                            <div v-if="emailExists" class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-md text-sm border border-blue-200 dark:border-blue-800">
+                                <span class="font-semibold flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                                    Email Ditemukan
+                                </span>
+                                <p class="mt-1">Anda sudah terdaftar sebagai orang tua dari <strong>{{ registeredChildren.join(', ') }}</strong>. Silakan masukkan password akun Anda untuk melanjutkan pendaftaran anak ini.</p>
+                            </div>
                         </div>
-                        <div>
-                            <InputLabel for="user_password" value="Buat Password" required/>
+                        <div :class="{'sm:col-span-2': emailExists}">
+                            <InputLabel for="user_password" :value="emailExists ? 'Masukkan Password Akun Anda' : 'Buat Password'" required/>
                             <TextInput id="user_password" v-model="form.user_password" @input="form.clearErrors('user_password')" type="password" class="mt-1 block w-full" placeholder="••••••••" required />
                             <InputError :message="form.errors.user_password" class="mt-2" />
                         </div>
-                        <div>
+                        <div v-if="!emailExists">
                             <InputLabel for="user_password_confirmation" value="Konfirmasi Password" required/>
                             <TextInput id="user_password_confirmation" v-model="form.user_password_confirmation" @input="form.clearErrors('user_password_confirmation')" type="password" class="mt-1 block w-full" placeholder="••••••••" required />
                             <InputError :message="form.errors.user_password_confirmation" class="mt-2" />
                         </div>
                     </div>
-                </fieldset>
+                    <div class="mt-8 flex justify-between">
+                        <SecondaryButton @click="prevStep" type="button" class="px-8">Kembali</SecondaryButton>
+                        <PrimaryButton @click="nextStep" type="button" class="px-8 bg-red-600 hover:bg-red-700">Selanjutnya</PrimaryButton>
+                    </div>
+                </div>
                 
                 <!-- Konfirmasi & Pembayaran -->
-                 <fieldset class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <legend class="text-lg font-medium text-gray-900 dark:text-white">3. Konfirmasi & Pembayaran</legend>
-                     <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+                <div v-show="currentStep === 3" class="pt-2">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Konfirmasi & Pembayaran</h3>
+                     <div class="p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
                         <div class="flex justify-between items-center">
                             <span class="text-md font-medium text-gray-800 dark:text-gray-200">Biaya Pendaftaran:</span>
                             <span class="text-xl font-bold text-gray-900 dark:text-white">{{ formattedFee }}</span>
                         </div>
-                     </div>
-                     <div class="mt-6">
-                        <div @click="handleTermsClick" class="flex items-center cursor-pointer group">
-                            <div class="h-4 w-4 rounded border flex items-center justify-center transition-all" :class="form.terms ? 'bg-red-600 border-red-700' : 'bg-gray-200 dark:bg-gray-900 border-gray-300 dark:border-gray-600 group-hover:border-red-500'">
-                                <svg v-if="form.terms" class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                        <div class="mt-8 p-4 bg-gray-50 dark:bg-gray-900 border-2 rounded-lg transition-all duration-700" :class="!form.terms ? 'border-red-300 dark:border-red-800 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'border-gray-200 dark:border-gray-700'">
+                            <div class="mb-3">
+                                <span class="text-xs font-bold uppercase tracking-wider" :class="!form.terms ? 'text-red-500' : 'text-green-600'">
+                                    <span v-if="!form.terms">* Wajib dibaca & disetujui</span>
+                                    <span v-else>✓ Persetujuan Diterima</span>
+                                </span>
                             </div>
-                            <span class="ml-3 text-sm text-gray-600 dark:text-gray-400">Saya menyetujui 
-                                <button type="button" @click.stop.prevent="openTermsModal" class="font-medium text-red-600 hover:underline">syarat dan ketentuan</button>
-                                yang berlaku.
-                            </span>
+                            <label class="flex items-start gap-3 cursor-pointer group" @click.prevent="handleTermsClick">
+                                <div class="flex items-center h-5 mt-0.5">
+                                    <input type="checkbox" :checked="form.terms" class="w-5 h-5 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 pointer-events-none transition-colors">
+                                </div>
+                                <div class="text-sm">
+                                    <span class="font-semibold text-gray-900 dark:text-gray-100 block mb-1">Syarat dan Ketentuan Pendaftaran</span>
+                                    <span class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                                        Saya menyatakan bahwa data yang diisi adalah benar, dan saya telah membaca serta menyetujui <span @click.stop="showTermsModal = true" class="text-red-600 hover:underline font-medium">Syarat dan Ketentuan</span> yang berlaku.
+                                    </span>
+                                </div>
+                            </label>
+                            <InputError :message="form.errors.terms" class="mt-2" />
                         </div>
-                        <InputError :message="form.errors.terms" class="mt-2" />
                      </div>
-                </fieldset>
 
-                <div class="pt-5">
-                    <PrimaryButton class="w-full justify-center text-lg bg-red-600 hover:bg-red-700 focus:ring-red-500" :disabled="form.processing || !form.terms" :class="{ 'opacity-50 cursor-not-allowed': !form.terms }">
-                        <span v-if="form.processing">Memproses...</span>
-                        <span v-else>Lanjut ke Pembayaran</span>
-                    </PrimaryButton>
+                    <div class="mt-8 flex justify-between items-center">
+                        <SecondaryButton @click="prevStep" type="button" class="px-6">Kembali</SecondaryButton>
+                        <PrimaryButton class="px-8 text-md bg-red-600 hover:bg-red-700 focus:ring-red-500" :disabled="form.processing || !form.terms" :class="{ 'opacity-50 cursor-not-allowed': !form.terms }">
+                            <span v-if="form.processing">Memproses...</span>
+                            <span v-else>Lanjut ke Pembayaran</span>
+                        </PrimaryButton>
+                    </div>
                 </div>
             </form>
         </div>

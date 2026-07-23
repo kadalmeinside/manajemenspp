@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasOne(Siswa::class, 'id_user', 'id');
     }
 
+    public function siswas()
+    {
+        return $this->hasMany(Siswa::class, 'id_user', 'id');
+    }
+
     // protected static function booted(): void
     // {
     //     static::deleting(function (User $user) {

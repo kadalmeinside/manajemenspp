@@ -41,6 +41,8 @@ class HandleInertiaRequests extends Middleware
                     // 'email' => $request->user()->email,
                     'roles' => $request->user()->getRoleNames(),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'), // KIRIM PERMISSIONS
+                    'siswas' => $request->user()->hasRole('siswa') ? $request->user()->siswas()->get(['id_siswa', 'nama_siswa'])->toArray() : [],
+                    'active_siswa_id' => session('active_siswa_id') ?: ($request->user()->hasRole('siswa') ? optional($request->user()->siswas()->first())->id_siswa : null),
                 ] : null,
             ],
             'ziggy' => function () use ($request) {

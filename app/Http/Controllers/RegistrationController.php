@@ -116,37 +116,111 @@ class RegistrationController extends Controller
     }
 
     /**
+     * Mengecek apakah email sudah terdaftar dan mengembalikan daftar nama anak.
+     */
+    public function checkEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = User::where('email', $validated['email'])->with('siswas')->first();
+
+        if ($user) {
+            $childrenNames = $user->siswas->pluck('nama_siswa')->toArray();
+            return response()->json([
+                'exists' => true,
+                'children' => $childrenNames
+            ]);
+        }
+
+        return response()->json([
+            'exists' => false,
+            'children' => []
+        ]);
+    }
+
+    /**
      * Menyimpan data pendaftaran, membuat user & siswa pending, dan membuat invoice.
      */
     public function store(Request $request, XenditService $xenditService)
     {
+        $messages = [
+            'nama_siswa.required' => 'Nama lengkap siswa wajib diisi.',
+            'nama_siswa.string' => 'Nama siswa harus berupa teks.',
+            'nama_siswa.max' => 'Nama siswa maksimal 255 karakter.',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'id_kelas.required' => 'Pilihan cabang atau kelas wajib diisi.',
+            'id_kelas.exists' => 'Cabang atau kelas yang dipilih tidak valid.',
+            'user_name.required' => 'Nama lengkap wali wajib diisi.',
+            'user_name.string' => 'Nama wali harus berupa teks.',
+            'user_name.max' => 'Nama wali maksimal 255 karakter.',
+            'email_wali.required' => 'Alamat email wali wajib diisi.',
+            'email_wali.email' => 'Format alamat email tidak valid.',
+            'nomor_telepon_wali.required' => 'Nomor WhatsApp wali wajib diisi.',
+            'user_password.required' => 'Password wajib diisi.',
+            'terms.accepted' => 'Anda harus menyetujui syarat dan ketentuan yang berlaku.',
+            'legal_document_id.required' => 'Dokumen persetujuan wajib diisi.',
+            'kode_promo.exists' => 'Kode promo tidak ditemukan atau tidak valid.',
+        ];
+
         $validated = $request->validate([
             'nama_siswa' => 'required|string|max:255',
             'tanggal_lahir' => 'required|date',
             'id_kelas' => 'required|uuid|exists:kelas,id_kelas',
             'user_name' => 'required|string|max:255',
-            'email_wali' => 'required|string|email|max:255|unique:users,email',
+            'email_wali' => 'required|string|email|max:255', // Hapus unique:users,email
             'nomor_telepon_wali' => 'required|string|max:20',
-            'user_password' => ['required', 'confirmed', Rules\Password::defaults()],
+            // Kita hapus confirmed di sini, karena form konfirmasi password mungkin disembunyikan di frontend jika email exists.
+            'user_password' => ['required', Rules\Password::defaults()],
             'terms' => 'accepted',
             'legal_document_id' => 'required|exists:legal_documents,id',
             'kode_promo' => 'nullable|string|exists:promos,kode_promo',
-        ]);
+        ], $messages);
+
+        // Format proper case
+        $validated['nama_siswa'] = \Illuminate\Support\Str::title(strtolower(trim($validated['nama_siswa'])));
+        $validated['user_name'] = \Illuminate\Support\Str::title(strtolower(trim($validated['user_name'])));
 
         $kelas = Kelas::findOrFail($validated['id_kelas']);
 
+        // Cek apakah email sudah ada
+        $existingUser = User::where('email', $validated['email_wali'])->with('siswas')->first();
+
+        if ($existingUser) {
+            // Verifikasi password
+            if (!Hash::check($validated['user_password'], $existingUser->password)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'user_password' => ['Email ini sudah terdaftar. Silakan masukkan password yang benar untuk menambah anak.'],
+                ]);
+            }
+
+            // Cek duplikasi nama anak
+            $existingChildren = $existingUser->siswas->pluck('nama_siswa')->map(fn($name) => strtolower(trim($name)))->toArray();
+            if (in_array(strtolower(trim($validated['nama_siswa'])), $existingChildren)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'nama_siswa' => ['Anak dengan nama ini sudah terdaftar di akun Anda.'],
+                ]);
+            }
+        }
+
         try {
-            $invoiceUrl = DB::transaction(function () use ($validated, $kelas, $xenditService, $request) {
+            $invoiceUrl = DB::transaction(function () use ($validated, $kelas, $xenditService, $request, $existingUser) {
                 $biayaFinal = $kelas->getBiayaPendaftaranSaatIni($validated['kode_promo']);
                 $adminFee = (float)($kelas->admin_fee_custom ?? 0);
                 $totalAmount = $biayaFinal + $adminFee;
 
-                $user = User::create([
-                    'name' => $validated['user_name'],
-                    'email' => $validated['email_wali'],
-                    'password' => Hash::make($validated['user_password']),
-                ]);
-                $user->assignRole('siswa');
+                if ($existingUser) {
+                    $user = $existingUser;
+                } else {
+                    $user = User::create([
+                        'name' => $validated['user_name'],
+                        'email' => $validated['email_wali'],
+                        'password' => Hash::make($validated['user_password']),
+                    ]);
+                    $user->assignRole('siswa');
+                }
 
                 $siswa = Siswa::create([
                     'nama_siswa' => $validated['nama_siswa'],

@@ -10,9 +10,11 @@ use App\Models\Siswa;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Rule;
+use App\Traits\HandlesActiveSiswa;
 
 class ProfileController extends Controller
 {
+    use HandlesActiveSiswa;
     /**
      * Menampilkan halaman profil siswa yang sedang login.
      */
@@ -24,7 +26,12 @@ class ProfileController extends Controller
             abort(403, 'AKSES DITOLAK.');
         }
 
-        $siswa = $request->user()->siswa()->with('kelas')->firstOrFail();
+        $user = $request->user();
+        $siswa = $this->getActiveSiswa($user);
+        
+        if ($siswa) {
+            $siswa->load('kelas');
+        }
 
         // Handle jika akun user ini tidak terhubung dengan data siswa manapun
         if (!$siswa) {
@@ -57,7 +64,7 @@ class ProfileController extends Controller
     public function updateInformation(Request $request)
     {
         $user = $request->user();
-        $siswa = $user->siswa;
+        $siswa = $this->getActiveSiswa($user);
 
         $validated = $request->validate([
             'email_wali' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],

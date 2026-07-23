@@ -118,7 +118,7 @@ const getJobStatusClass = (status) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 {{ pageTitle }}
             </h2>
         </template>
@@ -309,36 +309,46 @@ const getJobStatusClass = (status) => {
                             </div>
                         </div>
                         
-                        <div class="p-6">
+                        <div class="p-6 max-h-[400px] overflow-y-auto">
                             <div v-if="activeTab === 'pembayaran'">
                                 <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-                                    <li v-for="(pembayaran, index) in pembayaranTerakhir" :key="'pembayaran-'+index" class="py-3 flex justify-between items-center">
+                                    <li v-for="(pembayaran, index) in pembayaranTerakhir" :key="'pembayaran-'+index" class="py-3 flex justify-between items-center group">
                                         <div>
                                             <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ pembayaran.nama_siswa }}</p>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ pembayaran.tanggal_bayar }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Periode: {{ pembayaran.periode }} • {{ pembayaran.tanggal_bayar }}</p>
                                         </div>
-                                        <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ pembayaran.total_tagihan_formatted }}</p>
+                                        <div class="flex items-center gap-3">
+                                            <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ pembayaran.total_tagihan_formatted }}</p>
+                                            <Link v-if="pembayaran.id_siswa" :href="route('admin.siswa.show', pembayaran.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                            </Link>
+                                        </div>
                                     </li>
                                     <li v-if="pembayaranTerakhir.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada pembayaran.</li>
                                 </ul>
                             </div>
                             <div v-if="activeTab === 'siswa'">
                                 <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-                                    <li v-for="(siswa, index) in siswaBaru" :key="'siswa-'+index" class="py-3 flex justify-between items-center">
+                                    <li v-for="(siswa, index) in siswaBaru" :key="'siswa-'+index" class="py-3 flex justify-between items-center group">
                                         <div>
                                             <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ siswa.nama_siswa }}</p>
                                             <p class="text-sm text-gray-500 dark:text-gray-400">{{ siswa.tanggal_bergabung }}</p>
                                         </div>
-                                        <div>
-                                            <span v-if="siswa.status_siswa === 'pending_payment'" class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                                Menunggu Pembayaran
-                                            </span>
-                                            <span v-else-if="siswa.status_siswa === 'Aktif'" class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                Aktif
-                                            </span>
-                                            <span v-else class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                                {{ siswa.status_siswa }}
-                                            </span>
+                                        <div class="flex items-center gap-3">
+                                            <div>
+                                                <span v-if="siswa.status_siswa === 'pending_payment'" class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                    Menunggu Pembayaran
+                                                </span>
+                                                <span v-else-if="siswa.status_siswa === 'Aktif'" class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                    Aktif
+                                                </span>
+                                                <span v-else class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                                    {{ siswa.status_siswa }}
+                                                </span>
+                                            </div>
+                                            <Link v-if="siswa.id_siswa" :href="route('admin.siswa.show', siswa.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                            </Link>
                                         </div>
                                     </li>
                                     <li v-if="siswaBaru.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada siswa baru.</li>

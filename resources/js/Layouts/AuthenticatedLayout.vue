@@ -251,10 +251,6 @@ const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermis
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             </button>
-
-                            <div class="ml-4">
-                                <slot name="header" />
-                            </div>
                         </div>
 
                         <div class="flex items-center space-x-3">
@@ -315,8 +311,13 @@ const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermis
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto px-6">
-                <div class="pb-12">
+            <main class="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6">
+                <div class="pb-12 max-w-7xl mx-auto">
+                    <!-- Memindahkan slot header ke dalam area konten dengan gaya lebih ringkas di mobile -->
+                    <div v-if="$slots.header" class="mb-4 md:mb-6">
+                        <slot name="header" />
+                    </div>
+                    
                     <slot />
                 </div>
             </main>

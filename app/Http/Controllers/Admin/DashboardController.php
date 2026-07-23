@@ -124,8 +124,8 @@ class DashboardController extends Controller
             $siswaPerKelasQuery->whereIn('id_kelas', $managedKelasIds);
         }
 
-        $pembayaranTerakhir = $pembayaranTerakhirQuery->limit(5)->get();
-        $siswaBaru = $siswaBaruQuery->limit(5)->get();
+        $pembayaranTerakhir = $pembayaranTerakhirQuery->limit(15)->get();
+        $siswaBaru = $siswaBaruQuery->limit(15)->get();
         $siswaPerKelas = $siswaPerKelasQuery->get();
         
         $latestJobs = JobBatch::with('user:id,name')->latest()->limit(5)->get();
@@ -176,8 +176,8 @@ class DashboardController extends Controller
             ],
             'grafikPendapatan' => ['labels' => array_values($labelsGrafikPendapatan), 'data' => array_values($dataGrafikPendapatan)],
             'grafikStatusTagihan' => ['labels' => $statusTagihanBulanIni->keys(), 'data' => $statusTagihanBulanIni->values()],
-            'pembayaranTerakhir' => $pembayaranTerakhir->map(fn($invoice) => ['nama_siswa' => $invoice->siswa?->nama_siswa ?? 'N/A', 'total_tagihan_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'), 'tanggal_bayar' => Carbon::parse($invoice->paid_at)->diffForHumans()]),
-            'siswaBaru' => $siswaBaru->map(fn($s) => ['nama_siswa' => $s->nama_siswa, 'status_siswa' => $s->status_siswa, 'tanggal_bergabung' => Carbon::parse($s->tanggal_bergabung)->isoFormat('D MMM YY')]),
+            'pembayaranTerakhir' => $pembayaranTerakhir->map(fn($invoice) => ['id_siswa' => $invoice->id_siswa, 'nama_siswa' => $invoice->siswa?->nama_siswa ?? 'N/A', 'total_tagihan_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'), 'tanggal_bayar' => Carbon::parse($invoice->paid_at)->diffForHumans(), 'periode' => $invoice->periode_tagihan ? Carbon::parse($invoice->periode_tagihan)->isoFormat('MMMM YYYY') : '-']),
+            'siswaBaru' => $siswaBaru->map(fn($s) => ['id_siswa' => $s->id_siswa, 'nama_siswa' => $s->nama_siswa, 'status_siswa' => $s->status_siswa, 'tanggal_bergabung' => Carbon::parse($s->tanggal_bergabung)->isoFormat('D MMM YY')]),
             'siswaPerKelas' => $siswaPerKelas->map(fn($k) => ['nama_kelas' => $k->nama_kelas, 'jumlah_siswa' => $k->siswa_count]),
             'latestJobs' => $latestJobs->map(fn($job) => [
                 'id' => $job->id,

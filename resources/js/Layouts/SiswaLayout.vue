@@ -52,6 +52,16 @@ const logout = () => {
         }
     });
 };
+
+const userSiswas = computed(() => page.props.auth?.user?.siswas || []);
+const activeSiswaId = computed(() => page.props.auth?.active_siswa_id || null);
+const activeSiswa = computed(() => userSiswas.value.find(s => s.id_siswa === activeSiswaId.value) || userSiswas.value[0]);
+
+const switchSiswa = (id_siswa) => {
+    router.post(route('siswa.switch-siswa', id_siswa), {}, {
+        preserveScroll: true
+    });
+};
 </script>
 
 <template>
@@ -103,6 +113,27 @@ const logout = () => {
                                 <span class="sr-only">View notifications</span>
                                 <BellIcon class="h-6 w-6" />
                             </button>
+                            <Dropdown v-if="userSiswas.length > 1" align="right" width="48" class="mr-3">
+                                <template #trigger>
+                                    <button class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700">
+                                        <span class="mr-2">Siswa:</span>
+                                        <span class="font-bold text-red-600 dark:text-red-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                        <ChevronDownIcon class="ml-1 h-4 w-4" />
+                                    </button>
+                                </template>
+                                <template #content>
+                                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        Pilih Anak
+                                    </div>
+                                    <DropdownLink v-for="siswa in userSiswas" :key="siswa.id_siswa" as="button" @click="switchSiswa(siswa.id_siswa)">
+                                        <div class="flex items-center justify-between w-full">
+                                            <span>{{ siswa.nama_siswa }}</span>
+                                            <svg v-if="activeSiswaId === siswa.id_siswa" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        </div>
+                                    </DropdownLink>
+                                </template>
+                            </Dropdown>
+
                             <Dropdown align="right" width="48">
                                 <template #trigger>
                                     <button class="flex items-center text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">

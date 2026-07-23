@@ -7,16 +7,18 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
+use App\Traits\HandlesActiveSiswa;
 
 class DashboardController extends Controller
 {
+    use HandlesActiveSiswa;
     /**
      * Menampilkan halaman dashboard untuk siswa yang login.
      */
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $siswa = $user->siswa;
+        $siswa = $this->getActiveSiswa($user);
 
         if (!$siswa) {
             return Inertia::render('Siswa/Dashboard', [

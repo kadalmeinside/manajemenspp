@@ -162,7 +162,7 @@ const formatCurrency = (value) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Kelas</h2>
+            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Kelas</h2>
         </template>
 
         <Toast :message="flashMessage" :type="flashType" />
@@ -178,35 +178,68 @@ const formatCurrency = (value) => {
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Kelas</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Biaya Pendaftaran</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Biaya SPP Default</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                <tr v-if="!kelas || !kelas.data || kelas.data.length === 0">
-                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data kelas.</td>
-                                </tr>
-                                <tr v-else v-for="kelasItem in kelas.data" :key="kelasItem.id_kelas">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ kelasItem.nama_kelas }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ formatCurrency(kelasItem.biaya_pendaftaran) }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ formatCurrency(kelasItem.biaya_spp_default) }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button @click="openEditModal(kelasItem)" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 p-1 mr-2" v-if="can?.edit_kelas" title="Edit Kelas">
-                                            <PencilIcon class="h-5 w-5" />
+                    <div class="overflow-x-auto pb-4">
+                        <!-- Tampilan Desktop (Table) -->
+                        <div class="hidden md:block">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Kelas</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Biaya Pendaftaran</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Biaya SPP Default</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr v-if="!kelas || !kelas.data || kelas.data.length === 0">
+                                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data kelas.</td>
+                                    </tr>
+                                    <tr v-else v-for="kelasItem in kelas.data" :key="kelasItem.id_kelas">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ kelasItem.nama_kelas }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ formatCurrency(kelasItem.biaya_pendaftaran) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ formatCurrency(kelasItem.biaya_spp_default) }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button @click="openEditModal(kelasItem)" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 p-1 mr-2" v-if="can?.edit_kelas" title="Edit Kelas">
+                                                <PencilIcon class="h-5 w-5" />
+                                            </button>
+                                            <button @click="confirmDeleteKelas(kelasItem)" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 p-1" v-if="can?.delete_kelas" title="Hapus Kelas">
+                                                <TrashIcon class="h-5 w-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Tampilan Mobile (Card) -->
+                        <div class="block md:hidden space-y-4 mt-2 px-6">
+                            <div v-if="!kelas || !kelas.data || kelas.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                                Tidak ada data kelas.
+                            </div>
+                            <div v-else v-for="kelasItem in kelas.data" :key="'mob-'+kelasItem.id_kelas" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col gap-3">
+                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2">
+                                    <h3 class="font-bold text-gray-900 dark:text-white text-lg leading-tight">{{ kelasItem.nama_kelas }}</h3>
+                                    <div class="flex gap-2">
+                                        <button @click="openEditModal(kelasItem)" class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100" v-if="can?.edit_kelas" title="Edit Kelas">
+                                            <PencilIcon class="h-4 w-4" />
                                         </button>
-                                        <button @click="confirmDeleteKelas(kelasItem)" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 p-1" v-if="can?.delete_kelas" title="Hapus Kelas">
-                                            <TrashIcon class="h-5 w-5" />
+                                        <button @click="confirmDeleteKelas(kelasItem)" class="p-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md hover:bg-red-100" v-if="can?.delete_kelas" title="Hapus Kelas">
+                                            <TrashIcon class="h-4 w-4" />
                                         </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Pendaftaran</p>
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(kelasItem.biaya_pendaftaran) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">SPP Default</p>
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(kelasItem.biaya_spp_default) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <Pagination :links="kelas.links" class="p-6 border-t border-gray-200 dark:border-gray-700" />
                 </div>

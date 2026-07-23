@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class StoreSiswaRequest extends FormRequest
 {
@@ -39,11 +40,42 @@ class StoreSiswaRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'nama_siswa' => $this->nama_siswa ? Str::title(strtolower(trim($this->nama_siswa))) : null,
+            'user_name' => $this->user_name ? Str::title(strtolower(trim($this->user_name))) : null,
+        ]);
+    }
+
     public function messages(): array
     {
         return [
-            'email_wali.unique' => 'Email ini sudah terdaftar sebagai akun user.',
+            'nama_siswa.required' => 'Nama lengkap siswa wajib diisi.',
+            'nama_siswa.string' => 'Nama siswa harus berupa teks.',
+            'nama_siswa.max' => 'Nama siswa maksimal 255 karakter.',
+            'status_siswa.required' => 'Status siswa wajib diisi.',
+            'status_siswa.in' => 'Status siswa tidak valid.',
             'id_kelas.required' => 'Kelas wajib dipilih.',
+            'id_kelas.exists' => 'Kelas yang dipilih tidak valid.',
+            'email_wali.required' => 'Email wali wajib diisi.',
+            'email_wali.email' => 'Format email tidak valid.',
+            'email_wali.unique' => 'Email ini sudah terdaftar sebagai akun user.',
+            'nomor_telepon_wali.max' => 'Nomor WhatsApp maksimal 20 karakter.',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
+            'tanggal_lahir.date' => 'Format tanggal lahir tidak valid.',
+            'tanggal_bergabung.required' => 'Tanggal bergabung wajib diisi.',
+            'tanggal_bergabung.date' => 'Format tanggal bergabung tidak valid.',
+            'jumlah_spp_custom.required' => 'Jumlah SPP wajib diisi.',
+            'jumlah_spp_custom.numeric' => 'Jumlah SPP harus berupa angka.',
+            'jumlah_spp_custom.min' => 'Jumlah SPP tidak boleh kurang dari 0.',
+            'admin_fee_custom.numeric' => 'Biaya admin harus berupa angka.',
+            'admin_fee_custom.min' => 'Biaya admin tidak boleh kurang dari 0.',
+            'user_name.required' => 'Nama wali wajib diisi.',
+            'user_name.string' => 'Nama wali harus berupa teks.',
+            'user_name.max' => 'Nama wali maksimal 255 karakter.',
+            'user_password.required' => 'Password wajib diisi.',
+            'user_password.confirmed' => 'Konfirmasi password tidak cocok.',
         ];
     }
 }

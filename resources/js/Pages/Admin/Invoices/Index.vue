@@ -9,6 +9,7 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import Checkbox from '@/Components/Checkbox.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import Toast from '@/Components/Toast.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import { PlusIcon, EyeIcon, ChevronDownIcon, PencilIcon, TrashIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/vue/20/solid';
@@ -218,7 +219,7 @@ const formatDescription = (desc) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Invoice & Tagihan</h2>
+            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Invoice & Tagihan</h2>
         </template>
 
         <Toast :message="flashMessage" :type="flashType" />
@@ -270,9 +271,11 @@ const formatDescription = (desc) => {
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <div class="bg-transparent sm:bg-white sm:dark:bg-gray-800 sm:shadow-sm sm:rounded-lg">
+                    <div class="overflow-x-auto pb-4">
+                        <!-- Tampilan Desktop (Table) -->
+                        <div class="hidden md:block">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Siswa</th>
@@ -329,10 +332,59 @@ const formatDescription = (desc) => {
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                            </table>
+                        </div>
+
+                        <!-- Tampilan Mobile (Card) -->
+                        <div class="block md:hidden space-y-4 mt-2">
+                            <div v-if="!invoiceList.data || invoiceList.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                                Tidak ada data invoice.
+                            </div>
+                            <div v-else v-for="invoice in invoiceList.data" :key="'mob-'+invoice.id" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col gap-3">
+                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2">
+                                    <div>
+                                        <h3 class="font-bold text-gray-900 dark:text-white leading-tight">{{ invoice.siswa_nama }}</h3>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ invoice.kelas_nama }}</p>
+                                    </div>
+                                    <span :class="['px-2 py-1 inline-flex text-[10px] leading-tight font-semibold rounded-full', getStatusClass(invoice.status)]">
+                                        {{ invoice.status }}
+                                    </span>
+                                </div>
+                                <div class="text-sm">
+                                    <p class="font-medium text-gray-900 dark:text-gray-100">{{ formatDescription(invoice.description).main }}</p>
+                                    <p class="text-xs text-gray-500">{{ formatDescription(invoice.description).detail }}</p>
+                                </div>
+                                <div class="flex justify-between items-end">
+                                    <div>
+                                        <p class="text-xs text-gray-500">Jatuh Tempo: {{ invoice.due_date_formatted }}</p>
+                                        <p class="text-xs text-gray-500 mt-1">Metode: <span class="font-medium text-gray-700 dark:text-gray-300">{{ invoice.payment_method || '-' }}</span></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-base font-bold text-green-600 dark:text-green-400">{{ invoice.amount_formatted }}</p>
+                                    </div>
+                                </div>
+                                <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                                    <a v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" :href="invoice.invoice_url" target="_blank" class="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100" title="Buka Link Xendit">
+                                        <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+                                    </a>
+                                    <button v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" @click="copyToClipboard(invoice.invoice_url)" class="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-200" title="Copy Link Pembayaran">
+                                        <DocumentDuplicateIcon class="h-4 w-4" />
+                                    </button>
+                                    <button v-if="can?.pay_manual_invoice && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" @click="payManual(invoice.id)" class="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-md hover:bg-green-100" title="Tandai Lunas Manual">
+                                        <CheckCircleIcon class="h-4 w-4" />
+                                    </button>
+                                    <button v-if="can?.void_invoice && (invoice.status === 'PENDING' || invoice.status === 'UNPAID')" @click="confirmCancelInvoice(invoice.id)" class="p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md hover:bg-red-100" title="Batalkan Invoice">
+                                        <XCircleIcon class="h-4 w-4" />
+                                    </button>
+                                    <button v-if="can?.create_invoice && invoice.status === 'EXPIRED'" @click="confirmRecreateInvoice(invoice.id)" class="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-md hover:bg-blue-100" title="Buat Ulang Invoice">
+                                        <ArrowPathIcon class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-lg sm:mt-0 mt-2 shadow-sm sm:shadow-none gap-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                             <span v-if="invoiceList.total > 0">
                                 Menampilkan <span class="font-medium">{{ invoiceList.from }}</span>–<span class="font-medium">{{ invoiceList.to }}</span>
                                 dari <span class="font-medium">{{ invoiceList.total }}</span> invoice
@@ -404,12 +456,11 @@ const formatDescription = (desc) => {
                 <form @submit.prevent="submitIndividualForm" class="space-y-6">
                     <div>
                         <InputLabel for="tagihan_id_siswa" value="Pilih Siswa" :required="true"/>
-                        <select id="tagihan_id_siswa" v-model="formIndividual.id_siswa" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" required>
-                            <option value="" disabled>-- Pilih Siswa --</option>
-                            <option v-for="siswaItem in allSiswa" :key="siswaItem.id_siswa" :value="siswaItem.id_siswa">
-                                {{ siswaItem.nama_siswa }} (Email: {{ siswaItem.user ? siswaItem.user.email : 'N/A' }})
-                            </option>
-                        </select>
+                        <SearchableSelect
+                            v-model="formIndividual.id_siswa"
+                            :options="allSiswa.map(s => ({ value: s.id_siswa, label: s.nama_siswa + ' (' + (s.user ? s.user.email : 'N/A') + ')' }))"
+                            placeholder="Ketik untuk mencari Siswa..."
+                        />
                         <InputError class="mt-2" :message="formIndividual.errors.id_siswa" />
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">

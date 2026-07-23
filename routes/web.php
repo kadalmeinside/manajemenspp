@@ -102,6 +102,7 @@ Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoic
 Route::get('/daftar-academy', [RegistrationController::class, 'createAcademy'])->name('register-academy.create');
 Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('register-ss.create');
 Route::post('/pendaftaran', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('pendaftaran.store');
+Route::post('/pendaftaran/check-email', [RegistrationController::class, 'checkEmail'])->middleware('throttle:30,1')->name('pendaftaran.check-email');
 Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');
 Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->middleware('throttle:30,1')->name('promo.validate');
 
@@ -161,9 +162,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             
             // Student Leaves Management
             Route::get('leaves', [\App\Http\Controllers\StudentLeaveController::class, 'index'])->name('leaves.index');
-            Route::post('leaves/{studentLeave}/approve', [\App\Http\Controllers\StudentLeaveController::class, 'approve'])->name('leaves.approve');
-            Route::post('leaves/{studentLeave}/reject', [\App\Http\Controllers\StudentLeaveController::class, 'reject'])->name('leaves.reject');
-            Route::post('leaves/{studentLeave}/cancel', [\App\Http\Controllers\StudentLeaveController::class, 'cancel'])->name('leaves.cancel');
+            Route::patch('/leaves/{studentLeave}/approve', [\App\Http\Controllers\StudentLeaveController::class, 'approve'])->name('leaves.approve');
+            Route::patch('/leaves/{studentLeave}/reject', [\App\Http\Controllers\StudentLeaveController::class, 'reject'])->name('leaves.reject');
+            Route::patch('/leaves/{studentLeave}/cancel', [\App\Http\Controllers\StudentLeaveController::class, 'cancel'])->name('leaves.cancel');
+            Route::post('/leaves/store-admin', [\App\Http\Controllers\StudentLeaveController::class, 'storeAdmin'])->name('leaves.storeAdmin');
         });
 
         Route::middleware(['role:admin|user|admin_kelas'])->group(function() {
@@ -189,6 +191,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
     ->name('siswa.')->group(function () {
+        Route::post('/switch-siswa/{id_siswa}', \App\Http\Controllers\Siswa\SwitchSiswaController::class)->name('switch-siswa');
         Route::get('/dashboard', [SiswaDashboardController::class, 'index'])->name('dashboard');
         Route::put('/profil/update-info', [SiswaProfileController::class, 'updateInformation'])->name('profil.update_info');
         Route::put('/profil/update-password', [SiswaProfileController::class, 'updatePassword'])->name('profil.update_password');

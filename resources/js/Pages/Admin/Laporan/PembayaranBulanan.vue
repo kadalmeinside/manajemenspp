@@ -88,7 +88,7 @@ const getStatusClass = (status) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 {{ pageTitle }}
             </h2>
         </template>
@@ -125,8 +125,8 @@ const getStatusClass = (status) => {
                         </div>
                     </div>
 
-                    <!-- Tabel dengan Header Sticky -->
-                    <div class="relative max-h-[70vh] overflow-auto border-t dark:border-gray-700">
+                    <!-- Tabel dengan Header Sticky (Desktop) -->
+                    <div class="hidden md:block relative max-h-[70vh] overflow-auto border-t dark:border-gray-700">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                                 <tr>
@@ -176,6 +176,40 @@ const getStatusClass = (status) => {
                                 </tr>
                             </tfoot>
                         </table>
+                    </div>
+
+                    <!-- Tampilan Mobile (Card Grid) -->
+                    <div class="block md:hidden p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700">
+                        <div v-if="laporanData.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                            Tidak ada data untuk ditampilkan.
+                        </div>
+                        <div v-for="siswa in laporanData.data" :key="'mob-'+siswa.id_siswa" class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                            <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2 mb-3">
+                                <div>
+                                    <h3 class="font-bold text-gray-900 dark:text-white">{{ siswa.nama_siswa }}</h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ siswa.nama_kelas }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-gray-500">Total Dibayar</p>
+                                    <span class="text-sm font-bold" :class="getRowPaidCount(siswa.statuses) === 12 ? 'text-green-600 dark:text-green-400' : getRowPaidCount(siswa.statuses) > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'">
+                                        {{ getRowPaidCount(siswa.statuses) }} / 12
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Grid 3 kolom untuk bulan -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <div v-for="(monthName, index) in months" :key="'mob-month-'+index" class="flex flex-col items-center p-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                                    <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">{{ monthName }}</span>
+                                    <span 
+                                        class="px-1.5 py-0.5 inline-flex items-center text-[9px] leading-tight font-semibold rounded-sm w-full justify-center" 
+                                        :class="getStatusClass(siswa.statuses[index+1].status)"
+                                    >
+                                        <span v-if="siswa.statuses[index+1].status === 'PAID' && siswa.statuses[index+1].payment_method === 'manual'" class="h-1.5 w-1.5 mr-1 bg-slate-500 rounded-full"></span>
+                                        {{ siswa.statuses[index+1].status === 'PENDING' ? 'PEND' : (siswa.statuses[index+1].status === 'EXPIRED' ? 'EXP' : siswa.statuses[index+1].status) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Paginasi -->

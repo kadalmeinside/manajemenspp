@@ -251,7 +251,7 @@ onMounted(() => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Siswa</h2>
+            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Siswa</h2>
         </template>
 
         <Toast :message="flashMessage" :type="flashType" />
@@ -307,8 +307,10 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <div class="px-6 overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="px-6 pb-4 overflow-x-auto">
+                        <!-- Tampilan Desktop (Table) -->
+                        <div class="hidden md:block">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Siswa</th>
@@ -344,10 +346,44 @@ onMounted(() => {
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                            </table>
+                        </div>
+
+                        <!-- Tampilan Mobile (Card) -->
+                        <div class="block md:hidden space-y-4 mt-4">
+                            <div v-if="!siswaList || !siswaList.data || siswaList.data.length === 0" class="text-center text-sm text-gray-500 py-4">
+                                Tidak ada data siswa.
+                            </div>
+                            <div v-else v-for="item in siswaList.data" :key="'mobile-'+item.id_siswa" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 shadow-sm flex flex-col gap-2">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-bold text-gray-900 dark:text-white">{{ item.nama_siswa }}</h3>
+                                        <p class="text-xs text-gray-500 dark:text-gray-300">{{ item.kelas_nama }}</p>
+                                    </div>
+                                    <span :class="['px-2 py-1 inline-flex text-[10px] leading-tight font-semibold rounded-full', getStatusBadgeClass(item.status_siswa)]">
+                                        {{ item.status_siswa === 'pending_payment' ? 'Menunggu Pembayaran' : item.status_siswa }}
+                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    <p><span class="font-medium">Wali:</span> {{ item.email_wali }}</p>
+                                    <p><span class="font-medium">Gabung:</span> {{ item.tanggal_bergabung_formatted }}</p>
+                                </div>
+                                <div class="mt-2 pt-3 border-t border-gray-100 dark:border-gray-600 flex justify-end gap-2">
+                                    <Link :href="route('admin.siswa.show', item.id_siswa)" class="p-2 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500" title="Lihat Detail">
+                                        <EyeIcon class="h-4 w-4" />
+                                    </Link>
+                                    <button @click="openEditModal(item)" v-if="can?.edit_siswa" class="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/60" title="Edit Siswa">
+                                        <PencilSquareIcon class="h-4 w-4" />
+                                    </button>
+                                    <button @click="confirmDeleteSiswa(item)" v-if="can?.delete_siswa" class="p-2 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/60" title="Hapus Siswa">
+                                        <TrashIcon class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                             <span v-if="siswaList.total > 0">
                                 Menampilkan <span class="font-medium">{{ siswaList.from }}</span>–<span class="font-medium">{{ siswaList.to }}</span>
                                 dari <span class="font-medium">{{ siswaList.total }}</span> siswa

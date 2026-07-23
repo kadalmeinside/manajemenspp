@@ -99,6 +99,7 @@ class StudentLeaveController extends Controller
             ]),
             'filters' => $request->only(['status']),
             'pageTitle' => 'Pengajuan Cuti Siswa',
+            'siswaOptions' => \App\Models\Siswa::where('status_siswa', 'Aktif')->select('id_siswa', 'nama_siswa', 'nis')->orderBy('nama_siswa')->get(),
         ]);
     }
 
@@ -122,90 +123,144 @@ class StudentLeaveController extends Controller
                     'approved_by' => $request->user()->id,
                 ]);
 
-                // Check for EXISTING pending invoice
-                $invoice = Invoice::where('id_siswa', $studentLeave->id_siswa)
-                    ->where('type', 'spp')
-                    ->whereMonth('periode_tagihan', $studentLeave->month)
-                    ->whereYear('periode_tagihan', $studentLeave->year)
-                    ->where('status', 'PENDING')
-                    ->first();
-
-                if ($invoice) {
-                    // Baca nominal cuti dari Settings
-                    $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
-                    
-                    // Scenario 1: Invoice exists (PENDING) -> Update it
-                    $invoice->update([
-                        'amount' => $cutiAmount,
-                        'total_amount' => $cutiAmount + $invoice->admin_fee, 
-                        'description' => $invoice->description . ' (CUTI)',
-                    ]);
-                    $resultMessage .= ' Invoice bulan tersebut telah diperbarui menjadi Rp ' . number_format($cutiAmount, 0, ',', '.');
-                    
-                    // Note: Ideally we should expire the old Xendit invoice and create a new one, 
-                    // or assume the user will re-click checkout and we (someday) regenerate the link.
-                    // For now, we update the local record.
-                } else {
-                    // Scenario 2: Invoice does NOT exist -> Create new one
-                    $siswa = $studentLeave->siswa; // Ensure relation is loaded or load it
-                    if (!$siswa) $siswa = Siswa::with('user')->find($studentLeave->id_siswa);
-                    
-                    $periodeTagihan = Carbon::create($studentLeave->year, $studentLeave->month, 1)->startOfMonth();
-                    Carbon::setLocale('id');
-                    $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis}) (CUTI)";
-                    // Baca nominal cuti dari Settings
-                    $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
-                    $amount = $cutiAmount;
-                    $adminFee = 0; // Default 0 for SPP
-                    $totalAmount = $amount + $adminFee;
-                    
-                    // Due date: 10th of the month or today + 7 days? Let's follow standard/controller logic if possible.
-                    // Usually due date is set by admin input. Here we auto-create.
-                    // Let's set it to 10th of the month, or if passed, end of current month.
-                    $dueDate = $periodeTagihan->copy()->day(10)->endOfDay();
-                    if ($dueDate->isPast()) {
-                        $dueDate = now()->addDays(7)->endOfDay();
-                    }
-
-                    $invoice = Invoice::create([
-                        'id_siswa' => $siswa->id_siswa,
-                        'user_id' => $request->user()->id,
-                        'type' => 'spp',
-                        'description' => $deskripsi,
-                        'periode_tagihan' => $periodeTagihan,
-                        'amount' => $amount,
-                        'admin_fee' => $adminFee,
-                        'total_amount' => $totalAmount,
-                        'due_date' => $dueDate,
-                        'status' => 'PENDING',
-                        'external_id_xendit' => 'SPP-'.$siswa->id_siswa.'-'.$studentLeave->year.str_pad($studentLeave->month, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
-                    ]);
-
-                    // Generate Xendit Invoice
-                    $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
-                    $xenditInvoiceData = $xenditService->createInvoice(
-                        (float)$amount, (float)$adminFee, $deskripsi,
-                        $payerInfo, $invoice->external_id_xendit, route('payment.success'),
-                        route('payment.failure'), $dueDate, ['email']
-                    );
-
-                    if ($xenditInvoiceData && isset($xenditInvoiceData['invoice_url'])) {
-                        $invoice->update([
-                            'xendit_invoice_id' => $xenditInvoiceData['id'],
-                            'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
-                            'status' => $xenditInvoiceData['status'],
-                        ]);
-                        $resultMessage .= ' Invoice baru otomatis dibuat sebesar Rp 250.000.';
-                    } else {
-                        // Failed to create Xendit invoice, but local invoice created.
-                        Log::error('Gagal membuat invoice Xendit otomatis untuk Cuti ID: '.$studentLeave->id);
-                        $resultMessage .= ' Invoice dibuat lokal, tapi gagal generate Link Pembayaran (Xendit).';
-                    }
-                }
+                $this->processLeaveInvoice($studentLeave, $request->user()->id, $xenditService, $resultMessage);
             });
         } catch (\Exception $e) {
             Log::error('Error approving student leave: ' . $e->getMessage());
             return Redirect::back()->with(['type' => 'error', 'message' => 'Terjadi kesalahan saat memproses persetujuan: ' . $e->getMessage()]);
+        }
+
+        return Redirect::back()->with(['type' => 'success', 'message' => $resultMessage]);
+    }
+
+    /**
+     * Helper to process invoice for an approved leave.
+     */
+    private function processLeaveInvoice(StudentLeave $studentLeave, $userId, XenditService $xenditService, &$resultMessage)
+    {
+        // Check for EXISTING pending invoice
+        $invoice = Invoice::where('id_siswa', $studentLeave->id_siswa)
+            ->where('type', 'spp')
+            ->whereMonth('periode_tagihan', $studentLeave->month)
+            ->whereYear('periode_tagihan', $studentLeave->year)
+            ->where('status', 'PENDING')
+            ->first();
+
+        if ($invoice) {
+            $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
+            
+            $invoice->update([
+                'amount' => $cutiAmount,
+                'total_amount' => $cutiAmount + $invoice->admin_fee, 
+                'description' => $invoice->description . ' (CUTI)',
+            ]);
+            $resultMessage .= ' Invoice bulan tersebut telah diperbarui menjadi Rp ' . number_format($cutiAmount, 0, ',', '.');
+        } else {
+            $siswa = $studentLeave->siswa;
+            if (!$siswa) $siswa = Siswa::with('user')->find($studentLeave->id_siswa);
+            
+            $periodeTagihan = Carbon::create($studentLeave->year, $studentLeave->month, 1)->startOfMonth();
+            Carbon::setLocale('id');
+            $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis}) (CUTI)";
+            $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
+            $amount = $cutiAmount;
+            $adminFee = 0;
+            $totalAmount = $amount + $adminFee;
+            
+            $dueDate = $periodeTagihan->copy()->day(10)->endOfDay();
+            if ($dueDate->isPast()) {
+                $dueDate = now()->addDays(7)->endOfDay();
+            }
+
+            $invoice = Invoice::create([
+                'id_siswa' => $siswa->id_siswa,
+                'user_id' => $userId,
+                'type' => 'spp',
+                'description' => $deskripsi,
+                'periode_tagihan' => $periodeTagihan,
+                'amount' => $amount,
+                'admin_fee' => $adminFee,
+                'total_amount' => $totalAmount,
+                'due_date' => $dueDate,
+                'status' => 'PENDING',
+                'external_id_xendit' => 'SPP-'.$siswa->id_siswa.'-'.$studentLeave->year.str_pad($studentLeave->month, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
+            ]);
+
+            $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
+            $xenditInvoiceData = $xenditService->createInvoice(
+                (float)$amount, (float)$adminFee, $deskripsi,
+                $payerInfo, $invoice->external_id_xendit, route('payment.success'),
+                route('payment.failure'), $dueDate, ['email']
+            );
+
+            if ($xenditInvoiceData && isset($xenditInvoiceData['invoice_url'])) {
+                $invoice->update([
+                    'xendit_invoice_id' => $xenditInvoiceData['id'],
+                    'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
+                    'status' => $xenditInvoiceData['status'],
+                ]);
+                $resultMessage .= ' Invoice baru otomatis dibuat sebesar Rp 250.000.';
+            } else {
+                Log::error('Gagal membuat invoice Xendit otomatis untuk Cuti ID: '.$studentLeave->id);
+                $resultMessage .= ' Invoice dibuat lokal, tapi gagal generate Link Pembayaran (Xendit).';
+            }
+        }
+    }
+
+    /**
+     * Store a newly created leave request directly from Admin (automatically approved).
+     */
+    public function storeAdmin(Request $request, XenditService $xenditService)
+    {
+        $this->authorize('manage_all_tagihan');
+
+        $validated = $request->validate([
+            'id_siswa' => 'required|exists:siswa,id_siswa',
+            'months' => 'required|array|min:1',
+            'months.*' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer|min:' . date('Y'),
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $existsMonths = [];
+        foreach ($validated['months'] as $month) {
+            $exists = StudentLeave::where('id_siswa', $validated['id_siswa'])
+                ->where('month', $month)
+                ->where('year', $validated['year'])
+                ->whereIn('status', ['pending', 'approved'])
+                ->exists();
+            if ($exists) {
+                $existsMonths[] = $month;
+            }
+        }
+
+        if (!empty($existsMonths)) {
+            $monthNames = array_map(function($m) { 
+                return \Carbon\Carbon::create(null, $m, 1)->translatedFormat('F'); 
+            }, $existsMonths);
+            return Redirect::back()->withErrors(['error' => 'Sudah ada pengajuan cuti untuk bulan: ' . implode(', ', $monthNames)]);
+        }
+
+        $resultMessage = 'Cuti berhasil ditambahkan dan otomatis disetujui.';
+
+        try {
+            \DB::transaction(function () use ($validated, $request, $xenditService, &$resultMessage) {
+                foreach ($validated['months'] as $month) {
+                    $studentLeave = StudentLeave::create([
+                        'id_siswa' => $validated['id_siswa'],
+                        'month' => $month,
+                        'year' => $validated['year'],
+                        'reason' => $validated['reason'],
+                        'status' => 'approved',
+                        'approved_by' => $request->user()->id,
+                    ]);
+
+                    $this->processLeaveInvoice($studentLeave, $request->user()->id, $xenditService, $resultMessage);
+                }
+            });
+        } catch (\Exception $e) {
+            Log::error('Error storing admin leave: ' . $e->getMessage());
+            return Redirect::back()->with(['type' => 'error', 'message' => 'Terjadi kesalahan saat memproses data cuti: ' . $e->getMessage()]);
         }
 
         return Redirect::back()->with(['type' => 'success', 'message' => $resultMessage]);

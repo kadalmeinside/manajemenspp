@@ -16,9 +16,11 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Throwable;
+use App\Traits\HandlesActiveSiswa;
 
 class TagihanController extends Controller
 {
+    use HandlesActiveSiswa;
     /**
      * Menampilkan daftar tagihan milik siswa yang sedang login.
      */
@@ -29,7 +31,7 @@ class TagihanController extends Controller
             abort(403);
         }
 
-        $siswa = $user->siswa;
+        $siswa = $this->getActiveSiswa($user);
         if (!$siswa) {
             return Inertia::render('Siswa/Tagihan/Index', [
                 'sppInvoices' => [],
@@ -121,7 +123,8 @@ class TagihanController extends Controller
      */
     public function createPaymentToken(Request $request, Invoice $invoice, XenditService $xenditService)
     {
-        if ($request->user()->siswa->id_siswa !== $invoice->id_siswa) {
+        $activeSiswa = $this->getActiveSiswa($request->user());
+        if (!$activeSiswa || $activeSiswa->id_siswa !== $invoice->id_siswa) {
             return response()->json(['error' => 'Akses ditolak.'], 403);
         }
 
@@ -139,7 +142,7 @@ class TagihanController extends Controller
      */
     public function createBulkPayment(Request $request, XenditService $xenditService)
     {
-        $userSiswaId = $request->user()->siswa->id_siswa;
+        $userSiswaId = $this->getActiveSiswa($request->user())->id_siswa ?? null;
 
         $validated = $request->validate([
             'invoice_ids' => 'required|array|min:1',
@@ -242,7 +245,7 @@ class TagihanController extends Controller
             'periods.*' => 'required|date_format:Y-m-d',
         ]);
 
-        $siswa = $request->user()->siswa;
+        $siswa = $this->getActiveSiswa($request->user());
         $periods = collect($validated['periods'])->sort()->values();
 
         try {
