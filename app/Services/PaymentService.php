@@ -31,13 +31,22 @@ class PaymentService
     public function createUnifiedPayment(Siswa $siswa, Collection $periods, ?int $userId = null): Invoice
     {
         return DB::transaction(function () use ($periods, $siswa, $userId) {
-            // 1. Bersihkan invoice induk lama yang PENDING
+            $periods = $periods->sort()->values();
+
+            // 1. Cek reuse invoice (Pencegahan Spam API Xendit)
             $oldParentInvoices = Invoice::where('id_siswa', $siswa->id_siswa)
                 ->where('type', 'pembayaran_spp_gabungan')
                 ->where('status', 'PENDING')
                 ->get();
 
             foreach ($oldParentInvoices as $oldParent) {
+                $savedPeriods = collect($oldParent->selected_periods)->sort()->values();
+                // Jika periode sama persis, gunakan kembali URL yang ada
+                if ($savedPeriods->diff($periods)->isEmpty() && $periods->diff($savedPeriods)->isEmpty() && $oldParent->xendit_payment_url) {
+                    return $oldParent;
+                }
+
+                // Jika beda, expire-kan yang lama
                 if ($oldParent->xendit_invoice_id) {
                     $this->xenditService->expireInvoice($oldParent->xendit_invoice_id);
                 }
@@ -49,7 +58,24 @@ class PaymentService
             $existingInvoices = $siswa->invoices()
                 ->whereIn('periode_tagihan', $periods->toArray())
                 ->where('type', 'spp')
+                ->lockForUpdate()
                 ->get();
+
+            // Validasi Double Billing
+            if ($existingInvoices->where('status', 'PAID')->isNotEmpty()) {
+                throw new \Exception('Satu atau lebih bulan yang Anda pilih sudah lunas dibayar.');
+            }
+
+            // Validasi Berurutan (Sequential Enforcement)
+            $firstUnpaidPeriod = $siswa->invoices()
+                ->where('type', 'spp')
+                ->where('status', '!=', 'PAID')
+                ->orderBy('periode_tagihan', 'asc')
+                ->value('periode_tagihan');
+
+            if ($firstUnpaidPeriod && Carbon::parse($periods->first())->startOfMonth()->notEqualTo(Carbon::parse($firstUnpaidPeriod)->startOfMonth())) {
+                throw new \Exception('Pembayaran SPP harus dilakukan secara berurutan dimulai dari tagihan tertua (' . Carbon::parse($firstUnpaidPeriod)->isoFormat('MMMM YYYY') . ') yang belum lunas.');
+            }
                 
             $totalSpp += $existingInvoices->sum('total_amount');
             
@@ -72,11 +98,16 @@ class PaymentService
                 throw new \Exception("Total tagihan tidak valid (Rp 0).");
             }
 
-            // 4. Buat deskripsi yang seragam
+            // 4. Buat deskripsi yang sesuai (1 bulan vs Gabungan)
             Carbon::setLocale('id');
             $startPeriod = Carbon::parse($periods->first());
-            $endPeriod = Carbon::parse($periods->last());
-            $description = "Pembayaran SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+            
+            if ($periods->count() === 1) {
+                $description = "Pembayaran SPP Bulan {$startPeriod->isoFormat('MMMM YYYY')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+            } else {
+                $endPeriod = Carbon::parse($periods->last());
+                $description = "Pembayaran SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+            }
 
             // 5. Buat invoice induk yang baru
             $parentInvoice = Invoice::create([

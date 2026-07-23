@@ -734,7 +734,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function markAsPaid(Request $request, Invoice $invoice)
+    public function markAsPaid(Request $request, Invoice $invoice, \App\Services\XenditService $xenditService)
     {
         // Pastikan hanya admin yang berwenang yang bisa mengakses
         if (!$request->user()->can('manage_all_tagihan')) {
@@ -747,6 +747,18 @@ class InvoiceController extends Controller
                 'message' => 'Hanya invoice dengan status PENDING yang dapat ditandai lunas.',
                 'type' => 'error'
             ]);
+        }
+
+        // Expire Xendit invoice jika ada (Pencegahan Double Payment)
+        if ($invoice->xendit_invoice_id) {
+            try {
+                $xenditService->expireInvoice($invoice->xendit_invoice_id);
+            } catch (\Exception $e) {
+                Log::error('Gagal membatalkan invoice di Xendit saat Tandai Lunas manual.', [
+                    'invoice_id' => $invoice->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
         // Update status invoice

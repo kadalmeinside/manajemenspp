@@ -287,9 +287,12 @@ class SiswaController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateSiswaRequest $request, Siswa $siswa)
+    public function update(UpdateSiswaRequest $request, Siswa $siswa, \App\Services\XenditService $xenditService)
     {
         $validated = $request->validated();
+        
+        $oldSppCustom = $siswa->jumlah_spp_custom;
+        $oldStatus = $siswa->status_siswa;
 
         DB::transaction(function () use ($validated, $siswa, $request) {
             if ($siswa->user) {
@@ -309,7 +312,26 @@ class SiswaController extends Controller
             ]));
         });
 
-        //return Redirect::route('admin.siswa.index')->with('message', 'Data siswa berhasil diperbarui.')->with('type', 'success');
+        // Pengecekan setelah update untuk membatalkan invoice PENDING
+        $isSppChanged = (float)$oldSppCustom !== (float)$siswa->jumlah_spp_custom;
+        $isInactiveNow = in_array($siswa->status_siswa, ['Non-Aktif', 'Lulus', 'Cuti']) && !in_array($oldStatus, ['Non-Aktif', 'Lulus', 'Cuti']);
+        
+        if ($isSppChanged || $isInactiveNow) {
+            $pendingInvoices = \App\Models\Invoice::where('id_siswa', $siswa->id_siswa)
+                ->where('status', 'PENDING')
+                ->whereNotNull('xendit_invoice_id')
+                ->get();
+                
+            foreach ($pendingInvoices as $invoice) {
+                try {
+                    $xenditService->expireInvoice($invoice->xendit_invoice_id);
+                    $invoice->update(['status' => 'EXPIRED']);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Gagal membatalkan invoice saat update Siswa.', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
+                }
+            }
+        }
+
         return back()->with('message', 'Data siswa berhasil diperbarui.')->with('type', 'success');
     }
 
