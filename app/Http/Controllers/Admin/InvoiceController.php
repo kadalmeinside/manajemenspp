@@ -62,7 +62,15 @@ class InvoiceController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        $invoiceList = $query->paginate(10)->withQueryString();
+        // Filter periode bulan & tahun
+        if ($request->filled('periode_bulan') && $request->input('periode_bulan') !== '') {
+            $query->whereMonth('periode_tagihan', $request->input('periode_bulan'));
+        }
+        if ($request->filled('periode_tahun') && $request->input('periode_tahun') !== '') {
+            $query->whereYear('periode_tagihan', $request->input('periode_tahun'));
+        }
+
+        $invoiceList = $query->paginate(15)->withQueryString();
         $statusPembayaranOptions = ['PENDING', 'PAID', 'EXPIRED', 'FAILED', 'REFUNDED'];
 
         $allKelasQuery = Kelas::orderBy('nama_kelas');
@@ -73,7 +81,16 @@ class InvoiceController extends Controller
             $allSiswaQuery->whereIn('id_kelas', $managedKelasIds);
         }
 
-        //dd($allSiswaQuery->get(['id_siswa', 'nama_siswa','email_wali', 'id_user', 'jumlah_spp_custom', 'admin_fee_custom', 'id_kelas']));
+        // Ambil tahun-tahun yang tersedia berdasarkan data invoice
+        $availableYears = Invoice::selectRaw('YEAR(periode_tagihan) as year')
+            ->whereNotNull('periode_tagihan')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year')
+            ->toArray();
+        if (empty($availableYears)) {
+            $availableYears = [date('Y')];
+        }
         
         return Inertia::render('Admin/Invoices/Index', [
             'invoiceList' => $invoiceList->through(function ($invoice) {
@@ -84,16 +101,19 @@ class InvoiceController extends Controller
                     'description' => $invoice->description,
                     'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
                     'status' => $invoice->status,
+                    'payment_method' => $invoice->payment_method, // 'manual' atau null (xendit)
                     'due_date_formatted' => Carbon::parse($invoice->due_date)->isoFormat('D MMM YY'),
+                    'paid_at_formatted' => $invoice->paid_at ? Carbon::parse($invoice->paid_at)->isoFormat('D MMM YY') : null,
                     'xendit_payment_url' => $invoice->xendit_payment_url,
                     'created_at_formatted' => $invoice->created_at->isoFormat('D MMM YY, HH:mm'),
                     'recreated_from_id' => $invoice->recreated_from_id,
                 ];
             }),
-            'filters' => $request->only(['search', 'kelas_id', 'status']),
+            'filters' => $request->only(['search', 'kelas_id', 'status', 'periode_bulan', 'periode_tahun']),
             'allSiswa' => $allSiswaQuery->get(),
             'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas', 'biaya_spp_default']),
             'allStatus' => $statusPembayaranOptions,
+            'availableYears' => $availableYears,
             'can' => ['create_invoice' => $request->user()->can('manage_all_tagihan')]
         ]);
     }
@@ -276,9 +296,24 @@ class InvoiceController extends Controller
                 }
 
                 // ### PERBAIKAN: Admin fee tidak lagi menjadi bagian dari total tagihan bulanan ###
-                $sppAmount = (float) $validated['jumlah_spp_ditagih'];
+                
+                // Cek Cuti
+                $approvedLeave = \App\Models\StudentLeave::where('id_siswa', $siswa->id_siswa)
+                    ->where('month', $periodeTagihan->month)
+                    ->where('year', $periodeTagihan->year)
+                    ->where('status', 'approved')
+                    ->first();
+
+                // Baca nominal cuti dari Settings (bisa diubah dari dashboard admin)
+                $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
+                $sppAmount = $approvedLeave ? $cutiAmount : (float) $validated['jumlah_spp_ditagih'];
+                
                 Carbon::setLocale('id');
                 $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+                
+                if ($approvedLeave) {
+                    $deskripsi .= " (CUTI)";
+                }
 
                 $invoice = Invoice::create([
                     'id_siswa' => $siswa->id_siswa,
@@ -302,7 +337,7 @@ class InvoiceController extends Controller
             return Redirect::back()->withErrors(['periode_tagihan_bulan' => $e->getMessage()])->withInput();
         }
 
-        return Redirect::route('admin.invoices.index')->with('flash', [
+        return Redirect::route('admin.invoices.index')->with([
             'type' => 'success',
             'message' => 'Invoice berhasil dibuat.'
         ]);
@@ -432,21 +467,41 @@ class InvoiceController extends Controller
                             ->with('user')->get();
 
         if ($siswaDiKelas->isEmpty()) {
-            return Redirect::route('admin.invoices.index')->with('flash', [
+            return Redirect::route('admin.invoices.index')->with([
                 'type' => 'warning',
                 'message' => 'Tidak ada siswa aktif di kelas ini yang belum memiliki tagihan untuk periode tersebut.'
             ]);
         }
         
         Carbon::setLocale('id');
+        $successCount = 0;
+        $failCount = 0;
+
         foreach ($siswaDiKelas as $siswa) {
             try {
-                DB::transaction(function () use ($siswa, $validated, $kelas, $periodeTagihan, $tanggalJatuhTempo, $request) {
+                DB::transaction(function () use ($siswa, $validated, $kelas, $periodeTagihan, $tanggalJatuhTempo, $request, &$successCount) {
                     $jumlahSPP = ($validated['jenis_jumlah_spp'] === 'manual') ? $validated['jumlah_spp_manual'] : ($siswa->jumlah_spp_custom ?? $kelas->biaya_spp_default ?? 0);
                     
-                    if ($jumlahSPP <= 0) return;
+                    // Cek Cuti
+                    $approvedLeave = \App\Models\StudentLeave::where('id_siswa', $siswa->id_siswa)
+                        ->where('month', $periodeTagihan->month)
+                        ->where('year', $periodeTagihan->year)
+                        ->where('status', 'approved')
+                        ->first();
+
+                    // Baca nominal cuti dari Settings (bisa diubah dari dashboard admin)
+                    $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
+                    $realSppAmount = $approvedLeave ? $cutiAmount : $jumlahSPP;
+                    
+                    if ($realSppAmount <= 0) {
+                        return; // Jangan hitung sebagai gagal, tapi lewati saja (gratis/beasiswa)
+                    }
 
                     $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+                     
+                    if ($approvedLeave) {
+                        $deskripsi .= " (CUTI)";
+                    }
 
                     // ### PERBAIKAN: Admin fee tidak lagi menjadi bagian dari total tagihan bulanan ###
                     $invoice = Invoice::create([
@@ -455,9 +510,9 @@ class InvoiceController extends Controller
                         'type' => 'spp',
                         'description' => $deskripsi,
                         'periode_tagihan' => $periodeTagihan,
-                        'amount' => $jumlahSPP,
+                        'amount' => $realSppAmount,
                         'admin_fee' => 0, // Admin fee di tagihan bulanan selalu 0
-                        'total_amount' => $jumlahSPP, // Total amount hanya sebesar SPP
+                        'total_amount' => $realSppAmount, // Total amount hanya sebesar SPP
                         'due_date' => $tanggalJatuhTempo,
                         'status' => 'PENDING',
                     ]);
@@ -465,16 +520,21 @@ class InvoiceController extends Controller
                     if ($request->boolean('send_notification')) {
                         $this->sendInvoiceNotification($siswa, $invoice);
                     }
+                    
+                    $successCount++;
                 });
             } catch (Throwable $e) {
                 Log::error("[Bulk Store Sync] Gagal memproses invoice untuk siswa: {$siswa->id_siswa}. Error: " . $e->getMessage());
+                $failCount++;
                 continue; 
             }
         }
 
-        return Redirect::route('admin.invoices.index')->with('flash', [
-            'type' => 'success',
-            'message' => 'Proses pembuatan tagihan massal selesai.'
+        $message = "Proses pembuatan tagihan massal selesai. Berhasil: {$successCount}, Gagal/Dilewati: {$failCount}.";
+
+        return Redirect::route('admin.invoices.index')->with([
+            'type' => $failCount > 0 ? 'warning' : 'success',
+            'message' => $message
         ]);
     }
 
@@ -639,27 +699,38 @@ class InvoiceController extends Controller
         if ($invoice->status !== 'PENDING') {
             return Redirect::back()->with([
                 'message' => 'Hanya invoice dengan status PENDING yang dapat dibatalkan.',
-                'type' => 'error'
+                'type'    => 'error'
             ]);
         }
 
+        // Jika invoice tidak punya xendit_invoice_id, berarti dibuat manual (tidak via Xendit)
+        // Langsung cancel secara lokal tanpa perlu panggil API Xendit
+        if (!$invoice->xendit_invoice_id) {
+            $invoice->update(['status' => 'EXPIRED']);
+            return Redirect::back()->with([
+                'message' => 'Invoice manual berhasil dibatalkan.',
+                'type'    => 'success'
+            ]);
+        }
+
+        // Invoice punya xendit_invoice_id — expire via Xendit API
         $xenditResponse = $xenditService->expireInvoice($invoice->xendit_invoice_id);
 
         if ($xenditResponse && isset($xenditResponse['status']) && $xenditResponse['status'] === 'EXPIRED') {
             $invoice->update([
-                'status' => 'EXPIRED',
+                'status'                  => 'EXPIRED',
                 'xendit_callback_payload' => $xenditResponse,
             ]);
             return Redirect::back()->with([
                 'message' => 'Invoice berhasil dibatalkan.',
-                'type' => 'success'
+                'type'    => 'success'
             ]);
         }
 
         Log::error('Gagal membatalkan invoice di Xendit.', ['invoice_id' => $invoice->id]);
         return Redirect::back()->with([
             'message' => 'Gagal membatalkan invoice di sisi penyedia pembayaran. Silakan coba lagi.',
-            'type' => 'error'
+            'type'    => 'error'
         ]);
     }
 
@@ -686,7 +757,7 @@ class InvoiceController extends Controller
         ]);
 
         // Kirim notifikasi sukses
-        return Redirect::back()->with('flash', [
+        return Redirect::back()->with([
             'type' => 'success',
             'message' => 'Invoice berhasil ditandai sebagai LUNAS.'
         ]);

@@ -47,7 +47,7 @@ class UpdateSiswaRequest extends FormRequest
             'nomor_telepon_wali' => 'nullable|string|max:20',
             'tanggal_lahir' => 'required|date',
             'tanggal_bergabung' => 'required|date',
-            'jumlah_spp_custom' => 'nullable|numeric|min:0',
+            'jumlah_spp_custom' => 'required|numeric|min:0',
             'admin_fee_custom' => 'nullable|numeric|min:0',
             'user_name' => 'required|string|max:255',
             'user_password' => ['nullable', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],

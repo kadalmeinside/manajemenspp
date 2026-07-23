@@ -15,7 +15,7 @@ class LegalDocumentController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
         //$this->authorize('manage application settings');
         if (!$request->user()->can('manage application settings')) {
@@ -39,7 +39,7 @@ class LegalDocumentController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Request $request): Response
+    public function create(Request $request)
     {
         //$this->authorize('manage application settings');
         if (!$request->user()->can('manage application settings')) {
@@ -54,7 +54,7 @@ class LegalDocumentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
         //$this->authorize('manage application settings');
         if (!$request->user()->can('manage application settings')) {
@@ -88,7 +88,7 @@ class LegalDocumentController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Request $request, LegalDocument $legalDocument): Response
+    public function edit(Request $request, LegalDocument $legalDocument)
     {
         //$this->authorize('manage application settings');
         if (!$request->user()->can('manage application settings')) {
@@ -104,7 +104,7 @@ class LegalDocumentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, LegalDocument $legalDocument): RedirectResponse
+    public function update(Request $request, LegalDocument $legalDocument)
     {
         //$this->authorize('manage application settings');
         if (!$request->user()->can('manage application settings')) {
@@ -126,7 +126,7 @@ class LegalDocumentController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, LegalDocument $legalDocument): RedirectResponse
+    public function destroy(Request $request, LegalDocument $legalDocument)
     {
         //$this->authorize('manage application settings');
         if (!$request->user()->can('manage application settings')) {

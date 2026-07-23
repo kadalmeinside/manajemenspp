@@ -20,6 +20,7 @@ const props = defineProps({
     latestJobs: Array,
     filters: Object,
     availableYears: Array,
+    alerts: Object,
 });
 
 const pageTitle = "Dashboard Admin";
@@ -132,6 +133,68 @@ const getJobStatusClass = (status) => {
                     <select v-model="selectedTahun" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
                         <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
                     </select>
+                </div>
+
+                <!-- Alert Cards -- Tampilkan jika ada sesuatu yang perlu diperhatikan -->
+                <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <!-- Cuti Pending -->
+                    <Link
+                        v-if="alerts.cuti_pending > 0"
+                        :href="route('admin.leaves.index', { status: 'pending' })"
+                        class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors"
+                    >
+                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-400 dark:bg-yellow-600 flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">{{ alerts.cuti_pending }}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Pengajuan Cuti Menunggu</p>
+                            <p class="text-xs text-yellow-600 dark:text-yellow-400">Klik untuk review &amp; approve</p>
+                        </div>
+                    </Link>
+
+                    <!-- Invoice Expired -->
+                    <Link
+                        v-if="alerts.expired_invoices > 0"
+                        :href="route('admin.invoices.index', { status: 'EXPIRED', periode_bulan: filters.bulan, periode_tahun: filters.tahun })"
+                        class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                    >
+                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">{{ alerts.expired_invoices }}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-red-800 dark:text-red-300">Invoice Expired Belum Diperbarui</p>
+                            <p class="text-xs text-red-600 dark:text-red-400">Klik untuk buat ulang tagihan</p>
+                        </div>
+                    </Link>
+
+                    <!-- Siswa Tanpa Tagihan -->
+                    <div
+                        v-if="alerts.siswa_tanpa_tagihan > 0"
+                        class="flex items-center gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg"
+                    >
+                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-orange-400 dark:bg-orange-600 flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">{{ alerts.siswa_tanpa_tagihan }}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-orange-800 dark:text-orange-300">Siswa Belum Ada Tagihan</p>
+                            <p class="text-xs text-orange-600 dark:text-orange-400">Bulan {{ months[filters.bulan - 1]?.name ?? '' }} {{ filters.tahun }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Siswa Tanpa Konfigurasi SPP -->
+                    <Link
+                        v-if="alerts.siswa_tanpa_spp_config > 0"
+                        :href="route('admin.siswa.index')"
+                        class="flex items-center gap-3 p-4 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-700 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors"
+                    >
+                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-pink-400 dark:bg-pink-600 flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">{{ alerts.siswa_tanpa_spp_config }}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-pink-800 dark:text-pink-300">Siswa Tanpa Config SPP</p>
+                            <p class="text-xs text-pink-600 dark:text-pink-400">Klik untuk periksa nominal SPP</p>
+                        </div>
+                    </Link>
                 </div>
 
                 <!-- Stats Cards -->
@@ -262,8 +325,21 @@ const getJobStatusClass = (status) => {
                             <div v-if="activeTab === 'siswa'">
                                 <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
                                     <li v-for="(siswa, index) in siswaBaru" :key="'siswa-'+index" class="py-3 flex justify-between items-center">
-                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ siswa.nama_siswa }}</p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ siswa.tanggal_bergabung }}</p>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ siswa.nama_siswa }}</p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ siswa.tanggal_bergabung }}</p>
+                                        </div>
+                                        <div>
+                                            <span v-if="siswa.status_siswa === 'pending_payment'" class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                Menunggu Pembayaran
+                                            </span>
+                                            <span v-else-if="siswa.status_siswa === 'Aktif'" class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                Aktif
+                                            </span>
+                                            <span v-else class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                                {{ siswa.status_siswa }}
+                                            </span>
+                                        </div>
                                     </li>
                                     <li v-if="siswaBaru.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada siswa baru.</li>
                                 </ul>

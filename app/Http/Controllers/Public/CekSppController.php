@@ -89,40 +89,66 @@ class CekSppController extends Controller
                                ->where('type', 'spp')->where('status', 'PENDING')
                                ->orderBy('periode_tagihan', 'asc')->get();
 
-        $lastPaidInvoice = $siswa->invoices()
-                               ->where('type', 'spp')->where('status', 'PAID')
-                               ->orderBy('periode_tagihan', 'desc')->first();
+        $paidSppInvoices = $siswa->invoices()
+            ->where('type', 'spp')->where('status', 'PAID')
+            ->orderBy('periode_tagihan', 'asc')->get();
+
+        // Riwayat pembayaran: semua invoice non-pending (PAID, EXPIRED, FAILED, SETTLED)
+        $historySppInvoices = $siswa->invoices()
+            ->where('type', 'spp')
+            ->whereNotIn('status', ['PENDING'])
+            ->orderBy('periode_tagihan', 'desc')
+            ->get();
+
+        $lastPaidInvoice = $paidSppInvoices->last();
         
         // Tentukan periode terakhir yang relevan (mana yang lebih baru)
         $lastPendingPeriod = $pendingSppInvoices->last()?->periode_tagihan;
-        $lastPaidPeriod = $lastPaidInvoice?->periode_tagihan;
-        $lastPeriod = null;
+        $lastPaidPeriod    = $lastPaidInvoice?->periode_tagihan;
+        $lastPeriod        = null;
         if ($lastPendingPeriod && $lastPaidPeriod) {
             $lastPeriod = $lastPendingPeriod->isAfter($lastPaidPeriod) ? $lastPendingPeriod : $lastPaidPeriod;
         } else {
             $lastPeriod = $lastPendingPeriod ?: $lastPaidPeriod;
         }
 
+        $pendingLeaves = \App\Models\StudentLeave::where('id_siswa', $siswa->id_siswa)
+            ->whereIn('status', ['pending', 'approved'])
+            ->get();
+        $pendingLeaveMonths = $pendingLeaves->map(fn($leave) => $leave->year . '-' . $leave->month);
+
         return Inertia::render('Public/CekSpp', [
-            'pageTitle' => 'Tagihan SPP',
+            'pageTitle'    => 'Tagihan SPP',
             'selectedSiswa' => [
-                'id_siswa' => $siswa->id_siswa,
-                'nama_siswa' => $siswa->nama_siswa,
-                'nis' => $siswa->nis,
+                'id_siswa'        => $siswa->id_siswa,
+                'nama_siswa'      => $siswa->nama_siswa,
+                'nis'             => $siswa->nis,
                 'jumlah_spp_custom' => (float) $siswa->jumlah_spp_custom,
-                'admin_fee_custom' => (float) $siswa->admin_fee_custom,
-                'has_user_account' => $siswa->user()->exists(),
+                'admin_fee_custom'  => (float) $siswa->admin_fee_custom,
+                'has_user_account'  => $siswa->user()->exists(),
             ],
-            'sppInvoices' => $pendingSppInvoices->map(fn($invoice) => [
-                'id' => $invoice->id,
-                'description' => $invoice->description,
-                'total_amount' => (float) $invoice->total_amount,
+            'sppInvoices'  => $pendingSppInvoices->map(fn($invoice) => [
+                'id'                     => $invoice->id,
+                'description'            => $invoice->description,
+                'total_amount'           => (float) $invoice->total_amount,
                 'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
-                'status' => $invoice->status,
-                'periode_tagihan' => $invoice->periode_tagihan->format('Y-m-d'),
-                'is_projected' => false,
+                'status'                 => $invoice->status,
+                'periode_tagihan'        => $invoice->periode_tagihan->format('Y-m-d'),
+                'is_projected'           => false,
             ]),
-            'lastPeriod' => $lastPeriod ? $lastPeriod->format('Y-m-d') : null,
+            // Riwayat pembayaran untuk tab History
+            'historyInvoices' => $historySppInvoices->map(fn($invoice) => [
+                'id'                     => $invoice->id,
+                'description'            => $invoice->description,
+                'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
+                'status'                 => $invoice->status,
+                'periode_tagihan'        => $invoice->periode_tagihan->format('Y-m-d'),
+                'payment_method'         => $invoice->payment_method,
+                'paid_at_formatted'      => $invoice->paid_at ? \Carbon\Carbon::parse($invoice->paid_at)->isoFormat('D MMM YYYY, HH:mm') : null,
+            ]),
+            'paidMonths'         => $paidSppInvoices->map(fn($invoice) => $invoice->periode_tagihan->format('Y-n')),
+            'pendingLeaveMonths' => $pendingLeaveMonths,
+            'lastPeriod'         => $lastPeriod ? $lastPeriod->format('Y-m-d') : null,
         ]);
     }
     
@@ -164,7 +190,7 @@ class CekSppController extends Controller
             Log::error('Gagal mengirim email pendaftaran: ' . $e->getMessage());
         }
 
-        return Redirect::route('tagihan.spp.show', $siswa->id_siswa)->with('flash', [
+        return Redirect::route('tagihan.spp.show', $siswa->id_siswa)->with([
             'type' => 'success',
             'message' => 'Akun berhasil dibuat! Anda sekarang bisa login melalui halaman utama.'
         ]);
@@ -217,16 +243,22 @@ class CekSppController extends Controller
                 $description = "Pembayaran SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
 
                 $parentInvoice = Invoice::create([
-                    'id_siswa' => $siswa->id_siswa, 'user_id' => $siswa->user?->id,
-                    'type' => 'pembayaran_spp_gabungan', 'description' => $description,
-                    'periode_tagihan' => $startPeriod, 'amount' => $totalSpp,
-                    'admin_fee' => $adminFee, 'total_amount' => $totalSpp + $adminFee,
-                    'due_date' => now()->addDay(), 'status' => 'PENDING',
+                    'id_siswa'         => $siswa->id_siswa,
+                    'user_id'          => $siswa->user?->id,
+                    'type'             => 'pembayaran_spp_gabungan',
+                    'description'      => $description,
+                    'periode_tagihan'  => $startPeriod,
+                    'selected_periods' => $periods->toArray(), // Simpan daftar bulan yang dipilih untuk webhook
+                    'amount'           => $totalSpp,
+                    'admin_fee'        => $adminFee,
+                    'total_amount'     => $totalSpp + $adminFee,
+                    'due_date'         => now()->addDay(),
+                    'status'           => 'PENDING',
                     'external_id_xendit' => 'UNIF-'.$siswa->id_siswa.'-'.strtoupper(Str::random(10)),
                 ]);
                 
                 $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->user?->name ?? $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
-                $successUrl = route('tagihan.spp.success', ['siswa' => $siswa->id_siswa]);
+                $successUrl = route('tagihan.spp.success', ['siswa' => $siswa->id_siswa, 'invoice_id' => $parentInvoice->id]);
                 
                 $xenditInvoiceData = $xenditService->createInvoice($totalSpp, $adminFee, $parentInvoice->description, $payerInfo, $parentInvoice->external_id_xendit, $successUrl, route('payment.failure'), now()->addDay());
                 if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
@@ -252,9 +284,15 @@ class CekSppController extends Controller
      */
     public function showSuccess(Request $request, Siswa $siswa): Response
     {
+        $invoice = null;
+        if ($request->has('invoice_id')) {
+            $invoice = \App\Models\Invoice::find($request->invoice_id);
+        }
+
         return Inertia::render('Public/SppSuccess', [
             'pageTitle' => 'Pembayaran Berhasil',
             'siswaName' => $siswa->nama_siswa,
+            'invoice' => $invoice,
         ]);
     }
 }

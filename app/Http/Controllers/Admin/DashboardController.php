@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\Invoice;
 use App\Models\JobBatch;
+use App\Models\StudentLeave;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -129,6 +130,34 @@ class DashboardController extends Controller
         
         $latestJobs = JobBatch::with('user:id,name')->latest()->limit(5)->get();
 
+        // --- Data Alert Cards ---
+        // 1. Pengajuan cuti yang belum diproses
+        $cutiPendingCount = StudentLeave::where('status', 'pending')->count();
+
+        // 2. Invoice EXPIRED bulan ini yang belum direcreate
+        $expiredInvoicesCount = Invoice::where('status', 'EXPIRED')
+            ->where('type', 'spp')
+            ->whereMonth('periode_tagihan', $selectedBulan)
+            ->whereYear('periode_tagihan', $selectedTahun)
+            ->whereNull('recreated_from_id') // hanya invoice original (bukan rekonstruksi)
+            ->doesntHave('recreatedInvoice') // belum punya versi baru
+            ->count();
+
+        // 3. Siswa aktif yang belum punya tagihan SPP bulan ini
+        $siswaAktifIds = Siswa::where('status_siswa', 'Aktif')->pluck('id_siswa');
+        $siswaYangSudahTagihanIds = Invoice::where('type', 'spp')
+            ->whereMonth('periode_tagihan', $selectedBulan)
+            ->whereYear('periode_tagihan', $selectedTahun)
+            ->whereIn('id_siswa', $siswaAktifIds)
+            ->pluck('id_siswa');
+        $siswaTanpaTagihanCount = $siswaAktifIds->diff($siswaYangSudahTagihanIds)->count();
+
+        // 4. Siswa aktif tanpa konfigurasi nominal SPP (jumlah_spp_custom 0 atau null)
+        $siswaTanpaSppConfigCount = Siswa::where('status_siswa', 'Aktif')
+            ->where(function($q) {
+                $q->whereNull('jumlah_spp_custom')->orWhere('jumlah_spp_custom', '<=', 0);
+            })->count();
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'total_siswa' => ['value' => $totalSiswaAktif],
@@ -148,7 +177,7 @@ class DashboardController extends Controller
             'grafikPendapatan' => ['labels' => array_values($labelsGrafikPendapatan), 'data' => array_values($dataGrafikPendapatan)],
             'grafikStatusTagihan' => ['labels' => $statusTagihanBulanIni->keys(), 'data' => $statusTagihanBulanIni->values()],
             'pembayaranTerakhir' => $pembayaranTerakhir->map(fn($invoice) => ['nama_siswa' => $invoice->siswa?->nama_siswa ?? 'N/A', 'total_tagihan_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'), 'tanggal_bayar' => Carbon::parse($invoice->paid_at)->diffForHumans()]),
-            'siswaBaru' => $siswaBaru->map(fn($s) => ['nama_siswa' => $s->nama_siswa, 'tanggal_bergabung' => Carbon::parse($s->tanggal_bergabung)->isoFormat('D MMM YY')]),
+            'siswaBaru' => $siswaBaru->map(fn($s) => ['nama_siswa' => $s->nama_siswa, 'status_siswa' => $s->status_siswa, 'tanggal_bergabung' => Carbon::parse($s->tanggal_bergabung)->isoFormat('D MMM YY')]),
             'siswaPerKelas' => $siswaPerKelas->map(fn($k) => ['nama_kelas' => $k->nama_kelas, 'jumlah_siswa' => $k->siswa_count]),
             'latestJobs' => $latestJobs->map(fn($job) => [
                 'id' => $job->id,
@@ -160,6 +189,12 @@ class DashboardController extends Controller
             ]),
             'filters' => ['tahun' => (int)$selectedTahun, 'bulan' => (int)$selectedBulan],
             'availableYears' => range(date('Y'), date('Y') - 5),
+            'alerts' => [
+                'cuti_pending'         => $cutiPendingCount,
+                'expired_invoices'     => $expiredInvoicesCount,
+                'siswa_tanpa_tagihan'  => $siswaTanpaTagihanCount,
+                'siswa_tanpa_spp_config' => $siswaTanpaSppConfigCount,
+            ],
         ]);
     }
 }

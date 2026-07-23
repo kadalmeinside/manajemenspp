@@ -21,7 +21,6 @@ import {
 } from '@heroicons/vue/24/outline';
 import { FireIcon } from '@heroicons/vue/24/solid';
 
-// --- DATA UNTUK MODAL DETAIL CABANG ---
 const branches = ref([
     { 
         id: 'ciledug',
@@ -126,18 +125,16 @@ const activeSection = ref('');
 const navObserverRef = ref(null);
 
 onMounted(() => {
-    // Observer for sticky menu. We watch when the initial nav position exits the viewport.
     const stickyObserver = new IntersectionObserver(
         ([entry]) => {
             isMenuSticky.value = !entry.isIntersecting;
         },
-        { threshold: 0, rootMargin: "-80px 0px 0px 0px" } // 80px is the main navbar height
+        { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
     );
     if (navObserverRef.value) {
         stickyObserver.observe(navObserverRef.value);
     }
 
-    // Observer for active section highlighting (scrollspy)
     const sectionObserver = new IntersectionObserver(
         (entries) => {
             entries.forEach(entry => {
@@ -174,7 +171,6 @@ onMounted(() => {
                     <h1 class="font-header text-5xl md:text-6xl font-bold uppercase">Persija Soccer School</h1>
                     <p class="mt-2 text-lg text-gray-300">Gerbang awal Anda menuju tim profesional.</p>
                  </div>
-                 <!-- Placeholder for Intersection Observer -->
                  <div ref="navObserverRef" class="absolute bottom-14 w-full h-1"></div>
             </section>
         </template>

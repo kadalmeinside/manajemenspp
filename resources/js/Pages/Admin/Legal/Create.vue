@@ -16,6 +16,7 @@ const isEditMode = computed(() => !!props.document.id);
 
 const form = useForm({
     name: props.document.name || '',
+    name: props.document.name || '',
     type: props.document.type || 'terms_and_conditions',
     version: props.document.version || '',
     content: props.document.content || '',
@@ -115,7 +116,7 @@ const submit = () => {
                                 </select>
                                 <InputError :message="form.errors.type" class="mt-2" />
                             </div>
-                             <div>
+                            <div>
                                 <InputLabel for="version" value="Versi" required/>
                                 <TextInput id="version" v-model="form.version" class="mt-1 block w-full" placeholder="cth: 1.0"/>
                                 <InputError :message="form.errors.version" class="mt-2" />

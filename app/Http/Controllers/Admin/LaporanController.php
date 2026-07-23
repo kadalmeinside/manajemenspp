@@ -7,8 +7,10 @@ use Illuminate\Http\Request;
 use App\Models\Siswa;
 use App\Models\Kelas;
 use App\Models\Invoice;
+use App\Exports\LaporanSppExport;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanController extends Controller
 {
@@ -99,10 +101,31 @@ class LaporanController extends Controller
             'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas']),
             'availableYears' => range(date('Y'), date('Y') - 5),
             'filters' => [
-                'tahun' => (int)$selectedTahun,
+                'tahun'    => (int)$selectedTahun,
                 'kelas_id' => $selectedKelasId,
-                'search' => $searchQuery,
+                'search'   => $searchQuery,
             ]
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        $request->validate([
+            'tahun'    => 'nullable|integer',
+            'kelas_id' => 'nullable|uuid|exists:kelas,id_kelas',
+            'search'   => 'nullable|string|max:100',
+        ]);
+
+        $tahun   = (int)$request->input('tahun', now()->year);
+        $kelasId = $request->input('kelas_id');
+        $search  = $request->input('search');
+
+        $filename = 'laporan-spp-' . $tahun . '.xlsx';
+
+        return Excel::download(new LaporanSppExport($tahun, $kelasId, $search), $filename);
     }
 }

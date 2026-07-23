@@ -1,12 +1,22 @@
 <script setup>
 import SiswaLayout from '@/Layouts/SiswaLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { BanknotesIcon, ClockIcon, CreditCardIcon, CheckBadgeIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { BanknotesIcon, ClockIcon, CreditCardIcon, CheckBadgeIcon, ExclamationTriangleIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline';
+import Modal from '@/Components/Modal.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
+import InputError from '@/Components/InputError.vue';
+import { ref } from 'vue';
 
 // --- PERUBAHAN PROPS ---
 const props = defineProps({
     pageTitle: String,
     siswaName: String,
+    id_siswa: String,
+    paidMonths: Array, // ['2025-1', '2025-2', ...]
+    pendingLeaveMonths: Array,
     overdueInvoices: Array, // Sebelumnya: upcomingInvoice: Object
     overdueTotal: Object,   // Prop baru untuk total tertunggak
     paymentSummary: Object,
@@ -17,6 +27,51 @@ const props = defineProps({
 const getShortDescription = (description) => {
     if (!description) return '';
     return description.split('-')[0].trim();
+};
+
+// --- State Cuti ---
+const showLeaveModal = ref(false);
+const leaveForm = useForm({
+    id_siswa: props.id_siswa,
+    months: [new Date().getMonth() + 1],
+    year: String(new Date().getFullYear()),
+    reason: '',
+});
+
+const openLeaveModal = () => {
+    leaveForm.year = String(new Date().getFullYear());
+    const currentMonth = new Date().getMonth() + 1;
+    // reset selections when opening, check if current month is disabled
+    leaveForm.months = isMonthDisabled(currentMonth) ? [] : [currentMonth];
+    showLeaveModal.value = true;
+};
+
+const toggleMonth = (m) => {
+    if (isMonthDisabled(m)) return;
+    const index = leaveForm.months.indexOf(m);
+    if (index > -1) {
+        leaveForm.months.splice(index, 1);
+    } else {
+        leaveForm.months.push(m);
+    }
+};
+
+const isMonthDisabled = (month) => {
+    const year = leaveForm.year;
+    if (!year) return false;
+    const key = `${year}-${month}`;
+    return (props.paidMonths || []).includes(key) || (props.pendingLeaveMonths || []).includes(key);
+};
+
+const submitLeave = () => {
+    leaveForm.id_siswa = props.id_siswa; // Ensure ID is set
+    leaveForm.post(route('student-leaves.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showLeaveModal.value = false;
+            leaveForm.reset();
+        },
+    });
 };
 </script>
 
@@ -108,7 +163,73 @@ const getShortDescription = (description) => {
                         </Link>
                     </div>
                 </div>
+
+                <!-- Card Ajukan Cuti -->
+                 <div class="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 text-gray-900 dark:text-gray-100 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-medium">Pengajuan Cuti</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Ajukan cuti untuk bulan tertentu agar tagihan SPP disesuaikan.</p>
+                        </div>
+                        <SecondaryButton @click="openLeaveModal">
+                            <CalendarDaysIcon class="h-5 w-5 mr-2" />
+                            Ajukan Cuti
+                        </SecondaryButton>
+                    </div>
+                </div>
+
             </div>
         </div>
+
+        <!-- Modal Ajukan Cuti -->
+        <Modal :show="showLeaveModal" @close="showLeaveModal = false">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Ajukan Cuti</h2>
+                <form @submit.prevent="submitLeave" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-6">
+                        <div class="sm:col-span-3">
+                            <InputLabel value="Bulan Cuti" />
+                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
+                                <button v-for="m in 12" :key="m" type="button"
+                                    @click="toggleMonth(m)"
+                                    :disabled="isMonthDisabled(m)"
+                                    :class="[
+                                        'px-2 py-2 text-sm font-semibold rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500',
+                                        leaveForm.months.includes(m) 
+                                            ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-transparent shadow-md transform scale-105' 
+                                            : (isMonthDisabled(m) 
+                                                ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700/50 dark:text-gray-600' 
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 dark:bg-gray-800/80 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700')
+                                    ]">
+                                    <span class="block">{{ new Date(0, m-1).toLocaleString('id-ID', { month: 'short' }) }}</span>
+                                    <span v-if="(props.pendingLeaveMonths || []).includes(leaveForm.year+'-'+m)" class="block text-[10px] opacity-75 font-normal -mt-1">(Proses)</span>
+                                    <span v-else-if="(props.paidMonths || []).includes(leaveForm.year+'-'+m)" class="block text-[10px] opacity-75 font-normal -mt-1">(Lunas)</span>
+                                </button>
+                            </div>
+                            <InputError :message="leaveForm.errors.months" class="mt-1" />
+                        </div>
+                        <div class="sm:col-span-1">
+                            <InputLabel value="Tahun" />
+                            <TextInput type="number" 
+                                v-model="leaveForm.year" 
+                                :max="new Date().getFullYear()" 
+                                :min="new Date().getFullYear() - 1" 
+                                class="w-full mt-2 rounded-xl border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 focus:bg-white focus:ring-indigo-500 transition-colors" />
+                            <InputError :message="leaveForm.errors.year" class="mt-1" />
+                        </div>
+                    </div>
+                    <div>
+                        <InputLabel value="Alasan Cuti" />
+                        <textarea v-model="leaveForm.reason" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" rows="3" placeholder="Contoh: Sakit, Liburan Keluarga, dll."></textarea>
+                         <InputError :message="leaveForm.errors.reason" />
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end space-x-3">
+                         <SecondaryButton @click="showLeaveModal = false">Batal</SecondaryButton>
+                         <PrimaryButton :disabled="leaveForm.processing">Ajukan</PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
     </SiswaLayout>
 </template>

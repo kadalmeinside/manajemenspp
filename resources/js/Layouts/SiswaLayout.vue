@@ -8,7 +8,6 @@ import Modal from '@/Components/Modal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 
-// Import ikon yang dibutuhkan
 import {
     HomeIcon,
     UserCircleIcon,
@@ -20,16 +19,12 @@ import {
 
 const page = usePage();
 
-// State untuk modal logout
 const showLogoutConfirm = ref(false);
 
-// --- PERUBAHAN: Ambil Pengaturan Aplikasi Dinamis ---
 const appSettings = computed(() => page.props.app_settings || {});
 const appName = computed(() => appSettings.value.app_name || 'Area Siswa');
 const appLogo = computed(() => appSettings.value.app_logo || null);
-// --- AKHIR PERUBAHAN ---
 
-// Menu untuk Siswa
 const siswaMenu = ref([
     { name: 'Dashboard', route: 'siswa.dashboard', icon: HomeIcon, current: 'siswa.dashboard', type: 'link' },
     { name: 'Tagihan', route: 'siswa.tagihan.index', icon: DocumentChartBarIcon, current: 'siswa.tagihan.*', type: 'link' },
@@ -37,7 +32,6 @@ const siswaMenu = ref([
     { name: 'Keluar', action: 'confirmLogout', icon: ArrowLeftStartOnRectangleIcon, type: 'button' },
 ]);
 
-// Helper untuk mengecek state menu aktif
 function isLinkActive(pattern) {
     if (!pattern) return false;
     const currentRoute = route().current();
@@ -45,11 +39,9 @@ function isLinkActive(pattern) {
     return route().current(pattern) || currentRoute.startsWith(pattern.replace('.*', '.'));
 }
 
-// Info Pengguna
 const userName = computed(() => page.props.auth?.user?.name ?? 'User');
 const userInitial = computed(() => userName.value.charAt(0).toUpperCase());
 
-// Fungsi Logout
 const confirmLogout = () => {
     showLogoutConfirm.value = true;
 };
@@ -66,7 +58,6 @@ const logout = () => {
     <Head :title="$page.props.pageTitle || 'Area Siswa'" />
 
     <div class="relative min-h-screen md:flex bg-gray-100 dark:bg-gray-900">
-        <!-- Sidebar Kiri (Hanya untuk Desktop) -->
         <aside class="hidden md:sticky md:flex md:flex-col md:w-64 bg-gray-800 text-gray-300">
             <div class="h-16 flex items-center justify-center px-4 bg-gray-900 flex-shrink-0">
                 <Link :href="route('dashboard')" class="flex items-center">
@@ -96,7 +87,6 @@ const logout = () => {
             <header class="bg-white dark:bg-gray-700 shadow-sm sticky top-0 z-30 flex-shrink-0 border-b border-gray-200 dark:border-gray-600">
                 <div class="mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between items-center h-16">
-                        <!-- PERBAIKAN: Logo ditampilkan di header mobile -->
                         <div class="flex items-center md:hidden">
                             <Link :href="route('dashboard')" class="flex items-center">
                                 <img v-if="appLogo" :src="`/storage/${appLogo}`" alt="App Logo" class="block h-8 w-auto">
@@ -108,7 +98,6 @@ const logout = () => {
                             <slot name="header" />
                         </div>
 
-                        <!-- Profil dropdown hanya tampil di desktop -->
                         <div class="hidden md:flex items-center space-x-3">
                            <button class="p-1 rounded-full text-gray-400 dark:text-gray-300 hover:text-gray-500 focus:outline-none">
                                 <span class="sr-only">View notifications</span>
@@ -143,7 +132,6 @@ const logout = () => {
                                 </template>
                             </Dropdown>
                         </div>
-                         <!-- Judul header untuk mobile -->
                         <div class="flex-1 text-center md:hidden">
                              <slot name="header" />
                         </div>
@@ -166,7 +154,6 @@ const logout = () => {
             </footer>
         </div>
 
-        <!-- Bottom Navbar untuk Mobile -->
         <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 flex justify-around items-center h-16 border-t border-gray-200 dark:border-gray-700 z-30">
              <template v-for="item in siswaMenu" :key="item.name + '-mobile'">
                 <Link v-if="item.type === 'link'" :href="route(item.route)"
@@ -186,7 +173,6 @@ const logout = () => {
             </template>
         </nav>
 
-        <!-- Modal Konfirmasi Logout -->
         <Modal :show="showLogoutConfirm" @close="showLogoutConfirm = false" maxWidth="sm">
             <div class="p-6">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">

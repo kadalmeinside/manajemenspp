@@ -46,7 +46,7 @@ class PromoController extends Controller
 
         Promo::create($validated);
 
-        return back()->with('flash', ['type' => 'success', 'message' => 'Promo baru berhasil dibuat.']);
+        return back()->with(['type' => 'success', 'message' => 'Promo baru berhasil dibuat.']);
     }
 
     /**
@@ -67,7 +67,7 @@ class PromoController extends Controller
 
         $promo->update($validated);
 
-        return back()->with('flash', ['type' => 'success', 'message' => 'Promo berhasil diperbarui.']);
+        return back()->with(['type' => 'success', 'message' => 'Promo berhasil diperbarui.']);
     }
 
     /**
@@ -76,6 +76,6 @@ class PromoController extends Controller
     public function destroy(Promo $promo)
     {
         $promo->delete();
-        return back()->with('flash', ['type' => 'success', 'message' => 'Promo berhasil dihapus.']);
+        return back()->with(['type' => 'success', 'message' => 'Promo berhasil dihapus.']);
     }
 }

@@ -95,15 +95,15 @@ Route::get('/ketentuan-pengembalian', [LegalController::class, 'refund'])->name(
 Route::get('/daftar-ulang', [ReRegistrationController::class, 'create'])->name('re-register.create');
 Route::get('/daftar-ulang-academy', [ReRegistrationController::class, 'createAcademy'])->name('re-register-academy.create');
 // Route::get('/daftar-ss', [ReRegistrationController::class, 'createSs'])->name('re-register-ss.create');
-Route::post('/daftar-ulang', [ReRegistrationController::class, 'store'])->name('re-register.store');
+Route::post('/daftar-ulang', [ReRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('re-register.store');
 Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoiceCallback'])->name('webhooks.xendit.invoice');
 
 
 Route::get('/daftar-academy', [RegistrationController::class, 'createAcademy'])->name('register-academy.create');
 Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('register-ss.create');
-Route::post('/pendaftaran', [RegistrationController::class, 'store'])->name('pendaftaran.store');
+Route::post('/pendaftaran', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('pendaftaran.store');
 Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');
-Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->name('promo.validate');
+Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->middleware('throttle:30,1')->name('promo.validate');
 
 Route::get('/dashboard', function () {
     if (auth()->check() && auth()->user()->hasRole('siswa')) {
@@ -158,6 +158,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
             Route::post('settings', [SettingsController::class, 'update'])->name('settings.update');
             Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity.index');
+            
+            // Student Leaves Management
+            Route::get('leaves', [\App\Http\Controllers\StudentLeaveController::class, 'index'])->name('leaves.index');
+            Route::post('leaves/{studentLeave}/approve', [\App\Http\Controllers\StudentLeaveController::class, 'approve'])->name('leaves.approve');
+            Route::post('leaves/{studentLeave}/reject', [\App\Http\Controllers\StudentLeaveController::class, 'reject'])->name('leaves.reject');
+            Route::post('leaves/{studentLeave}/cancel', [\App\Http\Controllers\StudentLeaveController::class, 'cancel'])->name('leaves.cancel');
         });
 
         Route::middleware(['role:admin|user|admin_kelas'])->group(function() {
@@ -174,6 +180,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');
             Route::resource('promos', PromoController::class)->except(['show']);
             Route::get('laporan/pembayaran-bulanan', [LaporanController::class, 'pembayaranBulanan'])->name('laporan.pembayaran_bulanan');
+            Route::get('laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
             Route::get('jobs', [\App\Http\Controllers\Admin\JobBatchController::class, 'index'])->name('jobs.index');
         });
 
@@ -194,18 +201,21 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
 
 Route::controller(CheckTagihanController::class)->group(function () {
     Route::get('/cek-tagihan', 'showCheckForm')->name('tagihan.check_form');
-    Route::post('/cek-tagihan', 'findSiswa')->name('tagihan.check_status');
+    Route::post('/cek-tagihan', 'findSiswa')->middleware('throttle:10,1')->name('tagihan.check_status');
     Route::get('/cek-tagihan/hasil', 'showResult')->name('tagihan.check_result');
-    Route::post('/cek-tagihan/create-user', 'createUserAndLink')->name('tagihan.create_user');
-    Route::post('/cek-tagihan/pay', 'createPublicPayment')->name('tagihan.check_pay'); // Route pembayaran baru
+    Route::post('/cek-tagihan/create-user', 'createUserAndLink')->middleware('throttle:10,1')->name('tagihan.create_user');
+    Route::post('/cek-tagihan/pay', 'createPublicPayment')->middleware('throttle:20,1')->name('tagihan.check_pay'); // Route pembayaran baru
 });
+
+// Route untuk Cuti Siswa (Public/Student)
+Route::post('/student-leaves', [\App\Http\Controllers\StudentLeaveController::class, 'store'])->name('student-leaves.store');
 
 Route::controller(CekSppController::class)->group(function () {
     Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');
-    Route::post('/cek-spp', 'findSiswaByPhone')->name('tagihan.spp.find');
+    Route::post('/cek-spp', 'findSiswaByPhone')->middleware('throttle:10,1')->name('tagihan.spp.find');
     Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');
-    Route::post('/cek-spp/{siswa}/create-user', 'createUserAndLink')->name('tagihan.spp.create_user');
-    Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->name('tagihan.spp.pay');
+    Route::post('/cek-spp/{siswa}/create-user', 'createUserAndLink')->middleware('throttle:10,1')->name('tagihan.spp.create_user');
+    Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->middleware('throttle:20,1')->name('tagihan.spp.pay');
     Route::get('/cek-spp/sukses/{siswa}', 'showSuccess')->name('tagihan.spp.success');
 });
 

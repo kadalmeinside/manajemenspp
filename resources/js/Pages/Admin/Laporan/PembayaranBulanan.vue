@@ -1,9 +1,10 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { debounce } from 'lodash';
 import TextInput from '@/Components/TextInput.vue';
+import { ArrowDownTrayIcon } from '@heroicons/vue/20/solid';
 
 const props = defineProps({
     pageTitle: String,
@@ -37,6 +38,37 @@ const submitFilters = () => {
 // Terapkan filter secara otomatis saat ada perubahan (dengan debounce)
 watch([searchQuery, selectedTahun, selectedKelasId], debounce(submitFilters, 300));
 
+// URL untuk export (dengan filter aktif)
+const exportUrl = computed(() => {
+    const params = new URLSearchParams();
+    params.set('tahun', selectedTahun.value);
+    if (selectedKelasId.value) params.set('kelas_id', selectedKelasId.value);
+    if (searchQuery.value) params.set('search', searchQuery.value);
+    return route('admin.laporan.export') + '?' + params.toString();
+});
+
+// Summary per baris (berapa bulan PAID per siswa)
+const getRowPaidCount = (statuses) => {
+    return Object.values(statuses).filter(s => s.status === 'PAID').length;
+};
+
+// Summary per kolom (total PAID per bulan dari data di halaman ini)
+const columnSummary = computed(() => {
+    const summary = {};
+    for (let b = 1; b <= 12; b++) {
+        summary[b] = { paid: 0, total: 0 };
+    }
+    if (!props.laporanData?.data) return summary;
+    for (const siswa of props.laporanData.data) {
+        for (let b = 1; b <= 12; b++) {
+            const s = siswa.statuses[b]?.status;
+            if (s && s !== 'N/A') summary[b].total++;
+            if (s === 'PAID') summary[b].paid++;
+        }
+    }
+    return summary;
+});
+
 // Helper untuk styling status
 const getStatusClass = (status) => {
     const classes = {
@@ -66,20 +98,30 @@ const getStatusClass = (status) => {
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
                         <!-- Filter Section -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <TextInput
-                                type="text"
-                                v-model="searchQuery"
-                                placeholder="Cari nama siswa..."
-                                class="w-full"
-                            />
-                            <select v-model="selectedKelasId" class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
-                                <option value="">Semua Kelas</option>
-                                <option v-for="kelas in allKelas" :key="kelas.id_kelas" :value="kelas.id_kelas">{{ kelas.nama_kelas }}</option>
-                            </select>
-                            <select v-model="selectedTahun" class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
-                                <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-                            </select>
+                        <div class="flex flex-col sm:flex-row items-end gap-3">
+                            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <TextInput
+                                    type="text"
+                                    v-model="searchQuery"
+                                    placeholder="Cari nama siswa..."
+                                    class="w-full"
+                                />
+                                <select v-model="selectedKelasId" class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                                    <option value="">Semua Kelas</option>
+                                    <option v-for="kelas in allKelas" :key="kelas.id_kelas" :value="kelas.id_kelas">{{ kelas.nama_kelas }}</option>
+                                </select>
+                                <select v-model="selectedTahun" class="w-full text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                                    <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                                </select>
+                            </div>
+                            <!-- Tombol Export -->
+                            <a :href="exportUrl"
+                               class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md shadow-sm transition-colors flex-shrink-0"
+                               title="Export ke Excel"
+                            >
+                                <ArrowDownTrayIcon class="h-4 w-4" />
+                                Export Excel
+                            </a>
                         </div>
                     </div>
 
@@ -91,13 +133,14 @@ const getStatusClass = (status) => {
                                     <th class="sticky left-0 bg-gray-50 dark:bg-gray-700 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Siswa</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas</th>
                                     <th v-for="month in months" :key="month" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{{ month }}</th>
+                                    <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/30">Bayar</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 <tr v-if="laporanData.data.length === 0">
-                                    <td :colspan="14" class="px-6 py-10 text-center text-gray-500">Tidak ada data untuk ditampilkan.</td>
+                                    <td :colspan="15" class="px-6 py-10 text-center text-gray-500">Tidak ada data untuk ditampilkan.</td>
                                 </tr>
-                                <tr v-for="siswa in laporanData.data" :key="siswa.id_siswa">
+                                <tr v-for="siswa in laporanData.data" :key="siswa.id_siswa" class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                     <td class="sticky left-0 bg-white dark:bg-gray-800 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ siswa.nama_siswa }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ siswa.nama_kelas }}</td>
                                     <td v-for="bulan in 12" :key="bulan" class="px-3 py-4 text-center">
@@ -111,8 +154,27 @@ const getStatusClass = (status) => {
                                             {{ siswa.statuses[bulan].status }}
                                         </span>
                                     </td>
+                                    <!-- Kolom total bayar per baris -->
+                                    <td class="px-3 py-4 text-center bg-indigo-50/50 dark:bg-indigo-900/10">
+                                        <span class="text-sm font-bold" :class="getRowPaidCount(siswa.statuses) === 12 ? 'text-green-600 dark:text-green-400' : getRowPaidCount(siswa.statuses) > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'">
+                                            {{ getRowPaidCount(siswa.statuses) }}/12
+                                        </span>
+                                    </td>
                                 </tr>
                             </tbody>
+                            <!-- Baris summary bawah -->
+                            <tfoot class="bg-gray-100 dark:bg-gray-700/50 sticky bottom-0 z-10 border-t-2 border-gray-300 dark:border-gray-600">
+                                <tr>
+                                    <td class="sticky left-0 bg-gray-100 dark:bg-gray-700/50 px-6 py-3 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase">Total Bayar (hal ini)</td>
+                                    <td class="px-6 py-3 text-xs text-gray-500"></td>
+                                    <td v-for="b in 12" :key="'sum-'+b" class="px-3 py-3 text-center">
+                                        <span class="text-xs font-bold" :class="columnSummary[b].paid > 0 ? 'text-green-700 dark:text-green-400' : 'text-gray-400'">
+                                            {{ columnSummary[b].paid }}<span class="font-normal text-gray-400">/{{ columnSummary[b].total }}</span>
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-3 text-center bg-indigo-50 dark:bg-indigo-900/20"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
 

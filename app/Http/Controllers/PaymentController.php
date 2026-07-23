@@ -12,8 +12,14 @@ class PaymentController extends Controller
      */
     public function success(Request $request)
     {
+        $invoice = null;
+        if ($request->has('invoice_id')) {
+            $invoice = \App\Models\Invoice::find($request->invoice_id);
+        }
+
         return Inertia::render('Payment/Success', [
             'pageTitle' => 'Pembayaran Berhasil',
+            'invoice' => $invoice,
         ]);
     }
 

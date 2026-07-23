@@ -18,11 +18,12 @@ import { debounce } from 'lodash';
 const page = usePage();
 
 // Computed props
-const invoiceList = computed(() => page.props.invoiceList || { data: [], links: [], current_page: 1, total: 0, per_page: 10 });
-const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status: '' });
+const invoiceList = computed(() => page.props.invoiceList || { data: [], links: [], current_page: 1, total: 0, per_page: 10, from: 0, to: 0 });
+const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status: '', periode_bulan: '', periode_tahun: '' });
 const allSiswa = computed(() => page.props.allSiswa || []);
 const allKelas = computed(() => page.props.allKelas || []);
 const allStatus = computed(() => page.props.allStatus || []);
+const availableYears = computed(() => page.props.availableYears || [new Date().getFullYear()]);
 const can = computed(() => page.props.can || {});
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
@@ -75,22 +76,26 @@ const formBulkAll = useForm({
 const cancelActionForm = useForm({});
 const recreateActionForm = useForm({});
 
-const searchQuery = ref(filters.search || '');
-const selectedKelasId = ref(filters.kelas_id || '');
-const selectedStatus = ref(filters.status || '');
+const searchQuery = ref(filters.value.search || '');
+const selectedKelasId = ref(filters.value.kelas_id || '');
+const selectedStatus = ref(filters.value.status || '');
+const selectedPeriodeBulan = ref(filters.value.periode_bulan || '');
+const selectedPeriodeTahun = ref(filters.value.periode_tahun || '');
 
 const submitFilters = () => {
     router.get(route('admin.invoices.index'), {
         search: searchQuery.value,
         kelas_id: selectedKelasId.value,
         status: selectedStatus.value,
+        periode_bulan: selectedPeriodeBulan.value,
+        periode_tahun: selectedPeriodeTahun.value,
         page: 1,
     }, {
         preserveState: true, preserveScroll: true, replace: true,
         only: ['invoiceList', 'filters'],
     });
 };
-watch([searchQuery, selectedKelasId, selectedStatus], debounce(submitFilters, 300));
+watch([searchQuery, selectedKelasId, selectedStatus, selectedPeriodeBulan, selectedPeriodeTahun], debounce(submitFilters, 300));
 
 
 const openCreateIndividualModal = () => { formIndividual.reset(); showIndividualModal.value = true; };
@@ -180,9 +185,11 @@ const recreateInvoice = () => {
 
 onMounted(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    searchQuery.value = urlParams.get('search') || filters.search || '';
-    selectedKelasId.value = urlParams.get('kelas_id') || filters.kelas_id || '';
-    selectedStatus.value = urlParams.get('status') || filters.status || '';
+    searchQuery.value = urlParams.get('search') || filters.value.search || '';
+    selectedKelasId.value = urlParams.get('kelas_id') || filters.value.kelas_id || '';
+    selectedStatus.value = urlParams.get('status') || filters.value.status || '';
+    selectedPeriodeBulan.value = urlParams.get('periode_bulan') || filters.value.periode_bulan || '';
+    selectedPeriodeTahun.value = urlParams.get('periode_tahun') || filters.value.periode_tahun || '';
 });
 
 // Helper Function
@@ -219,32 +226,47 @@ const formatDescription = (desc) => {
         <div class="pb-12 pt-4">
             <div class="max-w-full mx-auto">
                 <div class="mb-6 p-4 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full md:col-span-1"/>
-                        <select v-model="selectedKelasId" class="w-full md:col-span-1 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                        <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full lg:col-span-2" aria-label="Cari invoice"/>
+                        <select v-model="selectedKelasId" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter kelas">
                             <option value="">Semua Kelas</option>
                             <option v-for="k in allKelas" :key="k.id_kelas" :value="k.id_kelas">{{ k.nama_kelas }}</option>
                         </select>
-                        <select v-model="selectedStatus" class="w-full md:col-span-1 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                        <select v-model="selectedStatus" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter status">
                             <option value="">Semua Status</option>
                             <option v-for="status in allStatus" :key="status" :value="status">{{ status }}</option>
                         </select>
-
-                        <div class="md:col-span-1 flex md:justify-end">
-                            <Dropdown align="right" width="56" v-if="can?.create_invoice">
-                                <template #trigger>
-                                    <PrimaryButton class="w-full md:w-auto inline-flex items-center justify-center">
-                                        <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" /> Buat Tagihan
-                                        <ChevronDownIcon class="ml-2 -mr-0.5 h-4 w-4" />
-                                    </PrimaryButton>
-                                </template>
-                                <template #content>
-                                    <button @click="openCreateIndividualModal" class="block w-full px-4 py-2 text-start text-sm ...">Tagihan Individual (SPP)</button>
-                                    <button @click="openBulkByClassModal" class="block w-full px-4 py-2 text-start text-sm ...">Tagihan Massal (Per Kelas)</button>
-                                    <button @click="openBulkAllModal" class="block w-full px-4 py-2 text-start text-sm ...">Tagihan Massal (Semua Siswa)</button>
-                                </template>
-                            </Dropdown>
-                        </div>
+                        <!-- Filter Periode -->
+                        <select v-model="selectedPeriodeBulan" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter bulan periode">
+                            <option value="">Semua Bulan</option>
+                            <option v-for="month in months" :key="month.value" :value="month.value">{{ month.name }}</option>
+                        </select>
+                        <select v-model="selectedPeriodeTahun" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter tahun periode">
+                            <option value="">Semua Tahun</option>
+                            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                        </select>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <span v-if="invoiceList.total > 0">
+                                Menampilkan <span class="font-semibold text-gray-700 dark:text-gray-300">{{ invoiceList.from }}–{{ invoiceList.to }}</span>
+                                dari <span class="font-semibold text-gray-700 dark:text-gray-300">{{ invoiceList.total }}</span> invoice
+                            </span>
+                            <span v-else>Tidak ada data yang cocok</span>
+                        </p>
+                        <Dropdown align="right" width="56" v-if="can?.create_invoice">
+                            <template #trigger>
+                                <PrimaryButton class="inline-flex items-center justify-center">
+                                    <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" /> Buat Tagihan
+                                    <ChevronDownIcon class="ml-2 -mr-0.5 h-4 w-4" />
+                                </PrimaryButton>
+                            </template>
+                            <template #content>
+                                <button @click="openCreateIndividualModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Individual (SPP)</button>
+                                <button @click="openBulkByClassModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Per Kelas)</button>
+                                <button @click="openBulkAllModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Semua Siswa)</button>
+                            </template>
+                        </Dropdown>
                     </div>
                 </div>
 
@@ -258,15 +280,16 @@ const formatDescription = (desc) => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jatuh Tempo</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metode</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dibuat</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                 <tr v-if="!invoiceList.data || invoiceList.data.length === 0">
-                                    <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data invoice.</td>
+                                    <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data invoice.</td>
                                 </tr>
-                                <tr v-else v-for="invoice in invoiceList.data" :key="invoice.id">
+                                <tr v-else v-for="invoice in invoiceList.data" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                                         {{ invoice.siswa_nama }} <br>
                                         <span class="text-xs text-gray-500">{{ invoice.kelas_nama }}</span>
@@ -276,8 +299,19 @@ const formatDescription = (desc) => {
                                         <div class="text-gray-500">{{ formatDescription(invoice.description).detail }}</div>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-500 ">{{ invoice.total_amount_formatted }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.due_date_formatted }}</td>
-                                    <td class="px-6 py-4 text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(invoice.status)">{{ invoice.status }}</span></td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        <span v-if="invoice.paid_at_formatted" class="text-green-600 dark:text-green-400 font-medium">{{ invoice.paid_at_formatted }}</span>
+                                        <span v-else>{{ invoice.due_date_formatted }}</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(invoice.status)">{{ invoice.status }}</span>
+                                    </td>
+                                    <!-- Kolom Metode Bayar -->
+                                    <td class="px-6 py-4 text-sm">
+                                        <span v-if="invoice.payment_method === 'manual'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Manual</span>
+                                        <span v-else-if="invoice.status === 'PAID'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200">Xendit</span>
+                                        <span v-else class="text-gray-400 text-xs">—</span>
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.created_at_formatted }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end space-x-2">
@@ -297,10 +331,16 @@ const formatDescription = (desc) => {
                             </tbody>
                         </table>
                     </div>
-                    <div v-if="invoiceList.links && invoiceList.links.length > 3" class="p-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex flex-wrap -mb-1 justify-center">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            <span v-if="invoiceList.total > 0">
+                                Menampilkan <span class="font-medium">{{ invoiceList.from }}</span>–<span class="font-medium">{{ invoiceList.to }}</span>
+                                dari <span class="font-medium">{{ invoiceList.total }}</span> invoice
+                            </span>
+                        </p>
+                        <div v-if="invoiceList.links && invoiceList.links.length > 3" class="flex flex-wrap -mb-1 justify-center">
                             <template v-for="(link, key) in invoiceList.links" :key="key">
-                                <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm select-none" v-html="link.label" />
+                                <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm select-none text-gray-400" v-html="link.label" />
                                 <Link v-else 
                                     class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:border-indigo-500 dark:focus:border-indigo-700 focus:text-indigo-500 dark:focus:text-indigo-300"
                                     :class="{ 'bg-indigo-500 text-white dark:bg-indigo-600 dark:text-white dark:border-indigo-700': link.active }"

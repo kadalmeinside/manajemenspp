@@ -30,7 +30,7 @@ class StoreSiswaRequest extends FormRequest
             'nomor_telepon_wali' => 'nullable|string|max:20',
             'tanggal_lahir' => 'required|date',
             'tanggal_bergabung' => 'required|date',
-            'jumlah_spp_custom' => 'nullable|numeric|min:0',
+            'jumlah_spp_custom' => 'required|numeric|min:0',
             'admin_fee_custom' => 'nullable|numeric|min:0',
 
             // Data untuk Akun User baru (siswa/wali)

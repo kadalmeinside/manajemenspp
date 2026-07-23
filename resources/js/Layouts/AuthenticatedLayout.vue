@@ -11,13 +11,12 @@ import JobStatusToast from '@/Components/JobStatusToast.vue';
 import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
-    ChevronRightIcon, CurrencyDollarIcon
+    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
 
-// --- STATE UNTUK LOGOUT CONFIRMATION ---
 const showLogoutConfirmModal = ref(false);
 
 const confirmLogout = () => {
@@ -34,7 +33,6 @@ const logout = () => {
     });
 };
 
-// --- STATE UNTUK JOB NOTIFICATION ---
 const showJobToast = ref(false);
 const jobStatus = ref('');
 const jobMessage = ref('');
@@ -55,7 +53,6 @@ onMounted(() => {
     }
 });
 
-// --- STATE & PROPS LAINNYA ---
 const desktopSidebarOpen = ref(true);
 const mobileSidebarOpen = ref(false);
 const userRoles = computed(() => page.props.auth?.user?.roles || []);
@@ -65,14 +62,13 @@ const userInitial = computed(() => userName.value.charAt(0).toUpperCase());
 const appSettings = computed(() => page.props.app_settings || {});
 const appName = computed(() => appSettings.value.app_name || 'Manajemen SPP');
 const appLogo = computed(() => appSettings.value.app_logo || null);
+const pendingLeavesCount = computed(() => page.props.pending_leaves_count || 0);
 
-// --- STATE UNTUK MENU EXPANDABLE ---
 const openMenus = ref({});
 function toggleMenu(menuKey) {
     openMenus.value[menuKey] = !openMenus.value[menuKey];
 }
 
-// --- THEME MANAGEMENT ---
 const themes = {
     gray: { 50: '#f9fafb', 100: '#f3f4f6', 200: '#e5e7eb', 300: '#d1d5db', 400: '#9ca3af', 500: '#6b7280', 600: '#4b5563', 700: '#374151', 800: '#1f2937', 900: '#111827' },
     maroon: { 50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 300: '#fca5a5', 400: '#f87171', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c', 800: '#991b1b', 900: '#7f1d1d' },
@@ -114,7 +110,6 @@ function isMenuActive(menuItem) {
 }
 
 
-// --- MENU DEFINITIONS ---
 const mainMenu = computed(() => {
     const dashboardItem = {
         name: 'Dashboard', icon: HomeIcon,
@@ -134,6 +129,7 @@ const adminMenu = [
     { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', requiredPermission: 'manage_siswa' },
     { name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', requiredPermission: 'manage_kelas' },
     { name: 'Manajemen Promo', route: 'admin.promos.index', icon: CurrencyDollarIcon, current: 'admin.promos.*', requiredPermission: 'manage_kelas' },
+    { name: 'Pengajuan Cuti', route: 'admin.leaves.index', icon: CalendarDaysIcon, current: 'admin.leaves.*', requiredPermission: 'manage_all_tagihan', badge: true },
 ];
 
 const systemMenu = {
@@ -143,7 +139,6 @@ const systemMenu = {
     requiredPermission: 'manage users',
     children: [
         { name: 'Dokumen Legal', route: 'admin.legal-documents.index', icon: DocumentChartBarIcon, current: 'admin.legal-documents.*', requiredPermission: 'manage application settings' },
-        { name: 'Log Aktivitas', route: 'admin.activity.index', icon: DocumentChartBarIcon, current: 'admin.activity.index', requiredPermission: 'manage users' },
         { name: 'Users', route: 'admin.users.index', icon: UsersIcon, current: 'admin.users.*', requiredPermission: 'manage users' },
         { name: 'Roles', route: 'admin.roles.index', icon: UserCircleIcon, current: 'admin.roles.*', requiredPermission: 'manage roles' },
         { name: 'Permissions', route: 'admin.permissions.index', icon: ShieldCheckIcon, current: 'admin.permissions.*', requiredPermission: 'manage permissions' },
@@ -205,7 +200,12 @@ const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermis
                                @click="mobileSidebarOpen = false"
                                :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
                             <component :is="item.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
-                            <span v-show="desktopSidebarOpen || mobileSidebarOpen">{{ item.name }}</span>
+                            <span v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-1">{{ item.name }}</span>
+                            <!-- Badge notifikasi untuk cuti pending -->
+                            <span
+                                v-if="item.badge && pendingLeavesCount > 0 && (desktopSidebarOpen || mobileSidebarOpen)"
+                                class="ml-auto inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 text-xs font-bold rounded-full bg-red-500 text-white"
+                            >{{ pendingLeavesCount > 99 ? '99+' : pendingLeavesCount }}</span>
                         </Link>
                     </template>
                 </template>

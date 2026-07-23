@@ -2,7 +2,7 @@
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-import { ArrowPathIcon, BanknotesIcon, CalendarDaysIcon, CheckCircleIcon, ClockIcon } from '@heroicons/vue/24/solid';
+import { ArrowPathIcon, BanknotesIcon, CalendarDaysIcon, CheckCircleIcon, ClockIcon, DocumentTextIcon } from '@heroicons/vue/24/solid';
 
 const props = defineProps({
     pageTitle: String,
@@ -51,22 +51,22 @@ const getStatusClass = (status) => {
         <!-- Background Image -->
         <div class="fixed inset-0 z-0">
             <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/images/bg_registration.webp');"></div>
-            <div class="absolute inset-0 bg-black/50"></div>
+            <div class="absolute inset-0 bg-gray-100/90 dark:bg-gray-900/95 backdrop-blur-md"></div>
         </div>
 
         <main class="w-full max-w-4xl mx-auto z-10 flex-grow flex flex-col justify-center">
             <!-- Header -->
             <header class="text-center mb-8">
                 <Link href="/" class="inline-block">
-                    <img v-if="appLogo" :src="appLogo" alt="App Logo" class="h-12 w-auto mx-auto">
-                    <ApplicationLogo v-else class="h-12 w-auto mx-auto text-white" />
+                    <img v-if="appLogo" :src="appLogo" alt="App Logo" class="h-12 w-auto mx-auto drop-shadow-sm">
+                    <ApplicationLogo v-else class="h-12 w-auto mx-auto text-gray-900 dark:text-white" />
                 </Link>
-                <h1 class="mt-4 text-3xl font-bold text-white tracking-tight">Persija Development</h1>
-                <h2 class="text-lg text-white/80">{{ pageTitle }}</h2>
+                <h1 class="mt-4 text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Persija Development</h1>
+                <h2 class="text-lg text-gray-600 dark:text-gray-400">{{ pageTitle }}</h2>
             </header>
 
             <!-- Konten Utama -->
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-2xl rounded-xl p-6 md:p-8 flex-grow">
+            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-xl border border-gray-200 dark:border-gray-700 rounded-3xl p-6 md:p-8 w-full relative">
                 <!-- Form Pencarian -->
                 <div v-if="!siswa">
                     <p class="text-center text-gray-600 dark:text-gray-400">Masukkan NIS dan Tanggal Lahir untuk melihat status pembayaran.</p>
@@ -112,11 +112,13 @@ const getStatusClass = (status) => {
                     
                     <!-- Navigasi Tab -->
                     <div class="mt-6 border-b border-gray-200 dark:border-gray-700">
-                        <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                            <button @click="activeTab = 'pending'" :class="[activeTab === 'pending' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm']">
+                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                            <button @click="activeTab = 'pending'" :class="[activeTab === 'pending' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2']">
+                                <DocumentTextIcon class="h-5 w-5" />
                                 Tagihan Tertunda ({{ pendingInvoices.length }})
                             </button>
-                            <button @click="activeTab = 'history'" :class="[activeTab === 'history' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm']">
+                            <button @click="activeTab = 'history'" :class="[activeTab === 'history' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2']">
+                                <ClockIcon class="h-5 w-5" />
                                 Riwayat Pembayaran
                             </button>
                         </nav>
@@ -125,25 +127,30 @@ const getStatusClass = (status) => {
                     <!-- Daftar Tagihan -->
                     <div class="mt-6 space-y-4">
                         <div v-show="activeTab === 'pending'">
-                            <div v-if="pendingInvoices.length === 0" class="text-center text-gray-500 py-10">Tidak ada tagihan yang perlu dibayar.</div>
-                            <div v-else v-for="invoice in pendingInvoices" :key="invoice.id" class="bg-white mb-3 dark:bg-gray-800/50 p-4 rounded-lg shadow-sm">
-                                <div class="flex justify-between items-start gap-4">
+                            <div v-if="pendingInvoices.length === 0" class="text-center text-gray-500 py-10 bg-white/60 dark:bg-gray-800/60 rounded-2xl">
+                                Tidak ada tagihan yang perlu dibayar.
+                            </div>
+                            <div v-else v-for="invoice in pendingInvoices" :key="invoice.id" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <div class="flex-grow">
-                                        <p class="font-semibold text-gray-800 dark:text-gray-100">{{ invoice.description }}</p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+                                        <p class="font-semibold text-gray-900 dark:text-white">{{ invoice.description }}</p>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center mt-1">
                                             <CalendarDaysIcon class="h-4 w-4 mr-1.5"/>
                                             Jatuh Tempo: {{ invoice.due_date_formatted }}
                                         </p>
                                     </div>
                                     <div class="flex-shrink-0">
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(invoice.status)">
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold uppercase tracking-wider rounded-full" :class="getStatusClass(invoice.status)">
                                             {{ invoice.status }}
                                         </span>
                                     </div>
                                 </div>
-                                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
-                                    <p class="text-xl font-bold text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</p>
-                                    <a v-if="invoice.can_pay && invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-sm px-5 py-2">
+                                <div class="mt-5 pt-4 border-t border-gray-100 dark:border-gray-600 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Total Tagihan</p>
+                                        <p class="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">{{ invoice.total_amount_formatted }}</p>
+                                    </div>
+                                    <a v-if="invoice.can_pay && invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-md font-bold rounded-xl text-sm px-6 py-3 transition-all">
                                         <BanknotesIcon class="h-5 w-5 mr-2" />
                                         Bayar Sekarang
                                     </a>
@@ -151,20 +158,25 @@ const getStatusClass = (status) => {
                             </div>
                         </div>
                         <div v-show="activeTab === 'history'">
-                            <div v-if="historyInvoices.length === 0" class="text-center text-gray-500 py-10">Belum ada riwayat pembayaran.</div>
-                             <div v-else v-for="invoice in historyInvoices" :key="invoice.id" class="bg-white dark:bg-gray-800/50 p-4 rounded-lg shadow-sm">
-                                <div class="flex justify-between items-start gap-4">
+                            <div v-if="historyInvoices.length === 0" class="text-center text-gray-500 py-10 bg-white/60 dark:bg-gray-800/60 rounded-2xl">
+                                Belum ada riwayat pembayaran.
+                            </div>
+                             <div v-else v-for="invoice in historyInvoices" :key="invoice.id" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <div class="flex-grow">
-                                        <p class="font-semibold text-gray-800 dark:text-gray-100">{{ invoice.description }}</p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+                                        <p class="font-semibold text-gray-900 dark:text-white">{{ invoice.description }}</p>
+                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center mt-1">
                                             <CheckCircleIcon v-if="invoice.status === 'PAID'" class="h-4 w-4 mr-1.5 text-green-500"/>
                                             <ClockIcon v-else class="h-4 w-4 mr-1.5 text-red-500"/>
                                             <span v-if="invoice.status === 'PAID'">Lunas pada: {{ invoice.paid_at_formatted }}</span>
                                             <span v-else>Status: {{ invoice.status }}</span>
                                         </p>
                                     </div>
-                                    <div class="flex-shrink-0">
-                                        <p class="text-lg font-bold text-right" :class="invoice.status === 'PAID' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">{{ invoice.total_amount_formatted }}</p>
+                                    <div class="flex-shrink-0 flex flex-col sm:items-end gap-1 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-600">
+                                        <p class="text-lg font-bold" :class="invoice.status === 'PAID' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{ invoice.total_amount_formatted }}</p>
+                                        <span class="px-2 py-0.5 inline-flex text-[10px] font-bold uppercase tracking-wider rounded-md" :class="getStatusClass(invoice.status)">
+                                            {{ invoice.status === 'PAID' ? 'Lunas' : invoice.status }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -173,17 +185,17 @@ const getStatusClass = (status) => {
                 </div>
             </div>
 
-            <footer class="w-full max-w-4xl mx-auto mt-8 text-center text-sm text-white">
+            <footer class="w-full max-w-4xl mx-auto mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
                 
                 <p>Contact Center: 0811-2626-323</p>
-                <div class="mt-8 border-t border-zinc-700 py-6 text-center text-sm">
+                <div class="mt-8 border-t border-gray-300 dark:border-gray-700 py-6 text-center text-sm">
                     <p>Copyright &copy; 2025 Persija Development. All Rights Reserved.</p>
                     <div class="mt-2 space-x-4">
-                        <Link :href="route('legal.terms')" class="hover:underline">Syarat & Ketentuan</Link>
-                        <span class="text-gray-500">&middot;</span>
-                        <Link :href="route('legal.refund')" class="hover:underline">Kebijakan Pengembalian</Link>
-                        <span class="text-gray-500">&middot;</span>
-                        <Link :href="route('legal.privacy')" class="hover:underline">Kebijakan Privasi</Link>
+                        <Link :href="route('legal.terms')" class="hover:text-gray-900 dark:hover:text-white hover:underline">Syarat & Ketentuan</Link>
+                        <span class="text-gray-400 dark:text-gray-600">&middot;</span>
+                        <Link :href="route('legal.refund')" class="hover:text-gray-900 dark:hover:text-white hover:underline">Kebijakan Pengembalian</Link>
+                        <span class="text-gray-400 dark:text-gray-600">&middot;</span>
+                        <Link :href="route('legal.privacy')" class="hover:text-gray-900 dark:hover:text-white hover:underline">Kebijakan Privasi</Link>
                     </div>
                 </div>
             </footer>

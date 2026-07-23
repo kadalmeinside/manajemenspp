@@ -219,7 +219,7 @@ const submitForm = () => {
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap');
 
 :root {
-    --primary-color: #D9262E; /* Persija Red */
+    --primary-color: #D9262E;
 }
 
 html {

@@ -76,32 +76,52 @@ class Siswa extends Model
         });
     }
 
-    public function generateNis()
+    /**
+     * Generate NIS otomatis untuk siswa baru.
+     *
+     * Format NIS: {YYYY}{kode_cabang}{NNNN}
+     * Contoh: 2025JKT0001
+     *
+     * Perbaikan dari versi sebelumnya:
+     * - Format seragam dengan SiswaController::store() — konsisten di semua flow
+     * - Menggunakan lockForUpdate() dalam DB transaction untuk mencegah race condition
+     *   (dua siswa mendaftar bersamaan tidak akan mendapat NIS yang sama)
+     */
+    public function generateNis(): void
     {
         // Jika siswa sudah punya NIS, jangan buat lagi.
         if ($this->nis) {
             return;
         }
 
-        $yearMonth = Carbon::now()->format('Ym');
+        // Pastikan kelas sudah di-load untuk mendapatkan kode_cabang
+        $kelas = $this->kelas ?? Kelas::find($this->id_kelas);
+        $kodeCabang = $kelas?->kode_cabang ?? 'XXX';
+        $tahun = Carbon::now()->format('Y');
+        $prefix = "{$tahun}{$kodeCabang}";
 
-        // 1. Cari siswa terakhir yang dibuat di bulan yang sama untuk mendapatkan nomor urut
-        $lastSiswa = self::where('nis', 'LIKE', $yearMonth . '%')
-                         ->orderBy('nis', 'desc')
-                         ->first();
+        // Gunakan transaksi dengan lockForUpdate() untuk mencegah race condition
+        // Tanpa ini, dua siswa yang mendaftar bersamaan bisa mendapat NIS yang sama!
+        \Illuminate\Support\Facades\DB::transaction(function () use ($prefix) {
+            // lockForUpdate() memblokir row lain dari baca/tulis sampai transaksi selesai
+            $lastSiswa = self::where('nis', 'LIKE', $prefix . '%')
+                             ->lockForUpdate()
+                             ->orderBy('nis', 'desc')
+                             ->first();
 
-        $nextSequence = 1;
-        if ($lastSiswa && $lastSiswa->nis) {
-            // Ambil 4 digit terakhir dari NIS, ubah ke angka, lalu tambah 1
-            $lastSequence = (int) substr($lastSiswa->nis, -4);
-            $nextSequence = $lastSequence + 1;
-        }
+            $nextSequence = 1;
+            if ($lastSiswa && $lastSiswa->nis) {
+                // Ambil 4 digit terakhir dari NIS
+                $lastSequence = (int) substr($lastSiswa->nis, -4);
+                $nextSequence = $lastSequence + 1;
+            }
 
-        // 2. Format nomor urut menjadi 4 digit dengan angka 0 di depan
-        $sequencePadded = Str::padLeft($nextSequence, 4, '0');
+            // Format nomor urut menjadi 4 digit dengan angka 0 di depan
+            $sequencePadded = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
 
-        // 3. Gabungkan menjadi NIS baru dan simpan
-        $this->nis = $yearMonth . $sequencePadded;
-        $this->save();
+            // Gabungkan dan simpan
+            $this->nis = $prefix . $sequencePadded;
+            $this->saveQuietly(); // saveQuietly agar tidak trigger event/log duplikat
+        });
     }
 }

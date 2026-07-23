@@ -7,16 +7,14 @@ import { Bars3Icon, XMarkIcon, ArrowUpIcon } from '@heroicons/vue/24/solid';
 const isLoading = ref(false);
 const page = usePage();
 
-// 2. GUNAKAN 'watch' UNTUK MENDETEKSI PERUBAHAN HALAMAN
 watch(() => page.url, () => {
-    isLoading.value = true; // Selalu tampilkan loading
+    isLoading.value = true;
     
-    // Set timer untuk menyembunyikan loading setelah 1 detik (1000 ms)
     setTimeout(() => {
         isLoading.value = false;
     }, 400);
 }, {
-    immediate: true // Opsi ini membuat 'watch' langsung berjalan saat pertama kali halaman dimuat
+    immediate: true
 });
 const appSettings = computed(() => page.props.app_settings || {});
 const appName = computed(() => appSettings.value.app_name || 'Persija Development');
@@ -199,7 +197,6 @@ onUnmounted(() => {
 }
 @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* Transition Fade for Loading Overlay */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s ease-in-out;

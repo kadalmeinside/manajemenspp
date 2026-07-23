@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\LegalDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
@@ -17,16 +18,22 @@ class SettingsController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorize('manage application settings'); // Gunakan permission
-        // if (!$request->user()->can('manage application settings')) {
-        //     abort(403);
-        // }
+        $this->authorize('manage application settings'); 
 
         // Ambil semua pengaturan dan ubah menjadi format key => value
         $settings = Setting::all()->pluck('value', 'key');
+        
+        // Ambil list dokumen legal untuk dropdown
+        $legalDocuments = LegalDocument::orderBy('name')->orderBy('version', 'desc')->get()->map(function($doc) {
+            return [
+                'id' => $doc->id,
+                'name' => $doc->name . ' (v' . $doc->version . ') - ' . $doc->type,
+            ];
+        });
 
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settings,
+            'legalDocuments' => $legalDocuments,
             'pageTitle' => 'Pengaturan Aplikasi',
             'can' => [
                 'update_settings' => auth()->user()->can('manage application settings'),
@@ -44,6 +51,7 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'app_name' => 'nullable|string|max:255',
             'app_logo' => 'nullable|image|max:1024', // Max 1MB
+            'app_logo_cek_spp' => 'nullable|image|max:1024', // Max 1MB
         ]);
 
         // Simpan atau update nama aplikasi
@@ -68,6 +76,39 @@ class SettingsController extends Controller
                 ['key' => 'app_logo'],
                 ['value' => $path]
             );
+        }
+
+        // Simpan atau update logo Cek SPP
+        if ($request->hasFile('app_logo_cek_spp')) {
+            // Hapus logo lama jika ada
+            $oldLogoCekSppPath = Setting::where('key', 'app_logo_cek_spp')->value('value');
+            if ($oldLogoCekSppPath) {
+                Storage::disk('public')->delete($oldLogoCekSppPath);
+            }
+
+            // Simpan logo baru
+            $pathCekSpp = $request->file('app_logo_cek_spp')->store('logos', 'public');
+            Setting::updateOrCreate(
+                ['key' => 'app_logo_cek_spp'],
+                ['value' => $pathCekSpp]
+            );
+        }
+
+        // Simpan konfigurasi Legal Documents ke Settings
+        $legalSettings = [
+            'legal_doc_registration_public',
+            'legal_doc_registration_academy',
+            'legal_doc_registration_ss',
+            'legal_doc_re_registration'
+        ];
+
+        foreach ($legalSettings as $key) {
+            if ($request->has($key)) {
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $request->input($key)]
+                );
+            }
         }
 
         // Hapus cache pengaturan agar yang baru digunakan

@@ -24,12 +24,32 @@ use Throwable;
 class RegistrationController extends Controller
 {
     /**
+     * Menampilkan form pendaftaran umum.
+     */
+    public function create()
+    {
+        $docId = \App\Models\Setting::where('key', 'legal_doc_registration_public')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
+
+        $allKelas = Kelas::orderBy('nama_kelas')->get();
+
+        return Inertia::render('Public/Registration', [
+            'pageTitle' => 'Formulir Pendaftaran Umum',
+            'allKelas' => $allKelas,
+            'registrationFee' => 0, // Disesuaikan nanti
+            'termsDocument' => $terms,
+        ]);
+    }
+
+    /**
      * Menampilkan form pendaftaran.
      */
     public function createAcademy()
     {
         $academyClass = Kelas::where('nama_kelas', 'Persija Academy')->firstOrFail();
-        $terms = LegalDocument::latest('published_at')->first();
+        
+        $docId = \App\Models\Setting::where('key', 'legal_doc_registration_academy')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
 
         return Inertia::render('Public/RegisterAcademy', [
             'pageTitle' => 'Formulir Pendaftaran Siswa Academy',
@@ -45,7 +65,9 @@ class RegistrationController extends Controller
 
     public function createSs()
     {
-        $terms = LegalDocument::latest('published_at')->first();
+        $docId = \App\Models\Setting::where('key', 'legal_doc_registration_ss')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
+
         $allKelas = Kelas::where('deskripsi', 'Soccer School')
                          ->orderBy('nama_kelas')
                          ->get();

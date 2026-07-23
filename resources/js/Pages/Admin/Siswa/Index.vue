@@ -10,15 +10,16 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import Toast from '@/Components/Toast.vue';
-import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/vue/20/solid';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 
 const page = usePage();
 
-const siswaList = computed(() => page.props.siswaList || { data: [], links: [], current_page: 1, total: 0, per_page: 10 });
-const filters = computed(() => page.props.filters || { search: '', kelas_id: '' });
+const siswaList = computed(() => page.props.siswaList || { data: [], links: [], current_page: 1, total: 0, per_page: 15, from: 0, to: 0 });
+const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status_siswa: '', spp_belum_diset: false });
 const allKelas = computed(() => page.props.allKelas || []);
+const allStatusSiswa = computed(() => page.props.allStatusSiswa || ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment']);
 const can = computed(() => page.props.can || {});
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
@@ -47,18 +48,50 @@ const form = useForm({
 
 const searchQuery = ref(filters.value.search || '');
 const selectedKelasId = ref(filters.value.kelas_id || '');
+const selectedStatusSiswa = ref(filters.value.status_siswa || '');
+const sppBelumDiset = ref(filters.value.spp_belum_diset === 'true' || filters.value.spp_belum_diset === true);
+const isLoading = ref(false);
+
+const getStatusBadgeClass = (status) => {
+    const map = {
+        'Aktif': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+        'Non-Aktif': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+        'Lulus': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+        'Cuti': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+        'pending_payment': 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
+    };
+    return map[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+};
 
 const submitFilters = () => {
+    isLoading.value = true;
     router.get(route('admin.siswa.index'), {
         search: searchQuery.value,
         kelas_id: selectedKelasId.value,
+        status_siswa: selectedStatusSiswa.value,
+        spp_belum_diset: sppBelumDiset.value ? 'true' : null,
         page: 1,
     }, {
         preserveState: true, preserveScroll: true, replace: true,
         only: ['siswaList', 'filters'],
+        onFinish: () => { isLoading.value = false; }
     });
 };
-watch([searchQuery, selectedKelasId], debounce(submitFilters, 300));
+watch([searchQuery, selectedKelasId, selectedStatusSiswa, sppBelumDiset], debounce(submitFilters, 300));
+
+const setSppDefault = () => {
+    if (form.id_kelas) {
+        const selectedKelas = allKelas.value.find(k => k.id_kelas === form.id_kelas);
+        if (selectedKelas && selectedKelas.biaya_spp_default !== undefined) {
+            form.jumlah_spp_custom = Number(selectedKelas.biaya_spp_default);
+            form.clearErrors('jumlah_spp_custom');
+        } else {
+            alert('Kelas yang dipilih tidak memiliki konfigurasi biaya SPP default.');
+        }
+    } else {
+        alert('Silakan pilih kelas terlebih dahulu.');
+    }
+};
 
 const openCreateModal = () => {
     isEditMode.value = false;
@@ -208,6 +241,8 @@ onMounted(() => {
     const urlParams = new URLSearchParams(window.location.search);
     searchQuery.value = urlParams.get('search') || (filters.value ? filters.value.search : '') || '';
     selectedKelasId.value = urlParams.get('kelas_id') || (filters.value ? filters.value.kelas_id : '') || '';
+    selectedStatusSiswa.value = urlParams.get('status_siswa') || (filters.value ? filters.value.status_siswa : '') || '';
+    sppBelumDiset.value = urlParams.get('spp_belum_diset') === 'true' || (filters.value && (filters.value.spp_belum_diset === 'true' || filters.value.spp_belum_diset === true));
 });
 </script>
 
@@ -225,24 +260,49 @@ onMounted(() => {
             <div class="max-w-full mx-auto">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 pb-0 text-gray-900 dark:text-gray-100">
-                        <div class="mb-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                            <div class="flex flex-col sm:flex-row items-center gap-3 flex-grow">
-                                <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email wali, kelas..." class="w-full sm:w-auto md:flex-grow lg:max-w-md" aria-label="Cari Siswa"/>
-                                <select v-model="selectedKelasId" class="w-full sm:w-auto md:flex-grow lg:max-w-xs border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" aria-label="Filter berdasarkan kelas">
-                                    <option value="">Semua Kelas</option>
-                                    <option v-for="kelasItem in allKelas" :key="kelasItem.id_kelas" :value="kelasItem.id_kelas">{{ kelasItem.nama_kelas }}</option>
-                                </select>
+                        <div class="mb-6 space-y-4">
+                            <!-- Baris Utama (Search, Selects & Action Buttons) -->
+                            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+                                <div class="flex flex-col sm:flex-row items-center gap-3 flex-grow">
+                                    <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email wali, kelas..." class="w-full sm:w-auto md:flex-grow lg:max-w-xs" aria-label="Cari Siswa"/>
+                                    <select v-model="selectedKelasId" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" aria-label="Filter berdasarkan kelas">
+                                        <option value="">Semua Kelas</option>
+                                        <option v-for="kelasItem in allKelas" :key="kelasItem.id_kelas" :value="kelasItem.id_kelas">{{ kelasItem.nama_kelas }}</option>
+                                    </select>
+                                    <select v-model="selectedStatusSiswa" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" aria-label="Filter berdasarkan status">
+                                        <option value="">Semua Status</option>
+                                        <option v-for="s in allStatusSiswa" :key="s" :value="s">{{ s === 'pending_payment' ? 'Menunggu Pembayaran' : s }}</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <a :href="route('admin.siswa.export')" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150 whitespace-nowrap">
+                                        <ArrowUpTrayIcon class="-ml-1 mr-2 h-4 w-4" aria-hidden="true" /> Ekspor
+                                    </a>
+                                    <SecondaryButton @click="openImportModal" v-if="can?.create_siswa" class="whitespace-nowrap">
+                                        <ArrowDownTrayIcon class="-ml-1 mr-2 h-4 w-4" aria-hidden="true" /> Impor
+                                    </SecondaryButton>
+                                    <PrimaryButton @click="openCreateModal" v-if="can?.create_siswa" class="whitespace-nowrap">
+                                        <PlusIcon class="-ml-1 mr-2 h-4 w-4" aria-hidden="true" /> Siswa Baru
+                                    </PrimaryButton>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <a :href="route('admin.siswa.export')" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                    Ekspor
-                                </a>
-                                <PrimaryButton @click="openImportModal" v-if="can?.create_siswa">
-                                    Impor
-                                </PrimaryButton>
-                                <PrimaryButton @click="openCreateModal" v-if="can?.create_siswa" class="w-full md:w-auto mt-2 md:mt-0">
-                                    <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" /> Tambah Siswa Baru
-                                </PrimaryButton>
+                            
+                            <!-- Baris Kedua (Checkbox & Total) -->
+                            <div class="flex items-center gap-4 h-6">
+                                <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                                    <input type="checkbox" v-model="sppBelumDiset" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" :disabled="isLoading" />
+                                    <span :class="{'opacity-50': isLoading}">SPP Belum Diset</span>
+                                </label>
+                                <div v-if="isLoading" class="flex items-center text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Memuat Data...
+                                </div>
+                                <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+                                    <span v-if="siswaList.total > 0">Total: <span class="font-semibold">{{ siswaList.total }}</span> siswa</span>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -268,14 +328,8 @@ onMounted(() => {
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ item.kelas_nama }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ item.email_wali }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                         <span :class="[
-                                            'px-2 inline-flex text-xs leading-5 font-semibold rounded-full',
-                                            item.status_siswa === 'Aktif' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                            item.status_siswa === 'Non-Aktif' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                                            item.status_siswa === 'Lulus' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' // Cuti
-                                        ]">
-                                            {{ item.status_siswa }}
+                                         <span :class="['px-2 inline-flex text-xs leading-5 font-semibold rounded-full', getStatusBadgeClass(item.status_siswa)]">
+                                            {{ item.status_siswa === 'pending_payment' ? 'Menunggu Pembayaran' : item.status_siswa }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ item.tanggal_bergabung_formatted }}</td>
@@ -292,8 +346,15 @@ onMounted(() => {
                             </tbody>
                         </table>
                     </div>
-                    <div v-if="siswaList && siswaList.links && siswaList.links.length > 3" class="p-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex flex-wrap -mb-1 justify-center">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            <span v-if="siswaList.total > 0">
+                                Menampilkan <span class="font-medium">{{ siswaList.from }}</span>–<span class="font-medium">{{ siswaList.to }}</span>
+                                dari <span class="font-medium">{{ siswaList.total }}</span> siswa
+                            </span>
+                            <span v-else>Tidak ada data yang cocok</span>
+                        </p>
+                        <div v-if="siswaList && siswaList.links && siswaList.links.length > 3" class="flex flex-wrap -mb-1 justify-center">
                             <template v-for="(link, key) in siswaList.links" :key="key">
                                 <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm leading-4 text-gray-400 dark:text-gray-500 border rounded dark:border-gray-600 select-none" v-html="link.label" />
                                 <Link v-else
@@ -426,8 +487,11 @@ onMounted(() => {
                             <InputError class="mt-2" :message="form.errors.tanggal_bergabung" />
                         </div>
                         <div>
-                            <InputLabel for="jumlah_spp_custom_modal" value="SPP Custom (Opsional)" />
-                            <TextInput id="jumlah_spp_custom_modal" type="number" class="mt-1 block w-full" v-model.number="form.jumlah_spp_custom" @input="form.clearErrors('jumlah_spp_custom')"/>
+                            <InputLabel for="jumlah_spp_custom_modal" value="SPP Custom (Wajib)" required />
+                            <div class="flex items-center space-x-2 mt-1">
+                                <TextInput id="jumlah_spp_custom_modal" type="number" class="block w-full" v-model.number="form.jumlah_spp_custom" @input="form.clearErrors('jumlah_spp_custom')" required />
+                                <SecondaryButton @click="setSppDefault" type="button" class="whitespace-nowrap px-3 py-2 text-xs" :disabled="!form.id_kelas" title="Ambil nilai SPP default dari Kelas">Ambil Default</SecondaryButton>
+                            </div>
                             <InputError class="mt-2" :message="form.errors.jumlah_spp_custom" />
                         </div>
                          <div>

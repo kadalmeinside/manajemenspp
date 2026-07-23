@@ -9,7 +9,6 @@ import {
     ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline';
 
-// --- STICKY MENU LOGIC ---
 const menuItems = ref([
     { id: 'filsafah-dna', name: 'FILSAFAT', icon: PuzzlePieceIcon },
     { id: 'smart-training', name: 'SMART TRAINING', icon: BoltIcon },
@@ -51,7 +50,6 @@ onMounted(() => {
             <section class="relative bg-gray-900 text-white text-center" style="background-image: url('https://images.unsplash.com/photo-1552318965-6e6be7484ada?q=80&w=2940&auto=format&fit=crop'); background-size: cover; background-position: center;">
                  <div class="absolute inset-0 bg-black/60"></div>
                  <div class="relative container-app z-10 py-32 md:py-48">
-                    <!-- Konten di dalam banner bisa ditambahkan di sini jika perlu -->
                  </div>
             </section>
 
@@ -179,7 +177,7 @@ onMounted(() => {
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap');
 
 :root {
-    --primary-color: #D9262E; /* Persija Red */
+    --primary-color: #D9262E;
 }
 
 html {

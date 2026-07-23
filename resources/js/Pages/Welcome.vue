@@ -24,13 +24,12 @@ const vAnimateOnScroll = {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         el.classList.add('is-visible');
-                        // Unobserve after the animation is triggered to prevent re-animation
                         observer.unobserve(el);
                     }
                 });
             },
             {
-                threshold: 0.1, // Trigger when 10% of the element is visible
+                threshold: 0.1, 
             }
         );
         observer.observe(el);
@@ -38,7 +37,6 @@ const vAnimateOnScroll = {
 };
 
 
-// --- DATA (Tidak ada perubahan) ---
 const programs = ref([
     { title: 'Elite Pro Academy (EPA)', description: 'Jalur profesional untuk atlet muda berbakat yang diseleksi secara ketat.', icon: SparklesIcon, href: '#', color: 'text-red-600', bgColor: 'bg-red-50' },
     { title: 'Academy Boarding School', description: 'Program terpadu yang menggabungkan sepak bola, akademis, dan asrama.', icon: BuildingLibraryIcon, href: '#', color: 'text-sky-600', bgColor: 'bg-sky-50' },
@@ -63,7 +61,6 @@ const videoGalleries = ref([
 const news = ref([]);
 const newsLoading = ref(true);
 
-// --- LIFECYCLE & METHODS (Hampir sama, hanya menghapus transisi) ---
 const currentHeroSlide = ref(0);
 let heroSlideInterval = null;
 const nextHeroSlide = () => { currentHeroSlide.value = (currentHeroSlide.value + 1) % heroSlides.value.length; };
@@ -92,7 +89,7 @@ async function fetchNews() {
 }
 
 onMounted(() => {
-    console.log('Halaman dimuat, mencoba memanggil hideLoader...'); // <-- TAMBAHKAN INI
+    console.log('Halaman dimuat, mencoba memanggil hideLoader...');
     hideLoader();
     heroSlideInterval = setInterval(nextHeroSlide, 7000);
     fetchNews();
@@ -293,7 +290,6 @@ onUnmounted(() => { clearInterval(heroSlideInterval); });
 </template>
 
 <style>
-/* CSS FONT DAN DASAR LAINNYA TIDAK BERUBAH */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap');
 body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 .font-header { font-family: 'Oswald', sans-serif; }
@@ -334,25 +330,18 @@ body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -m
     backdrop-filter: blur(10px);
 } 
 
-/* === BAGIAN YANG DIPERBARUI UNTUK ANIMASI ON SCROLL === */
-
-/* 1. Kelas untuk animasi yang akan kita panggil */
 .animate-card {
-    /* Keadaan awal: transparan dan sedikit di bawah */
     opacity: 0;
     transform: translateY(50px);
     transition: all 0.7s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 
-/* 2. Kelas 'is-visible' akan ditambahkan oleh directive saat elemen masuk layar */
 .animate-card.is-visible {
-    /* Keadaan akhir: terlihat sepenuhnya di posisi asli */
     opacity: 1;
     transform: translateY(0);
 }
 
 
-/* Transisi untuk loader dan hero section (tidak berubah) */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.6s ease-in-out;
 }

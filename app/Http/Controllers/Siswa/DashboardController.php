@@ -46,6 +46,7 @@ class DashboardController extends Controller
         return Inertia::render('Siswa/Dashboard', [
             'pageTitle' => 'Dashboard',
             'siswaName' => $siswa->nama_siswa,
+            'id_siswa' => $siswa->id_siswa, // Needed for leave request
             
             // --- PROPS BARU ---
             // Mengirim daftar tagihan tertunggak
@@ -57,6 +58,15 @@ class DashboardController extends Controller
                     'periode_formatted' => Carbon::parse($invoice->periode_tagihan)->isoFormat('MMMM YYYY'),
                 ];
             }),
+            'paidMonths' => $siswa->invoices()
+                ->where('type', 'spp')
+                ->where('status', 'PAID')
+                ->pluck('periode_tagihan')
+                ->map(fn($date) => $date->format('Y-n')),
+            'pendingLeaveMonths' => \App\Models\StudentLeave::where('id_siswa', $siswa->id_siswa)
+                ->whereIn('status', ['pending', 'approved'])
+                ->get()
+                ->map(fn($leave) => $leave->year . '-' . $leave->month),
             // Mengirim total nominal tertunggak
             'overdueTotal' => [
                 'formatted' => 'Rp ' . number_format($overdueTotalAmount, 0, ',', '.'),

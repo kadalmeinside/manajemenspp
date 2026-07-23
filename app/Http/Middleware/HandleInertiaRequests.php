@@ -7,6 +7,7 @@ use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Setting;
+use App\Models\StudentLeave;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -64,6 +65,13 @@ class HandleInertiaRequests extends Middleware
                 return Cache::rememberForever('app_settings', function () {
                     return Setting::all()->pluck('value', 'key');
                 });
+            },
+            // Badge notifikasi cuti — hanya untuk admin yang punya akses
+            'pending_leaves_count' => function () use ($request) {
+                if ($request->user() && $request->user()->can('manage_all_tagihan')) {
+                    return StudentLeave::where('status', 'pending')->count();
+                }
+                return 0;
             },
         ]);
     }

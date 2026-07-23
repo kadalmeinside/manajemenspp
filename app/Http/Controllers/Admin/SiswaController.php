@@ -59,11 +59,25 @@ class SiswaController extends Controller
             $query->where('id_kelas', $request->input('kelas_id'));
         }
 
-        $siswaList = $query->paginate(10)->withQueryString();
+        // Filter status siswa
+        if ($request->filled('status_siswa') && $request->input('status_siswa') !== '') {
+            $query->where('status_siswa', $request->input('status_siswa'));
+        }
+
+        // Filter SPP belum diset
+        if ($request->filled('spp_belum_diset') && $request->input('spp_belum_diset') === 'true') {
+            $query->where(function ($q) {
+                $q->whereNull('jumlah_spp_custom')->orWhere('jumlah_spp_custom', '<=', 0);
+            });
+        }
+
+        $siswaList = $query->paginate(15)->withQueryString();
         $allKelasQuery = Kelas::orderBy('nama_kelas');
         if ($user->hasRole('admin_kelas')) {
             $allKelasQuery->whereIn('id_kelas', $user->managedClasses()->pluck('kelas.id_kelas'));
         }
+
+        $allStatusSiswa = ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment'];
 
         return Inertia::render('Admin/Siswa/Index', [
             'siswaList' => $siswaList->through(fn($siswa) => [
@@ -75,8 +89,9 @@ class SiswaController extends Controller
                 'tanggal_bergabung_formatted' => $siswa->tanggal_bergabung->isoFormat('D MMM YYYY'),
                 'full_data_for_edit' => $this->getSiswaDataForEdit($siswa),
             ]),
-            'filters' => $request->only(['search', 'kelas_id']),
-            'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas']),
+            'filters' => $request->only(['search', 'kelas_id', 'status_siswa', 'spp_belum_diset']),
+            'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas', 'biaya_spp_default']),
+            'allStatusSiswa' => $allStatusSiswa,
             'can' => [
                 'create_siswa' => $request->user()->can('manage_siswa'),
                 'edit_siswa' => $request->user()->can('manage_siswa'),
@@ -133,6 +148,7 @@ class SiswaController extends Controller
             $kodeCabang = $kelas->kode_cabang ?? 'XXX';
 
             // Kunci tabel untuk mencegah user lain membaca saat kita menghitung nomor urut
+            // Format NIS: {tahun}-{kodeCabang}-{0001}
             $lastSiswa = Siswa::where('nis', 'LIKE', "{$tahun}-{$kodeCabang}-%")
                               ->lockForUpdate() // Ini bagian penting untuk mencegah race condition
                               ->orderBy('nis', 'desc')
@@ -140,11 +156,12 @@ class SiswaController extends Controller
 
             $nomorUrut = 1;
             if ($lastSiswa) {
-                $lastNomorUrut = (int) substr($lastSiswa->nis, -4);
+                $parts = explode('-', $lastSiswa->nis);
+                $lastNomorUrut = (int) end($parts);
                 $nomorUrut = $lastNomorUrut + 1;
             }
             $nomorUrutFormatted = str_pad($nomorUrut, 4, '0', STR_PAD_LEFT);
-            $newNis = "{$tahun}{$kodeCabang}{$nomorUrutFormatted}";
+            $newNis = "{$tahun}-{$kodeCabang}-{$nomorUrutFormatted}";
             // --- Akhir Logika Generate NIS ---
 
             // Buat User

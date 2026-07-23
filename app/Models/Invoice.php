@@ -23,6 +23,7 @@ class Invoice extends Model
         'type',
         'description',
         'periode_tagihan',
+        'selected_periods',
         'amount',
         'admin_fee',
         'total_amount',
@@ -39,12 +40,13 @@ class Invoice extends Model
     ];
 
     protected $casts = [
-        'periode_tagihan' => 'date:Y-m-d',
-        'due_date' => 'date:Y-m-d',
-        'paid_at' => 'datetime',
-        'amount' => 'decimal:2',
-        'admin_fee' => 'decimal:2',
-        'total_amount' => 'decimal:2',
+        'periode_tagihan'  => 'date:Y-m-d',
+        'due_date'         => 'date:Y-m-d',
+        'paid_at'          => 'datetime',
+        'amount'           => 'decimal:2',
+        'admin_fee'        => 'decimal:2',
+        'total_amount'     => 'decimal:2',
+        'selected_periods' => 'array',  // Auto serialize/deserialize JSON
     ];
 
     public function childInvoices()
@@ -75,6 +77,14 @@ class Invoice extends Model
     public function originalInvoice()
     {
         return $this->belongsTo(Invoice::class, 'recreated_from_id');
+    }
+
+    /**
+     * Invoice baru yang menggantikan invoice expired ini.
+     */
+    public function recreatedInvoice()
+    {
+        return $this->hasOne(Invoice::class, 'recreated_from_id');
     }
     
 

@@ -4,6 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Response;
+use Inertia\Inertia;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -38,16 +41,21 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->redirectGuestsTo(function ($request) {
-            // Jika request adalah untuk area admin (URL diawali dengan 'admin/')
             if ($request->is('admin/*')) {
-                // Arahkan ke halaman login admin
                 return route('admin.login');
             }
-            // Jika tidak, arahkan ke halaman login biasa
             return route('login');
         });
     })
 
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->respond(function ($response, Throwable $e, Request $request) {
+            if ($e instanceof HttpException && $e->getStatusCode() === 503) {
+                return Inertia::render('Public/Maintenance', [
+                    'pageTitle' => 'Situs dalam Perbaikan',
+                ])->toResponse($request)->setStatusCode(503);
+            }
+
+            return $response;
+        });
     })->create();

@@ -21,7 +21,6 @@ import {
 
 } from '@heroicons/vue/24/outline';
 
-// --- STICKY MENU LOGIC ---
 const menuItems = ref([
     { id: 'tentang-kami', name: 'TENTANG', icon: InformationCircleIcon },
     { id: 'program-kegiatan', name: 'PROGRAM', icon: ClipboardDocumentListIcon },
@@ -35,18 +34,16 @@ const activeSection = ref('');
 const navObserverRef = ref(null);
 
 onMounted(() => {
-    // Observer for sticky menu. We watch when the initial nav position exits the viewport.
     const stickyObserver = new IntersectionObserver(
         ([entry]) => {
             isMenuSticky.value = !entry.isIntersecting;
         },
-        { threshold: 0, rootMargin: "-80px 0px 0px 0px" } // 80px is the main navbar height
+        { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
     );
     if (navObserverRef.value) {
         stickyObserver.observe(navObserverRef.value);
     }
 
-    // Observer for active section highlighting (scrollspy)
     const sectionObserver = new IntersectionObserver(
         (entries) => {
             entries.forEach(entry => {
@@ -70,7 +67,7 @@ onMounted(() => {
         sectionObserver.disconnect();
     });
 });
-// Data untuk fasilitas
+
 const facilities = ref([
     { name: 'Lapangan Sintetis Standar FIFA', image: 'https://persijadevelopment.id/assets/academy/lapangan-academy.jpg' },
     { name: 'Lapangan Rumput Natural', image: 'https://persijadevelopment.id/assets/academy/lapangan_rumput.jpg' },
@@ -89,7 +86,6 @@ const facilities = ref([
                     <h1 class="font-header text-5xl md:text-6xl font-bold uppercase">Persija Academy Boarding School</h1>
                     <p class="mt-2 text-lg text-gray-300">Pusat pelatihan terpadu untuk calon atlet profesional.</p>
                  </div>
-                 <!-- Placeholder for Intersection Observer -->
                  <div ref="navObserverRef" class="absolute bottom-14 w-full h-1"></div>
             </section>
         </template>
@@ -256,7 +252,7 @@ const facilities = ref([
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap');
 
 :root {
-    --primary-color: #D9262E; /* Persija Red */
+    --primary-color: #D9262E;
 }
 
 html {

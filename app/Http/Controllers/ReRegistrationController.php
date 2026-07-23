@@ -24,13 +24,18 @@ class ReRegistrationController extends Controller
      */
     public function create()
     {
-        $terms = LegalDocument::where('id', '0198746b-fe7f-72fe-94a7-f908482665b8')
+        // Ambil dokumen legal berdasarkan name (UNIQUE di DB), bukan UUID hardcoded
+        // Fallback ke dokumen terms_and_conditions terbaru jika nama tidak ditemukan
+        $terms = LegalDocument::where('name', 'daftar-ulang-soccer-school')
+                              ->latest('published_at')
+                              ->first()
+                       ?? LegalDocument::where('type', 'terms_and_conditions')
                               ->latest('published_at')
                               ->first();
 
         return Inertia::render('Public/ReRegister', [
-            'pageTitle' => 'Formulir Daftar Ulang Siswa',
-            'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas', 'kode_cabang']),
+            'pageTitle'     => 'Formulir Daftar Ulang Siswa',
+            'allKelas'      => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas', 'kode_cabang']),
             'termsDocument' => $terms,
         ]);
     }
@@ -38,28 +43,36 @@ class ReRegistrationController extends Controller
     public function createAcademy()
     {
         $academyClass = Kelas::where('nama_kelas', 'Persija Academy')->firstOrFail();
-        $terms = LegalDocument::where('id', '0197d482-c41e-7390-a573-1e24cc504ea0')
+        // Ambil dokumen legal berdasarkan name (UNIQUE di DB), bukan UUID hardcoded
+        $terms = LegalDocument::where('name', 'pendafataran academy boarding school')
+                              ->latest('published_at')
+                              ->first()
+                       ?? LegalDocument::where('type', 'terms_and_conditions')
                               ->latest('published_at')
                               ->first();
 
         return Inertia::render('Public/ReRegisterAcademy', [
-            'pageTitle' => 'Formulir Daftar Ulang Siswa Academy',
-            'academyClass' => $academyClass,
+            'pageTitle'     => 'Formulir Daftar Ulang Siswa Academy',
+            'academyClass'  => $academyClass,
             'termsDocument' => $terms,
         ]);
     }
 
     public function createSs()
     {
-        $terms = LegalDocument::where('id', '0197d482-c41e-7390-a573-1e24cc504ea0')
+        // Ambil dokumen legal berdasarkan name (UNIQUE di DB), bukan UUID hardcoded
+        $terms = LegalDocument::where('name', 'pendafataran academy boarding school')
+                              ->latest('published_at')
+                              ->first()
+                       ?? LegalDocument::where('type', 'terms_and_conditions')
                               ->latest('published_at')
                               ->first();
 
         return Inertia::render('Public/ReRegisterSs', [
-            'pageTitle' => 'Formulir Daftar Ulang Siswa Soccer School',
-            'allKelas' => Kelas::where('deskripsi', 'Soccer School')
-                                ->orderBy('nama_kelas')
-                                ->get(['id_kelas', 'nama_kelas', 'kode_cabang']),
+            'pageTitle'     => 'Formulir Daftar Ulang Siswa Soccer School',
+            'allKelas'      => Kelas::where('deskripsi', 'Soccer School')
+                                    ->orderBy('nama_kelas')
+                                    ->get(['id_kelas', 'nama_kelas', 'kode_cabang']),
             'termsDocument' => $terms,
         ]);
     }

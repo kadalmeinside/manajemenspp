@@ -3,110 +3,348 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use App\Models\Siswa;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class WebhookController extends Controller
 {
     /**
      * Menangani callback/webhook invoice dari Xendit.
+     *
+     * Desain:
+     * - IDEMPOTENT: Jika invoice sudah PAID, webhook diabaikan dengan aman.
+     * - COMPLETE: Handle semua type invoice (spp, pendaftaran, pembayaran_spp_gabungan, pembayaran_gabungan).
+     * - ACCURATE: Menggunakan `selected_periods` yang tersimpan di invoice induk,
+     *             bukan perhitungan matematika pembagian yang bisa salah.
+     * - SAFE: Tidak menimpa amount/total_amount invoice anak — menjaga nilai cuti.
      */
     public function handleInvoiceCallback(Request $request)
     {
+        // === 1. VERIFIKASI TOKEN ===
         $xenditCallbackToken = $request->header('x-callback-token');
         $storedCallbackToken = config('xendit.callback_verification_token');
 
         if (!$storedCallbackToken || $xenditCallbackToken !== $storedCallbackToken) {
-            Log::warning('[Xendit Webhook] VERIFICATION FAILED.');
+            Log::warning('[Xendit Webhook] TOKEN VERIFICATION FAILED.', [
+                'ip' => $request->ip(),
+            ]);
             return response()->json(['message' => 'Invalid callback token'], 403);
         }
 
         $payload = $request->all();
-        Log::info('[Xendit Webhook] Payload received:', $payload);
+        $externalId = $payload['external_id'] ?? null;
+        $payloadStatus = strtoupper($payload['status'] ?? '');
 
-        $parentInvoice = Invoice::with('siswa')->where('external_id_xendit', $payload['external_id'])->first();
+        Log::info('[Xendit Webhook] Payload diterima.', [
+            'external_id' => $externalId,
+            'status'      => $payloadStatus,
+        ]);
 
-        if (!$parentInvoice) {
-            Log::warning('[Xendit Webhook] Parent Invoice not found.', ['external_id' => $payload['external_id']]);
-            return response()->json(['message' => 'Invoice not found']);
+        // === 2. CARI INVOICE BERDASARKAN external_id ===
+        if (!$externalId) {
+            Log::warning('[Xendit Webhook] Payload tidak memiliki external_id.');
+            return response()->json(['message' => 'Missing external_id'], 400);
         }
 
-        if (strtoupper($payload['status']) === 'PAID' && $parentInvoice->type === 'pembayaran_spp_gabungan') {
-            
-            DB::beginTransaction();
-            try {
-                $paidTimestamp = Carbon::parse($payload['paid_at']);
+        $invoice = Invoice::with(['siswa', 'childInvoices'])
+            ->where('external_id_xendit', $externalId)
+            ->first();
 
-                $parentInvoice->update([
-                    'status' => 'PAID',
-                    'paid_at' => $paidTimestamp,
-                    'xendit_callback_payload' => $payload
+        if (!$invoice) {
+            Log::warning('[Xendit Webhook] Invoice tidak ditemukan.', ['external_id' => $externalId]);
+            // Return 200 agar Xendit tidak terus retry untuk data yang memang tidak ada
+            return response()->json(['message' => 'Invoice not found, skipping']);
+        }
+
+        // === 3. IDEMPOTENCY CHECK — Jangan proses dua kali! ===
+        if ($invoice->status === 'PAID') {
+            Log::info('[Xendit Webhook] Invoice sudah PAID sebelumnya, abaikan.', [
+                'invoice_id'  => $invoice->id,
+                'external_id' => $externalId,
+            ]);
+            return response()->json(['message' => 'Already processed, skipping']);
+        }
+
+        // === 4. HANYA PROSES EVENT PAID ===
+        if ($payloadStatus !== 'PAID') {
+            Log::info('[Xendit Webhook] Status bukan PAID, abaikan.', [
+                'external_id' => $externalId,
+                'status'      => $payloadStatus,
+            ]);
+            // Update status ke EXPIRED/FAILED jika relevan
+            if (in_array($payloadStatus, ['EXPIRED', 'FAILED'])) {
+                $invoice->update([
+                    'status'                  => $payloadStatus,
+                    'xendit_callback_payload' => $payload,
                 ]);
+            }
+            return response()->json(['message' => 'Non-PAID event recorded']);
+        }
 
-                $siswa = $parentInvoice->siswa;
+        // === 5. PROSES PEMBAYARAN PAID ===
+        $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now());
+        $paymentMethod = $payload['payment_channel'] ?? $payload['payment_method'] ?? null;
+
+        DB::beginTransaction();
+        try {
+            // Update invoice utama terlebih dahulu
+            $invoice->update([
+                'status'                  => 'PAID',
+                'paid_at'                 => $paidTimestamp,
+                'payment_method'          => $paymentMethod,
+                'xendit_callback_payload' => $payload,
+            ]);
+
+            // Dispatch ke handler yang tepat berdasarkan type invoice
+            match ($invoice->type) {
+                'pembayaran_spp_gabungan' => $this->handleGabunganSppPayment($invoice, $paidTimestamp),
+                'pendaftaran'             => $this->handlePendaftaranPayment($invoice),
+                'pembayaran_gabungan'     => $this->handleLegacyBulkPayment($invoice, $paidTimestamp),
+                'spp'                     => null, // Invoice SPP individual — sudah diupdate di atas, selesai
+                default => Log::warning('[Xendit Webhook] Unhandled invoice type: ' . $invoice->type, [
+                    'invoice_id' => $invoice->id,
+                ]),
+            };
+
+            DB::commit();
+
+            Log::info('[Xendit Webhook] Berhasil diproses.', [
+                'invoice_id'   => $invoice->id,
+                'type'         => $invoice->type,
+                'paid_at'      => $paidTimestamp,
+            ]);
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+            Log::error('[Xendit Webhook] GAGAL memproses.', [
+                'invoice_id' => $invoice->id,
+                'type'       => $invoice->type,
+                'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
+            ]);
+            // Return 500 agar Xendit tahu ada error dan bisa retry
+            return response()->json(['message' => 'Error processing webhook'], 500);
+        }
+
+        return response()->json(['message' => 'Webhook processed successfully']);
+    }
+
+    /**
+     * Handle: Pembayaran SPP Gabungan (multi-bulan dari siswa login atau publik).
+     *
+     * LOGIKA KUNCI:
+     * 1. Baca `selected_periods` dari invoice induk — daftar bulan yang dipilih siswa.
+     * 2. Untuk setiap bulan: cari invoice SPP yang sudah ada.
+     *    - Jika ADA → update status ke PAID saja, JANGAN ubah amount (menjaga nilai cuti!).
+     *    - Jika TIDAK ADA → buat invoice SPP baru (untuk periode proyeksi).
+     * 3. Fallback untuk invoice lama yang belum punya `selected_periods`.
+     */
+    private function handleGabunganSppPayment(Invoice $parentInvoice, Carbon $paidTimestamp): void
+    {
+        $siswa = $parentInvoice->siswa;
+        if (!$siswa) {
+            Log::error('[Webhook] Siswa tidak ditemukan untuk invoice induk.', [
+                'parent_invoice_id' => $parentInvoice->id,
+            ]);
+            return;
+        }
+
+        // === AMBIL DAFTAR PERIODE YANG DIPILIH ===
+        $selectedPeriods = $parentInvoice->selected_periods ?? [];
+
+        if (empty($selectedPeriods)) {
+            // === FALLBACK untuk invoice lama yang belum punya selected_periods ===
+            // Gunakan logika lama tapi dengan perbaikan: pakai integer division, bukan round()
+            Log::warning('[Webhook] Invoice induk tidak memiliki selected_periods. Menggunakan fallback.', [
+                'parent_invoice_id' => $parentInvoice->id,
+            ]);
+            $this->handleGabunganSppFallback($parentInvoice, $siswa, $paidTimestamp);
+            return;
+        }
+
+        // === PROSES SETIAP PERIODE YANG DIPILIH ===
+        $processedCount = 0;
+        foreach ($selectedPeriods as $periodStr) {
+            $period = Carbon::parse($periodStr)->startOfMonth();
+
+            // Cari invoice SPP yang sudah ada untuk bulan ini
+            $sppInvoice = Invoice::where('id_siswa', $siswa->id_siswa)
+                ->where('type', 'spp')
+                ->whereDate('periode_tagihan', $period->toDateString())
+                ->first();
+
+            if ($sppInvoice) {
+                // INVOICE SUDAH ADA — Update status saja, JANGAN ubah amount!
+                // Ini penting untuk menjaga nilai cuti (250rb) agar tidak ditimpa nilai normal (500rb)
+                $sppInvoice->update([
+                    'status'            => 'PAID',
+                    'paid_at'           => $paidTimestamp,
+                    'parent_payment_id' => $parentInvoice->id,
+                ]);
+            } else {
+                // INVOICE BELUM ADA — Buat baru (untuk periode proyeksi yang belum dibuat admin)
                 $monthlySpp = (float)($siswa->jumlah_spp_custom ?? 0);
-                
-                if ($parentInvoice->amount > 0 && $monthlySpp > 0) {
-                    $numMonths = round($parentInvoice->amount / $monthlySpp);
-                    $startPeriod = Carbon::parse($parentInvoice->periode_tagihan);
-
-                    for ($i = 0; $i < $numMonths; $i++) {
-                        $currentPeriod = $startPeriod->copy()->addMonths($i);
-
-                        // ### PERBAIKAN ###
-                        // Mengganti updateOrCreate dengan logika yang lebih robust (cari, lalu update/create)
-                        // untuk menangani perbedaan format tanggal.
-
-                        // 1. Cari invoice yang ada menggunakan whereDate untuk mengabaikan waktu.
-                        $invoice = Invoice::where('id_siswa', $siswa->id_siswa)
-                            ->where('type', 'spp')
-                            ->whereDate('periode_tagihan', $currentPeriod)
-                            ->first();
-
-                        // 2. Siapkan data yang akan disimpan.
-                        $data = [
-                            'user_id' => $parentInvoice->user_id,
-                            'description' => "Pembayaran SPP Bulan " . $currentPeriod->isoFormat('MMMM YYYY'),
-                            'amount' => $monthlySpp,
-                            'admin_fee' => 0,
-                            'total_amount' => $monthlySpp,
-                            'due_date' => $currentPeriod->copy()->endOfMonth(),
-                            'status' => 'PAID',
-                            'paid_at' => $paidTimestamp,
-                            'parent_payment_id' => $parentInvoice->id 
-                        ];
-
-                        if ($invoice) {
-                            // 3a. Jika invoice ditemukan, UPDATE.
-                            $invoice->update($data);
-                        } else {
-                            // 3b. Jika tidak ditemukan, CREATE baru.
-                            Invoice::create(array_merge([
-                                'id_siswa' => $siswa->id_siswa,
-                                'type' => 'spp',
-                                'periode_tagihan' => $currentPeriod,
-                            ], $data));
-                        }
-                    }
-                    Log::info("[Xendit Webhook] Successfully processed {$numMonths} SPP invoices for Parent Invoice ID: {$parentInvoice->id}");
+                if ($monthlySpp <= 0) {
+                    Log::error('[Webhook] jumlah_spp_custom siswa 0, tidak bisa buat invoice proyeksi.', [
+                        'siswa_id' => $siswa->id_siswa,
+                        'periode'  => $periodStr,
+                    ]);
+                    continue;
                 }
-                
-                DB::commit();
 
-            } catch (Throwable $e) {
-                DB::rollBack();
-                Log::error('[Xendit Webhook] FAILED to process unified SPP payment.', [
-                    'parent_invoice_id' => $parentInvoice->id, 
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                Carbon::setLocale('id');
+                Invoice::create([
+                    'id_siswa'          => $siswa->id_siswa,
+                    'user_id'           => $parentInvoice->user_id,
+                    'type'              => 'spp',
+                    'description'       => 'SPP ' . $period->isoFormat('MMMM YYYY') . ' - ' . $siswa->nama_siswa . ' (NIS: ' . $siswa->nis . ')',
+                    'periode_tagihan'   => $period,
+                    'amount'            => $monthlySpp,
+                    'admin_fee'         => 0,
+                    'total_amount'      => $monthlySpp,
+                    'due_date'          => $period->copy()->endOfMonth(),
+                    'status'            => 'PAID',
+                    'paid_at'           => $paidTimestamp,
+                    'parent_payment_id' => $parentInvoice->id,
                 ]);
-                return response()->json(['message' => 'Error processing webhook'], 500);
+            }
+
+            $processedCount++;
+        }
+
+        Log::info('[Webhook] Berhasil proses pembayaran_spp_gabungan.', [
+            'parent_invoice_id' => $parentInvoice->id,
+            'total_periods'     => count($selectedPeriods),
+            'processed'         => $processedCount,
+        ]);
+    }
+
+    /**
+     * Fallback untuk invoice lama yang tidak punya `selected_periods`.
+     * Menggunakan logika matematika tapi dengan perbaikan dari versi lama.
+     */
+    private function handleGabunganSppFallback(Invoice $parentInvoice, Siswa $siswa, Carbon $paidTimestamp): void
+    {
+        $monthlySpp = (float)($siswa->jumlah_spp_custom ?? 0);
+        if ($monthlySpp <= 0) {
+            Log::error('[Webhook Fallback] jumlah_spp_custom siswa 0, tidak bisa proses fallback.', [
+                'siswa_id' => $siswa->id_siswa,
+            ]);
+            return;
+        }
+
+        // Perbaikan dari versi lama:
+        // - Gunakan (int) floor() bukan round() untuk hindari pembulatan ke atas yang salah
+        // - Hitung dari `amount` (hanya SPP, tanpa admin_fee) agar tidak terkontaminasi fee
+        $numMonths = (int) floor($parentInvoice->amount / $monthlySpp);
+        if ($numMonths <= 0) {
+            Log::warning('[Webhook Fallback] numMonths = 0, skip.', ['parent_invoice_id' => $parentInvoice->id]);
+            return;
+        }
+
+        $startPeriod = Carbon::parse($parentInvoice->periode_tagihan);
+        Carbon::setLocale('id');
+
+        for ($i = 0; $i < $numMonths; $i++) {
+            $currentPeriod = $startPeriod->copy()->addMonths($i);
+
+            $sppInvoice = Invoice::where('id_siswa', $siswa->id_siswa)
+                ->where('type', 'spp')
+                ->whereDate('periode_tagihan', $currentPeriod->toDateString())
+                ->first();
+
+            if ($sppInvoice) {
+                // Update status saja — JANGAN ubah amount (jaga nilai cuti)
+                $sppInvoice->update([
+                    'status'            => 'PAID',
+                    'paid_at'           => $paidTimestamp,
+                    'parent_payment_id' => $parentInvoice->id,
+                ]);
+            } else {
+                Invoice::create([
+                    'id_siswa'          => $siswa->id_siswa,
+                    'user_id'           => $parentInvoice->user_id,
+                    'type'              => 'spp',
+                    'description'       => 'SPP ' . $currentPeriod->isoFormat('MMMM YYYY') . ' - ' . $siswa->nama_siswa,
+                    'periode_tagihan'   => $currentPeriod,
+                    'amount'            => $monthlySpp,
+                    'admin_fee'         => 0,
+                    'total_amount'      => $monthlySpp,
+                    'due_date'          => $currentPeriod->copy()->endOfMonth(),
+                    'status'            => 'PAID',
+                    'paid_at'           => $paidTimestamp,
+                    'parent_payment_id' => $parentInvoice->id,
+                ]);
             }
         }
 
-        return response()->json(['message' => 'Webhook processed']);
+        Log::info('[Webhook Fallback] Selesai proses ' . $numMonths . ' bulan.', [
+            'parent_invoice_id' => $parentInvoice->id,
+        ]);
+    }
+
+    /**
+     * Handle: Invoice pendaftaran PAID → aktifkan siswa dari 'pending_payment' ke 'Aktif'.
+     */
+    private function handlePendaftaranPayment(Invoice $invoice): void
+    {
+        $siswa = $invoice->siswa;
+        if (!$siswa) {
+            Log::warning('[Webhook] Siswa tidak ditemukan untuk invoice pendaftaran.', [
+                'invoice_id' => $invoice->id,
+            ]);
+            return;
+        }
+
+        if ($siswa->status_siswa === 'pending_payment') {
+            $siswa->update(['status_siswa' => 'Aktif']);
+            Log::info('[Webhook] Siswa berhasil diaktifkan setelah bayar pendaftaran.', [
+                'siswa_id'   => $siswa->id_siswa,
+                'nama_siswa' => $siswa->nama_siswa,
+            ]);
+        } else {
+            Log::info('[Webhook] Siswa sudah aktif, tidak perlu update status.', [
+                'siswa_id'      => $siswa->id_siswa,
+                'status_siswa'  => $siswa->status_siswa,
+            ]);
+        }
+    }
+
+    /**
+     * Handle: Legacy Bulk Payment (menggunakan tabel invoice_relations / pivot).
+     * Dipakai oleh createBulkPayment() yang lama.
+     */
+    private function handleLegacyBulkPayment(Invoice $parentInvoice, Carbon $paidTimestamp): void
+    {
+        $childInvoices = $parentInvoice->childInvoices;
+
+        if ($childInvoices->isEmpty()) {
+            Log::warning('[Webhook] Bulk payment tidak punya child invoices.', [
+                'parent_invoice_id' => $parentInvoice->id,
+            ]);
+            return;
+        }
+
+        $updatedCount = 0;
+        foreach ($childInvoices as $child) {
+            if ($child->status !== 'PAID') {
+                $child->update([
+                    'status'            => 'PAID',
+                    'paid_at'           => $paidTimestamp,
+                    'parent_payment_id' => $parentInvoice->id,
+                ]);
+                $updatedCount++;
+            }
+        }
+
+        Log::info('[Webhook] Berhasil update child invoice (bulk).', [
+            'parent_invoice_id' => $parentInvoice->id,
+            'total_children'    => $childInvoices->count(),
+            'updated'           => $updatedCount,
+        ]);
     }
 }
