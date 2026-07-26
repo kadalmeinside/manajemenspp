@@ -11,6 +11,7 @@ use App\Exports\LaporanSppExport;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 
 class LaporanController extends Controller
 {
@@ -127,5 +128,69 @@ class LaporanController extends Controller
         $filename = 'laporan-spp-' . $tahun . '.xlsx';
 
         return Excel::download(new LaporanSppExport($tahun, $kelasId, $search), $filename);
+    }
+
+    public function riwayatPembayaran(Request $request)
+    {
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        $query = Invoice::with(['siswa' => function($q) {
+            $q->select('id_siswa', 'nama_siswa', 'id_kelas')->with('kelas:id_kelas,nama_kelas');
+        }])
+        ->whereIn('status', ['PAID', 'SETTLED'])
+        ->whereNotNull('paid_at')
+        ->whereNull('parent_payment_id');
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('siswa', function($q) use ($search) {
+                $q->where('nama_siswa', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $payments = $query->orderBy('paid_at', 'desc')->paginate(20)->withQueryString()->through(function($invoice) {
+            $isSingle = $invoice->type === 'pembayaran_spp_gabungan' && is_array($invoice->selected_periods) && count($invoice->selected_periods) === 1;
+            
+            return [
+                'id' => $invoice->id,
+                'siswa_nama' => $invoice->siswa?->nama_siswa ?? 'N/A',
+                'kelas_nama' => $invoice->siswa?->kelas?->nama_kelas ?? 'N/A',
+                'type' => $invoice->type,
+                'is_single_gabungan' => $isSingle,
+                'description' => $invoice->description,
+                'total_amount' => $invoice->total_amount,
+                'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
+                'payment_method' => $invoice->payment_method ?? 'Transfer Bank (Lainnya)',
+                'paid_at' => Carbon::parse($invoice->paid_at)->isoFormat('D MMM YYYY, HH:mm'),
+            ];
+        });
+
+        // Hitung total penerimaan hari ini & bulan ini (tanpa double count)
+        $todayTotal = Invoice::whereIn('status', ['PAID', 'SETTLED'])
+            ->whereDate('paid_at', Carbon::today())
+            ->whereNull('parent_payment_id')
+            ->sum('total_amount');
+
+        $monthTotal = Invoice::whereIn('status', ['PAID', 'SETTLED'])
+            ->whereMonth('paid_at', Carbon::now()->month)
+            ->whereYear('paid_at', Carbon::now()->year)
+            ->whereNull('parent_payment_id')
+            ->sum('total_amount');
+
+        return Inertia::render('Admin/Laporan/RiwayatPembayaran', [
+            'pageTitle' => 'Riwayat Pembayaran (Log)',
+            'payments' => $payments,
+            'filters' => $request->only(['search', 'type']),
+            'stats' => [
+                'today' => 'Rp ' . number_format($todayTotal, 0, ',', '.'),
+                'month' => 'Rp ' . number_format($monthTotal, 0, ',', '.'),
+            ]
+        ]);
     }
 }

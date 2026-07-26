@@ -9,7 +9,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 
 const props = defineProps({
     leaves: Object,
@@ -59,6 +59,15 @@ const cancel = (id) => {
         router.post(route('admin.leaves.cancel', id), {}, { preserveScroll: true });
     }
 };
+
+onMounted(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const createFor = urlParams.get('create_for');
+    if (createFor) {
+        addForm.id_siswa = createFor;
+        showAddModal.value = true;
+    }
+});
 </script>
 
 <template>
@@ -71,21 +80,22 @@ const cancel = (id) => {
 
         <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="pb-12 pt-4">
+            <div class="max-w-full mx-auto">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900 dark:text-gray-100">
                         
                         <!-- Filters & Actions -->
-                        <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
-                            <div class="flex flex-wrap gap-2">
-                                <Link :href="route('admin.leaves.index', { status: 'pending' })" class="px-4 py-1.5 text-sm font-medium rounded-full transition-colors" :class="filters.status === 'pending' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'">Pending</Link>
-                                <Link :href="route('admin.leaves.index', { status: 'approved' })" class="px-4 py-1.5 text-sm font-medium rounded-full transition-colors" :class="filters.status === 'approved' ? 'bg-green-500 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'">Disetujui</Link>
-                                <Link :href="route('admin.leaves.index', { status: 'rejected' })" class="px-4 py-1.5 text-sm font-medium rounded-full transition-colors" :class="filters.status === 'rejected' ? 'bg-red-500 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'">Ditolak</Link>
-                                <Link :href="route('admin.leaves.index', { status: 'cancelled' })" class="px-4 py-1.5 text-sm font-medium rounded-full transition-colors" :class="filters.status === 'cancelled' ? 'bg-gray-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'">Dibatalkan</Link>
-                                <Link :href="route('admin.leaves.index')" class="px-4 py-1.5 text-sm font-medium rounded-full transition-colors" :class="!filters.status ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'">Semua</Link>
-                            </div>
-                            <div>
+                        <div class="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-gray-700 pb-4 md:pb-0">
+                            <!-- Tabs -->
+                            <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                                <Link :href="route('admin.leaves.index')" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="!filters.status ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Semua</Link>
+                                <Link :href="route('admin.leaves.index', { status: 'pending' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'pending' ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Pending</Link>
+                                <Link :href="route('admin.leaves.index', { status: 'approved' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'approved' ? 'border-green-500 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Disetujui</Link>
+                                <Link :href="route('admin.leaves.index', { status: 'rejected' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'rejected' ? 'border-red-500 text-red-600 dark:text-red-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Ditolak</Link>
+                                <Link :href="route('admin.leaves.index', { status: 'cancelled' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'cancelled' ? 'border-gray-500 text-gray-600 dark:text-gray-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Dibatalkan</Link>
+                            </nav>
+                            <div class="pb-3 md:pb-3">
                                 <PrimaryButton @click="showAddModal = true">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                     Tambah Cuti
@@ -93,7 +103,7 @@ const cancel = (id) => {
                             </div>
                         </div>
 
-                        <div class="bg-transparent sm:bg-white sm:dark:bg-gray-800 sm:rounded-xl sm:border sm:border-gray-200 sm:dark:border-gray-700">
+                        <div>
                             <!-- Desktop View -->
                             <div class="hidden md:block overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -121,10 +131,10 @@ const cancel = (id) => {
                                             </td>
                                             <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate" :title="leave.reason">{{ leave.reason }}</td>
                                             <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                <span v-if="leave.status === 'pending'" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50">Pending</span>
-                                                <span v-else-if="leave.status === 'approved'" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/50">Disetujui</span>
-                                                <span v-else-if="leave.status === 'rejected'" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/50">Ditolak</span>
-                                                <span v-else class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Dibatalkan</span>
+                                                <span v-if="leave.status === 'pending'" class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50">Pending</span>
+                                                <span v-else-if="leave.status === 'approved'" class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/50">Disetujui</span>
+                                                <span v-else-if="leave.status === 'rejected'" class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/50">Ditolak</span>
+                                                <span v-else class="px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Dibatalkan</span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                                 <span v-if="!leave.invoice_status" class="text-xs text-gray-400 italic">Tidak ada</span>
@@ -178,10 +188,10 @@ const cancel = (id) => {
                                     <div class="grid grid-cols-2 gap-2 mt-1">
                                         <div>
                                             <p class="text-[10px] text-gray-400 mb-1">Status Cuti</p>
-                                            <span v-if="leave.status === 'pending'" class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50">Pending</span>
-                                            <span v-else-if="leave.status === 'approved'" class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/50">Disetujui</span>
-                                            <span v-else-if="leave.status === 'rejected'" class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/50">Ditolak</span>
-                                            <span v-else class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Dibatalkan</span>
+                                            <span v-if="leave.status === 'pending'" class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800/50">Pending</span>
+                                            <span v-else-if="leave.status === 'approved'" class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800/50">Disetujui</span>
+                                            <span v-else-if="leave.status === 'rejected'" class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/50">Ditolak</span>
+                                            <span v-else class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Dibatalkan</span>
                                         </div>
                                         <div>
                                             <p class="text-[10px] text-gray-400 mb-1">Status Tagihan</p>
@@ -234,7 +244,7 @@ const cancel = (id) => {
                         <InputLabel for="id_siswa" value="Siswa" />
                         <SearchableSelect
                             v-model="addForm.id_siswa"
-                            :options="siswaOptions.map(s => ({ value: s.id_siswa, label: s.nama_siswa + ' (' + s.nis + ')' }))"
+                            :options="siswaOptions.map(s => ({ value: s.id_siswa, label: s.nama_siswa + ' - ' + (s.kelas ? s.kelas.nama_kelas : 'Tidak Ada Kelas') + ' (' + s.nis + ')' }))"
                             placeholder="Ketik untuk mencari Siswa..."
                         />
                         <InputError :message="addForm.errors.id_siswa" class="mt-2" />

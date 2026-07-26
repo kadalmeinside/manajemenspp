@@ -29,7 +29,7 @@ class SiswaController extends Controller
      */
     public function index(Request $request)
     {
-        if (!$request->user()->can('manage_siswa')) {
+        if (!$request->user()->can('view_siswa')) {
             abort(403);
         }
 
@@ -77,7 +77,7 @@ class SiswaController extends Controller
             $allKelasQuery->whereIn('id_kelas', $user->managedClasses()->pluck('kelas.id_kelas'));
         }
 
-        $allStatusSiswa = ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment'];
+        $allStatusSiswa = ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar'];
 
         return Inertia::render('Admin/Siswa/Index', [
             'siswaList' => $siswaList->through(fn($siswa) => [
@@ -93,9 +93,11 @@ class SiswaController extends Controller
             'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas', 'biaya_spp_default']),
             'allStatusSiswa' => $allStatusSiswa,
             'can' => [
-                'create_siswa' => $request->user()->can('manage_siswa'),
-                'edit_siswa' => $request->user()->can('manage_siswa'),
-                'delete_siswa' => $request->user()->can('manage_siswa'),
+                'create_siswa' => $request->user()->can('create_siswa'),
+                'edit_siswa' => $request->user()->can('edit_siswa'),
+                'delete_siswa' => $request->user()->can('delete_siswa'),
+                'import_siswa' => $request->user()->can('import_siswa'),
+                'export_siswa' => $request->user()->can('export_siswa'),
             ]
         ]);
     }
@@ -196,7 +198,7 @@ class SiswaController extends Controller
      */
     public function show(Request $request, Siswa $siswa)
     {
-        if (!$request->user()->can('manage_siswa')) {
+        if (!$request->user()->can('view_siswa')) {
             abort(403);
         }
         $siswa->load(['user', 'kelas']);
@@ -222,6 +224,11 @@ class SiswaController extends Controller
         
         //dd($paidInvoices);
 
+        $agreements = $siswa->agreements()
+            ->with('document')
+            ->orderBy('agreed_at', 'desc')
+            ->get();
+
         return Inertia::render('Admin/Siswa/Show', [
             'pageTitle' => 'Detail Siswa',
             'siswa' => $this->formatSiswaForDetail($siswa),
@@ -231,7 +238,16 @@ class SiswaController extends Controller
             'filters' => ['tahun' => (int)$selectedTahun],
             'availableYears' => $availableYears,
             'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']),
-            'statusSiswaOptions' => ['Aktif', 'Tidak Aktif', 'Lulus', 'Keluar'],
+            'statusSiswaOptions' => ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar'],
+            'legalAgreements' => $agreements->map(function($agreement) {
+                return [
+                    'id' => $agreement->id,
+                    'document_name' => $agreement->document ? $agreement->document->name : 'Dokumen Tidak Diketahui',
+                    'type' => $agreement->metadata['type'] ?? ($agreement->document ? $agreement->document->type : 'unknown'),
+                    'version' => $agreement->document ? $agreement->document->version : '-',
+                    'agreed_at' => $agreement->agreed_at->isoFormat('D MMMM YYYY, HH:mm'),
+                ];
+            }),
         ]);
     }
 
@@ -336,25 +352,34 @@ class SiswaController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Download legal agreement PDF
      */
-    public function destroy(Request $request, Siswa $siswa)
+    public function downloadLegalPdf(Request $request, Siswa $siswa, \App\Models\UserAgreement $agreement)
     {
-        if (!$request->user()->can('manage_siswa')) {
+        if (!$request->user()->can('edit_siswa')) {
             abort(403);
         }
 
-        DB::transaction(function () use ($siswa) {
-            if ($siswa->user) {
-                $siswa->user->delete();
-            }
-            $siswa->delete();
-        });
+        // Validate that agreement belongs to siswa
+        if ($agreement->id_siswa !== $siswa->id_siswa) {
+            abort(404);
+        }
 
-        return Redirect::route('admin.siswa.index')->with([
-            'message' => 'Siswa berhasil dihapus.',
-            'type' => 'success'
-        ]);
+        $agreement->load('document');
+
+        if (!$agreement || !$agreement->document) {
+            return redirect()->back()->with('error', 'Dokumen tidak ditemukan.');
+        }
+
+        $type = $agreement->metadata['type'] ?? $agreement->document->type;
+
+        if ($type === 'resignation') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.persetujuan_pengunduran_diri', compact('siswa', 'agreement'));
+            return $pdf->download('Persetujuan_Pengunduran_Diri_'.$siswa->nis.'.pdf');
+        } else {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.persetujuan_pendaftaran', compact('siswa', 'agreement'));
+            return $pdf->download('Persetujuan_Pendaftaran_'.$siswa->nis.'.pdf');
+        }
     }
 
     /**
@@ -362,7 +387,7 @@ class SiswaController extends Controller
      */
     public function export()
     {
-        if (!auth()->user()->can('manage_siswa')) {
+        if (!auth()->user()->can('export_siswa')) {
             abort(403);
         }
 
@@ -371,7 +396,7 @@ class SiswaController extends Controller
 
     public function import(Request $request)
     {
-        if (!auth()->user()->can('manage_siswa')) {
+        if (!auth()->user()->can('import_siswa')) {
             abort(403);
         }
 
@@ -408,7 +433,7 @@ class SiswaController extends Controller
 
     public function generateNis(Kelas $kelas)
     {
-        if (!auth()->user()->can('manage_siswa')) {
+        if (!auth()->user()->can('create_siswa')) {
             abort(403);
         }
 
@@ -429,5 +454,27 @@ class SiswaController extends Controller
         $newNis = "{$tahun}{$kodeCabang}{$nomorUrutFormatted}";
 
         return response()->json(['nis' => $newNis]);
+    }
+
+    public function generateResignationUrl(Request $request, Siswa $siswa)
+    {
+        if (!auth()->user()->can('edit_siswa')) {
+            abort(403);
+        }
+
+        $request->validate([
+            'tanggal_resign' => 'required|date',
+        ]);
+
+        $resignationUrl = \Illuminate\Support\Facades\URL::signedRoute(
+            'public.resignation.form',
+            [
+                'siswa' => $siswa->id_siswa,
+                'tanggal_resign' => $request->tanggal_resign
+            ],
+            now()->addDays(7)
+        );
+
+        return response()->json(['url' => $resignationUrl]);
     }
 }

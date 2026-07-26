@@ -12,13 +12,17 @@ class UserAgreement extends Model
 
     protected $fillable = [
         'user_id',
+        'id_siswa',
         'legal_document_id',
         'agreed_at',
         'ip_address',
+        'user_agent',
+        'metadata',
     ];
 
     protected $casts = [
         'agreed_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     /**
@@ -27,6 +31,14 @@ class UserAgreement extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relasi ke data Siswa yang bersangkutan.
+     */
+    public function siswa()
+    {
+        return $this->belongsTo(Siswa::class, 'id_siswa', 'id_siswa');
     }
 
     /**

@@ -13,7 +13,7 @@ class StoreSiswaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('manage_siswa');
+        return $this->user()->can('create_siswa');
     }
 
     /**

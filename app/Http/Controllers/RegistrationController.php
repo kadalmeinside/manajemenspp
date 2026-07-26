@@ -6,6 +6,7 @@ use App\Models\Kelas;
 use App\Models\LegalDocument;
 use App\Models\Siswa;
 use App\Models\User;
+use App\Models\UserAgreement;
 use App\Models\Invoice;
 use App\Mail\RegistrationSuccess;
 use App\Services\XenditService;
@@ -235,6 +236,14 @@ class RegistrationController extends Controller
                 ]);
                 $siswa->generateNis();
 
+                UserAgreement::create([
+                    'user_id' => $user->id,
+                    'id_siswa' => $siswa->id_siswa,
+                    'legal_document_id' => $validated['legal_document_id'],
+                    'agreed_at' => now(),
+                    'ip_address' => $request->ip(),
+                ]);
+
                 $deskripsi = "Biaya Pendaftaran - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
                 $invoice = Invoice::create([
                     'id_siswa' => $siswa->id_siswa,
@@ -269,8 +278,13 @@ class RegistrationController extends Controller
                     'nis' => $siswa->nis,
                     'email_wali' => $user->email,
                 ];
-                Mail::to($user->email)->send(new RegistrationSuccess($dataForEmail));
-
+                
+                try {
+                    Mail::to($user->email)->send(new RegistrationSuccess($dataForEmail));
+                } catch (\Exception $mailEx) {
+                    Log::warning('Gagal mengirim email pendaftaran: ' . $mailEx->getMessage());
+                    // Lanjutkan proses meskipun email gagal
+                }
 
                 return $xenditInvoiceData['invoice_url'];
             });

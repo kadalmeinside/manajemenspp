@@ -102,11 +102,11 @@ class PaymentService
             Carbon::setLocale('id');
             $startPeriod = Carbon::parse($periods->first());
             
-            if ($periods->count() === 1) {
-                $description = "Pembayaran SPP Bulan {$startPeriod->isoFormat('MMMM YYYY')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+            if ($periods->count() == 1) {
+                $description = "SPP {$startPeriod->isoFormat('MMMM YYYY')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
             } else {
                 $endPeriod = Carbon::parse($periods->last());
-                $description = "Pembayaran SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+                $description = "SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
             }
 
             // 5. Buat invoice induk yang baru

@@ -37,6 +37,7 @@ const showCancelConfirmModal = ref(false);
 const invoiceToCancel = ref(null);
 const showRecreateConfirmModal = ref(false);
 const invoiceToRecreate = ref(null); 
+const showMobileFilters = ref(false);
 
 // Data untuk form periode
 const currentYear = new Date().getFullYear();
@@ -226,8 +227,17 @@ const formatDescription = (desc) => {
 
         <div class="pb-12 pt-4">
             <div class="max-w-full mx-auto">
+                <!-- Mobile Filter & Search Bar (Sticky) -->
+                <div class="sticky top-0 z-30 bg-white dark:bg-gray-800 -mx-4 px-4 py-3 mb-4 border-b border-gray-200 dark:border-gray-700 shadow-sm flex gap-2 lg:hidden">
+                    <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full" aria-label="Cari invoice"/>
+                    <SecondaryButton @click="showMobileFilters = true" class="px-3 shrink-0 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>
+                    </SecondaryButton>
+                </div>
+
                 <div class="mb-6 p-4 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+
+                    <div class="hidden lg:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
                         <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full lg:col-span-2" aria-label="Cari invoice"/>
                         <select v-model="selectedKelasId" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter kelas">
                             <option value="">Semua Kelas</option>
@@ -247,7 +257,7 @@ const formatDescription = (desc) => {
                             <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
                         </select>
                     </div>
-                    <div class="mt-3 flex items-center justify-between">
+                    <div class="mt-4 flex items-center justify-between">
                         <p class="text-xs text-gray-500 dark:text-gray-400">
                             <span v-if="invoiceList.total > 0">
                                 Menampilkan <span class="font-semibold text-gray-700 dark:text-gray-300">{{ invoiceList.from }}–{{ invoiceList.to }}</span>
@@ -458,7 +468,7 @@ const formatDescription = (desc) => {
                         <InputLabel for="tagihan_id_siswa" value="Pilih Siswa" :required="true"/>
                         <SearchableSelect
                             v-model="formIndividual.id_siswa"
-                            :options="allSiswa.map(s => ({ value: s.id_siswa, label: s.nama_siswa + ' (' + (s.user ? s.user.email : 'N/A') + ')' }))"
+                            :options="allSiswa.map(s => ({ value: s.id_siswa, label: s.nama_siswa + ' - ' + (s.kelas ? s.kelas.nama_kelas : 'Tidak Ada Kelas') + ' (' + (s.user ? s.user.email : 'N/A') + ')' }))"
                             placeholder="Ketik untuk mencari Siswa..."
                         />
                         <InputError class="mt-2" :message="formIndividual.errors.id_siswa" />
@@ -661,6 +671,53 @@ const formatDescription = (desc) => {
                         </PrimaryButton>
                     </div>
                 </form>
+            </div>
+        </Modal>
+
+        <!-- Mobile Filter Modal -->
+        <Modal :show="showMobileFilters" @close="showMobileFilters = false" maxWidth="sm">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4 border-b pb-3 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Filter Pencarian</h2>
+                    <button @click="showMobileFilters = false" class="text-gray-400 hover:text-gray-500">
+                        <XCircleIcon class="w-6 h-6" />
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <InputLabel value="Kelas" />
+                        <select v-model="selectedKelasId" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                            <option value="">Semua Kelas</option>
+                            <option v-for="k in allKelas" :key="k.id_kelas" :value="k.id_kelas">{{ k.nama_kelas }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <InputLabel value="Status" />
+                        <select v-model="selectedStatus" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                            <option value="">Semua Status</option>
+                            <option v-for="status in allStatus" :key="status" :value="status">{{ status }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <InputLabel value="Bulan Periode" />
+                        <select v-model="selectedPeriodeBulan" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                            <option value="">Semua Bulan</option>
+                            <option v-for="month in months" :key="month.value" :value="month.value">{{ month.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <InputLabel value="Tahun Periode" />
+                        <select v-model="selectedPeriodeTahun" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                            <option value="">Semua Tahun</option>
+                            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                        </select>
+                    </div>
+                    <div class="pt-4 border-t dark:border-gray-700">
+                        <PrimaryButton class="w-full justify-center" @click="showMobileFilters = false">
+                            Terapkan Filter
+                        </PrimaryButton>
+                    </div>
+                </div>
             </div>
         </Modal>
 

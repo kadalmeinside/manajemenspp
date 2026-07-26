@@ -74,7 +74,22 @@ class StudentLeaveController extends Controller
     {
         $this->authorize('manage_all_tagihan'); // Assuming same permission as invoices for now
 
+        $user = $request->user();
         $query = StudentLeave::with(['siswa.kelas', 'approver'])->orderBy('created_at', 'desc');
+        $siswaOptionsQuery = \App\Models\Siswa::with('kelas:id_kelas,nama_kelas')
+            ->where('status_siswa', 'Aktif')
+            ->select('id_siswa', 'nama_siswa', 'nis', 'id_kelas')
+            ->orderBy('nama_siswa');
+
+        if ($user->hasRole('admin_kelas')) {
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
+            
+            $query->whereHas('siswa', function ($q) use ($managedKelasIds) {
+                $q->whereIn('id_kelas', $managedKelasIds);
+            });
+
+            $siswaOptionsQuery->whereIn('id_kelas', $managedKelasIds);
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -99,7 +114,7 @@ class StudentLeaveController extends Controller
             ]),
             'filters' => $request->only(['status']),
             'pageTitle' => 'Pengajuan Cuti Siswa',
-            'siswaOptions' => \App\Models\Siswa::where('status_siswa', 'Aktif')->select('id_siswa', 'nama_siswa', 'nis')->orderBy('nama_siswa')->get(),
+            'siswaOptions' => $siswaOptionsQuery->get(),
         ]);
     }
 
@@ -138,6 +153,18 @@ class StudentLeaveController extends Controller
      */
     private function processLeaveInvoice(StudentLeave $studentLeave, $userId, XenditService $xenditService, &$resultMessage)
     {
+        // Check for EXISTING PAID invoice
+        $paidInvoice = Invoice::where('id_siswa', $studentLeave->id_siswa)
+            ->where('type', 'spp')
+            ->whereMonth('periode_tagihan', $studentLeave->month)
+            ->whereYear('periode_tagihan', $studentLeave->year)
+            ->where('status', 'PAID')
+            ->first();
+
+        if ($paidInvoice) {
+            throw new \Exception('Tagihan SPP untuk bulan cuti ini sudah berstatus LUNAS (PAID). Harap atur pengembalian dana (refund) secara manual atau jadikan deposit sebelum menyetujui cuti.');
+        }
+
         // Check for EXISTING pending invoice
         $invoice = Invoice::where('id_siswa', $studentLeave->id_siswa)
             ->where('type', 'spp')

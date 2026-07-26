@@ -74,6 +74,13 @@ class Siswa extends Model
                 $siswa->user->delete();
             }
         });
+
+        static::restoring(function (Siswa $siswa) {
+            $user = \App\Models\User::withTrashed()->find($siswa->id_user);
+            if ($user && $user->trashed()) {
+                $user->restore();
+            }
+        });
     }
 
     /**
@@ -123,5 +130,10 @@ class Siswa extends Model
             $this->nis = $prefix . $sequencePadded;
             $this->saveQuietly(); // saveQuietly agar tidak trigger event/log duplikat
         });
+    }
+
+    public function agreements()
+    {
+        return $this->hasMany(UserAgreement::class, 'id_siswa', 'id_siswa');
     }
 }

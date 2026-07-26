@@ -28,6 +28,7 @@ class SettingsController extends Controller
             return [
                 'id' => $doc->id,
                 'name' => $doc->name . ' (v' . $doc->version . ') - ' . $doc->type,
+                'type' => $doc->type,
             ];
         });
 
@@ -99,7 +100,8 @@ class SettingsController extends Controller
             'legal_doc_registration_public',
             'legal_doc_registration_academy',
             'legal_doc_registration_ss',
-            'legal_doc_re_registration'
+            'legal_doc_re_registration',
+            'legal_doc_resignation'
         ];
 
         foreach ($legalSettings as $key) {

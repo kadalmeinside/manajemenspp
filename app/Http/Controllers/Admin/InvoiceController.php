@@ -74,7 +74,7 @@ class InvoiceController extends Controller
         $statusPembayaranOptions = ['PENDING', 'PAID', 'EXPIRED', 'FAILED', 'REFUNDED'];
 
         $allKelasQuery = Kelas::orderBy('nama_kelas');
-        $allSiswaQuery = Siswa::with('user:id,email')->orderBy('nama_siswa');
+        $allSiswaQuery = Siswa::with(['user:id,email', 'kelas:id_kelas,nama_kelas'])->orderBy('nama_siswa');
         if ($user->hasRole('admin_kelas')) {
             $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
             $allKelasQuery->whereIn('id_kelas', $managedKelasIds);
@@ -482,28 +482,11 @@ class InvoiceController extends Controller
                 DB::transaction(function () use ($siswa, $validated, $kelas, $periodeTagihan, $tanggalJatuhTempo, $request, &$successCount) {
                     $jumlahSPP = ($validated['jenis_jumlah_spp'] === 'manual') ? $validated['jumlah_spp_manual'] : ($siswa->jumlah_spp_custom ?? $kelas->biaya_spp_default ?? 0);
                     
-                    // Cek Cuti
-                    $approvedLeave = \App\Models\StudentLeave::where('id_siswa', $siswa->id_siswa)
-                        ->where('month', $periodeTagihan->month)
-                        ->where('year', $periodeTagihan->year)
-                        ->where('status', 'approved')
-                        ->first();
-
-                    // Baca nominal cuti dari Settings (bisa diubah dari dashboard admin)
-                    $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
-                    $realSppAmount = $approvedLeave ? $cutiAmount : $jumlahSPP;
-                    
-                    if ($realSppAmount <= 0) {
-                        return; // Jangan hitung sebagai gagal, tapi lewati saja (gratis/beasiswa)
+                    if ($jumlahSPP <= 0) {
+                        return;
                     }
 
                     $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
-                     
-                    if ($approvedLeave) {
-                        $deskripsi .= " (CUTI)";
-                    }
-
-                    // ### PERBAIKAN: Admin fee tidak lagi menjadi bagian dari total tagihan bulanan ###
                     $invoice = Invoice::create([
                         'id_siswa' => $siswa->id_siswa,
                         'user_id' => $request->user()->id,
@@ -761,11 +744,18 @@ class InvoiceController extends Controller
             }
         }
 
+        // Handle bukti pembayaran if uploaded
+        $buktiPath = null;
+        if ($request->hasFile('bukti_pembayaran')) {
+            $buktiPath = $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public');
+        }
+
         // Update status invoice
         $invoice->update([
             'status' => 'PAID',
             'paid_at' => now(),
             'payment_method' => 'manual', // Tandai sebagai pembayaran manual
+            'bukti_pembayaran' => $buktiPath,
         ]);
 
         // Kirim notifikasi sukses

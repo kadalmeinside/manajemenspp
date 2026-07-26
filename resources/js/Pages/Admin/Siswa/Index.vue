@@ -10,7 +10,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import Toast from '@/Components/Toast.vue';
-import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon, ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/vue/20/solid';
+import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, Squares2X2Icon, Bars3Icon } from '@heroicons/vue/20/solid';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 
@@ -19,12 +19,12 @@ const page = usePage();
 const siswaList = computed(() => page.props.siswaList || { data: [], links: [], current_page: 1, total: 0, per_page: 15, from: 0, to: 0 });
 const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status_siswa: '', spp_belum_diset: false });
 const allKelas = computed(() => page.props.allKelas || []);
-const allStatusSiswa = computed(() => page.props.allStatusSiswa || ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment']);
+const allStatusSiswa = computed(() => page.props.allStatusSiswa || ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar']);
 const can = computed(() => page.props.can || {});
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
 
-const statusSiswaOptions = ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment'];
+const statusSiswaOptions = ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar'];
 
 const showSiswaModal = ref(false);
 const isEditMode = ref(false);
@@ -51,6 +51,7 @@ const selectedKelasId = ref(filters.value.kelas_id || '');
 const selectedStatusSiswa = ref(filters.value.status_siswa || '');
 const sppBelumDiset = ref(filters.value.spp_belum_diset === 'true' || filters.value.spp_belum_diset === true);
 const isLoading = ref(false);
+const viewMode = ref('grid');
 
 const getStatusBadgeClass = (status) => {
     const map = {
@@ -59,6 +60,7 @@ const getStatusBadgeClass = (status) => {
         'Lulus': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
         'Cuti': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
         'pending_payment': 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
+        'Keluar': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
     };
     return map[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 };
@@ -167,43 +169,6 @@ const submitSiswaForm = () => {
     });
 };
 
-const showDeleteConfirmModal = ref(false);
-const siswaToDelete = ref(null);
-
-const confirmDeleteSiswa = (siswaItem) => {
-    siswaToDelete.value = siswaItem;
-    showDeleteConfirmModal.value = true;
-};
-
-const deleteSiswa = () => {
-    if (siswaToDelete.value) {
-        const currentSiswaData = siswaList.value.data;
-        const currentPage = siswaList.value.current_page;
-        const wasLastItemOnPage = currentSiswaData.length === 1 && currentPage > 1 && siswaToDelete.value.id_siswa === currentSiswaData[0].id_siswa;
-
-        router.delete(route('admin.siswa.destroy', siswaToDelete.value.id_siswa), {
-            preserveScroll: true,
-            onSuccess: () => {
-                siswaToDelete.value = null;
-                showDeleteConfirmModal.value = false;
-                if (wasLastItemOnPage) {
-                     router.get(route('admin.siswa.index'), {
-                        search: searchQuery.value,
-                        kelas_id: selectedKelasId.value,
-                        page: currentPage - 1,
-                    }, {
-                        preserveState: false, preserveScroll: true, replace: true,
-                        only: ['siswaList', 'flash', 'filters'],
-                    });
-                } else {
-                    router.reload({ preserveScroll: true, only: ['siswaList', 'flash'] });
-                }
-            },
-            onError: (errors) => { console.error('Delete siswa error:', errors); }
-        });
-    }
-};
-
 // State untuk Modal Impor
 const showImportModal = ref(false);
 const importForm = useForm({
@@ -261,55 +226,70 @@ onMounted(() => {
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 pb-0 text-gray-900 dark:text-gray-100">
                         <div class="mb-6 space-y-4">
-                            <!-- Baris Utama (Search, Selects & Action Buttons) -->
-                            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-                                <div class="flex flex-col sm:flex-row items-center gap-3 flex-grow">
-                                    <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email wali, kelas..." class="w-full sm:w-auto md:flex-grow lg:max-w-xs" aria-label="Cari Siswa"/>
-                                    <select v-model="selectedKelasId" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" aria-label="Filter berdasarkan kelas">
-                                        <option value="">Semua Kelas</option>
-                                        <option v-for="kelasItem in allKelas" :key="kelasItem.id_kelas" :value="kelasItem.id_kelas">{{ kelasItem.nama_kelas }}</option>
-                                    </select>
-                                    <select v-model="selectedStatusSiswa" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" aria-label="Filter berdasarkan status">
-                                        <option value="">Semua Status</option>
-                                        <option v-for="s in allStatusSiswa" :key="s" :value="s">{{ s === 'pending_payment' ? 'Menunggu Pembayaran' : s }}</option>
-                                    </select>
+                            <!-- Baris Utama (Search, Toggle View, & Action Buttons) -->
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                                <div class="w-full sm:w-1/2 md:w-1/3">
+                                    <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email wali, kelas..." class="w-full" aria-label="Cari Siswa"/>
                                 </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                    <a :href="route('admin.siswa.export')" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150 whitespace-nowrap">
-                                        <ArrowUpTrayIcon class="-ml-1 mr-2 h-4 w-4" aria-hidden="true" /> Ekspor
-                                    </a>
-                                    <SecondaryButton @click="openImportModal" v-if="can?.create_siswa" class="whitespace-nowrap">
-                                        <ArrowDownTrayIcon class="-ml-1 mr-2 h-4 w-4" aria-hidden="true" /> Impor
-                                    </SecondaryButton>
-                                    <PrimaryButton @click="openCreateModal" v-if="can?.create_siswa" class="whitespace-nowrap">
-                                        <PlusIcon class="-ml-1 mr-2 h-4 w-4" aria-hidden="true" /> Siswa Baru
+                                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                    <!-- Toggle View -->
+                                    <div class="hidden sm:flex items-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 p-1">
+                                        <button @click="viewMode = 'grid'" :class="{'bg-gray-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-400': viewMode === 'grid', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300': viewMode !== 'grid'}" class="p-1.5 rounded" title="Tampilan Grid">
+                                            <Squares2X2Icon class="h-5 w-5" />
+                                        </button>
+                                        <button @click="viewMode = 'list'" :class="{'bg-gray-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-400': viewMode === 'list', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300': viewMode !== 'list'}" class="p-1.5 rounded" title="Tampilan List">
+                                            <Bars3Icon class="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                    <PrimaryButton @click="openCreateModal" v-if="can?.create_siswa" class="whitespace-nowrap shadow-sm">
+                                        <PlusIcon class="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> Siswa Baru
                                     </PrimaryButton>
                                 </div>
                             </div>
                             
-                            <!-- Baris Kedua (Checkbox & Total) -->
-                            <div class="flex items-center gap-4 h-6">
-                                <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                                    <input type="checkbox" v-model="sppBelumDiset" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" :disabled="isLoading" />
-                                    <span :class="{'opacity-50': isLoading}">SPP Belum Diset</span>
-                                </label>
-                                <div v-if="isLoading" class="flex items-center text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Memuat Data...
+                            <!-- Baris Kedua (Filters, Checkbox, Import/Export & Total) -->
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+                                <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-wrap">
+                                    <select v-model="selectedKelasId" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm" aria-label="Filter berdasarkan kelas">
+                                        <option value="">Semua Kelas</option>
+                                        <option v-for="kelasItem in allKelas" :key="kelasItem.id_kelas" :value="kelasItem.id_kelas">{{ kelasItem.nama_kelas }}</option>
+                                    </select>
+                                    <select v-model="selectedStatusSiswa" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm" aria-label="Filter berdasarkan status">
+                                        <option value="">Semua Status</option>
+                                        <option v-for="s in allStatusSiswa" :key="s" :value="s">{{ s === 'pending_payment' ? 'Menunggu Pembayaran' : s }}</option>
+                                    </select>
+                                    
+                                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer ml-1 whitespace-nowrap">
+                                        <input type="checkbox" v-model="sppBelumDiset" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" :disabled="isLoading" />
+                                        <span :class="{'opacity-50': isLoading}">SPP Belum Diset</span>
+                                    </label>
                                 </div>
-                                <p v-else class="text-xs text-gray-500 dark:text-gray-400">
-                                    <span v-if="siswaList.total > 0">Total: <span class="font-semibold">{{ siswaList.total }}</span> siswa</span>
-                                </p>
+                                
+                                <div class="flex items-center gap-2 justify-end w-full md:w-auto shrink-0 flex-wrap">
+                                    <div v-if="isLoading" class="flex items-center text-xs text-indigo-600 dark:text-indigo-400 font-medium mr-2">
+                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Memuat Data...
+                                    </div>
+                                    <p v-else class="text-xs text-gray-500 dark:text-gray-400 mr-2 whitespace-nowrap">
+                                        <span v-if="siswaList.total > 0">Total: <span class="font-semibold">{{ siswaList.total }}</span> siswa</span>
+                                    </p>
+                                    <button @click="openImportModal" v-if="can?.import_siswa" class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none transition whitespace-nowrap">
+                                        <ArrowDownTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Impor
+                                    </button>
+                                    <a v-if="can?.export_siswa" :href="route('admin.siswa.export')" class="inline-flex items-center justify-center px-3 py-2 border border-transparent shadow-sm text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none transition whitespace-nowrap">
+                                        <ArrowUpTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Ekspor
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="px-6 pb-4 overflow-x-auto">
-                        <!-- Tampilan Desktop (Table) -->
-                        <div class="hidden md:block">
+                        <!-- Tampilan List (Table) -->
+                        <div v-if="viewMode === 'list'">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
@@ -317,13 +297,12 @@ onMounted(() => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kelas</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email Wali (Login)</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tgl Bergabung</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 <tr v-if="!siswaList || !siswaList.data || siswaList.data.length === 0">
-                                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data siswa.</td>
+                                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data siswa.</td>
                                 </tr>
                                 <tr v-else v-for="item in siswaList.data" :key="item.id_siswa">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ item.nama_siswa }}</td>
@@ -334,14 +313,12 @@ onMounted(() => {
                                             {{ item.status_siswa === 'pending_payment' ? 'Menunggu Pembayaran' : item.status_siswa }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ item.tanggal_bergabung_formatted }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end space-x-2">
                                             <Link :href="route('admin.siswa.show', item.id_siswa)" class="text-gray-400 hover:text-indigo-600 p-1" title="Lihat Detail">
                                                 <EyeIcon class="h-5 w-5" />
                                             </Link>
                                             <button @click="openEditModal(item)" class="text-gray-400 hover:text-indigo-600 p-1" v-if="can?.edit_siswa" title="Edit Siswa"><PencilSquareIcon class="h-5 w-5" /></button>
-                                            <button @click="confirmDeleteSiswa(item)" class="text-gray-400 hover:text-red-600 p-1" v-if="can?.delete_siswa" title="Hapus Siswa"><TrashIcon class="h-5 w-5" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -349,8 +326,8 @@ onMounted(() => {
                             </table>
                         </div>
 
-                        <!-- Tampilan Mobile (Card) -->
-                        <div class="block md:hidden space-y-4 mt-4">
+                        <!-- Tampilan Grid (Card) -->
+                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
                             <div v-if="!siswaList || !siswaList.data || siswaList.data.length === 0" class="text-center text-sm text-gray-500 py-4">
                                 Tidak ada data siswa.
                             </div>
@@ -374,9 +351,6 @@ onMounted(() => {
                                     </Link>
                                     <button @click="openEditModal(item)" v-if="can?.edit_siswa" class="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/60" title="Edit Siswa">
                                         <PencilSquareIcon class="h-4 w-4" />
-                                    </button>
-                                    <button @click="confirmDeleteSiswa(item)" v-if="can?.delete_siswa" class="p-2 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/60" title="Hapus Siswa">
-                                        <TrashIcon class="h-4 w-4" />
                                     </button>
                                 </div>
                             </div>
@@ -546,22 +520,6 @@ onMounted(() => {
             </div>
         </Modal>
 
-        <Modal :show="showDeleteConfirmModal" @close="showDeleteConfirmModal = false" maxWidth="md">
-            <div class="p-6">
-                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Konfirmasi Hapus Siswa
-                </h2>
-                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Apakah Anda yakin ingin menghapus data siswa "<span class="font-semibold">{{ siswaToDelete?.nama_siswa }}</span>"?
-                    Aksi ini juga akan menghapus akun login yang terhubung dan tidak dapat dibatalkan.
-                </p>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <SecondaryButton @click="showDeleteConfirmModal = false" type="button"> Batal </SecondaryButton>
-                    <DangerButton @click="deleteSiswa" :class="{ 'opacity-25': router.processing }" :disabled="router.processing">
-                        Ya, Hapus
-                    </DangerButton>
-                </div>
-            </div>
-        </Modal>
+
     </AuthenticatedLayout>
 </template>

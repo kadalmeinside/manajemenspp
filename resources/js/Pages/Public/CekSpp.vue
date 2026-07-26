@@ -62,6 +62,24 @@ const leaveForm = useForm({
     reason: '',
 });
 
+// --- Intercept Agreement ---
+const missingAgreements = computed(() => page.props.missing_agreement);
+const isMissingAgreement = computed(() => !!missingAgreements.value);
+const agreementForm = useForm({
+    legal_document_id: missingAgreements.value?.document?.id || null,
+    id_siswa: missingAgreements.value?.siswa?.map(s => s.id_siswa) || [],
+    terms_accepted: false,
+});
+
+const submitAgreement = () => {
+    if (!agreementForm.terms_accepted) return;
+    agreementForm.post(route('tagihan.spp.agreements.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            agreementForm.reset();
+        }
+    });
+};
 const openLeaveModal = () => {
     leaveForm.id_siswa = props.selectedSiswa.id_siswa;
     leaveForm.year = String(new Date().getFullYear());
@@ -349,8 +367,8 @@ const formatPeriod = (dateStr) => {
                         </div>
                     </div>
 
-                    <!-- Tombol Cuti Best Practice UI -->
-                    <div class="relative z-10 w-full md:w-auto mt-4 md:mt-0">
+                    <!-- Tombol Cuti Best Practice UI (Sembunyikan Sementara) -->
+                    <div v-if="false" class="relative z-10 w-full md:w-auto mt-4 md:mt-0">
                         <button @click="openLeaveModal" class="w-full sm:w-auto relative group px-6 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 hover:border-emerald-500 dark:border-gray-700 dark:hover:border-emerald-400 shadow-sm hover:shadow-emerald-500/20 transition-all duration-300 text-sm font-bold text-gray-700 hover:text-emerald-700 dark:text-gray-200 dark:hover:text-emerald-400 flex items-center justify-center gap-2 overflow-hidden">
                             <span class="absolute inset-0 bg-emerald-50 dark:bg-emerald-900/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></span>
                             <CalendarIcon class="w-5 h-5 relative z-10 text-emerald-500 group-hover:-rotate-12 transition-transform duration-300" />
@@ -583,6 +601,54 @@ const formatPeriod = (dateStr) => {
                     <div class="mt-6 flex justify-end space-x-3">
                          <SecondaryButton @click="showLeaveModal = false">Batal</SecondaryButton>
                          <PrimaryButton :disabled="leaveForm.processing">Ajukan</PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
+
+        <!-- Missing Agreement Intercept Modal -->
+        <Modal :show="isMissingAgreement" maxWidth="2xl" :closeable="false">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 border-b pb-4">
+                    Pembaruan Syarat & Ketentuan
+                </h2>
+                
+                <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    <p class="mb-4">
+                        Halo, sistem mendeteksi bahwa data pendaftaran anak Anda berikut ini belum dilengkapi dengan persetujuan Syarat & Ketentuan elektronik terbaru:
+                    </p>
+                    
+                    <ul class="list-disc pl-5 mb-4 font-semibold text-gray-800 dark:text-gray-200">
+                        <li v-for="siswa in missingAgreements?.siswa" :key="siswa.id_siswa">
+                            {{ siswa.nama_siswa }}
+                        </li>
+                    </ul>
+
+                    <p class="mb-2">Untuk melanjutkan akses layanan dan melihat tagihan, silakan baca dan setujui dokumen berikut:</p>
+                </div>
+
+                <div class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert">
+                    <div v-html="missingAgreements?.document?.content"></div>
+                </div>
+
+                <form @submit.prevent="submitAgreement" class="mt-6">
+                    <div class="flex items-start mb-4">
+                        <div class="flex items-center h-5">
+                            <input id="terms_accepted" type="checkbox" v-model="agreementForm.terms_accepted" required
+                                class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                        <label for="terms_accepted" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            Saya telah membaca, memahami, dan menyetujui seluruh Syarat dan Ketentuan di atas untuk pendaftaran anak saya.
+                        </label>
+                    </div>
+
+                    <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="submit" 
+                                :disabled="agreementForm.processing || !agreementForm.terms_accepted"
+                                :class="{'opacity-50 cursor-not-allowed': agreementForm.processing || !agreementForm.terms_accepted}"
+                                class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                            Saya Setuju & Lanjutkan
+                        </button>
                     </div>
                 </form>
             </div>

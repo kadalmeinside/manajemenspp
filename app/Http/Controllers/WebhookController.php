@@ -50,47 +50,51 @@ class WebhookController extends Controller
             return response()->json(['message' => 'Missing external_id'], 400);
         }
 
-        $invoice = Invoice::with(['siswa', 'childInvoices'])
-            ->where('external_id_xendit', $externalId)
-            ->first();
-
-        if (!$invoice) {
-            Log::warning('[Xendit Webhook] Invoice tidak ditemukan.', ['external_id' => $externalId]);
-            // Return 200 agar Xendit tidak terus retry untuk data yang memang tidak ada
-            return response()->json(['message' => 'Invoice not found, skipping']);
-        }
-
-        // === 3. IDEMPOTENCY CHECK — Jangan proses dua kali! ===
-        if ($invoice->status === 'PAID') {
-            Log::info('[Xendit Webhook] Invoice sudah PAID sebelumnya, abaikan.', [
-                'invoice_id'  => $invoice->id,
-                'external_id' => $externalId,
-            ]);
-            return response()->json(['message' => 'Already processed, skipping']);
-        }
-
-        // === 4. HANYA PROSES EVENT PAID ===
-        if ($payloadStatus !== 'PAID') {
-            Log::info('[Xendit Webhook] Status bukan PAID, abaikan.', [
-                'external_id' => $externalId,
-                'status'      => $payloadStatus,
-            ]);
-            // Update status ke EXPIRED/FAILED jika relevan
-            if (in_array($payloadStatus, ['EXPIRED', 'FAILED'])) {
-                $invoice->update([
-                    'status'                  => $payloadStatus,
-                    'xendit_callback_payload' => $payload,
-                ]);
-            }
-            return response()->json(['message' => 'Non-PAID event recorded']);
-        }
-
-        // === 5. PROSES PEMBAYARAN PAID ===
-        $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now());
-        $paymentMethod = $payload['payment_channel'] ?? $payload['payment_method'] ?? null;
-
         DB::beginTransaction();
         try {
+            $invoice = Invoice::with(['siswa', 'childInvoices'])
+                ->where('external_id_xendit', $externalId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$invoice) {
+                DB::rollBack();
+                Log::warning('[Xendit Webhook] Invoice tidak ditemukan.', ['external_id' => $externalId]);
+                // Return 200 agar Xendit tidak terus retry untuk data yang memang tidak ada
+                return response()->json(['message' => 'Invoice not found, skipping']);
+            }
+
+            // === 3. IDEMPOTENCY CHECK — Jangan proses dua kali! ===
+            if ($invoice->status === 'PAID') {
+                DB::rollBack();
+                Log::info('[Xendit Webhook] Invoice sudah PAID sebelumnya, abaikan.', [
+                    'invoice_id'  => $invoice->id,
+                    'external_id' => $externalId,
+                ]);
+                return response()->json(['message' => 'Already processed, skipping']);
+            }
+
+            // === 4. HANYA PROSES EVENT PAID ===
+            if ($payloadStatus !== 'PAID') {
+                Log::info('[Xendit Webhook] Status bukan PAID, abaikan.', [
+                    'external_id' => $externalId,
+                    'status'      => $payloadStatus,
+                ]);
+                // Update status ke EXPIRED/FAILED jika relevan
+                if (in_array($payloadStatus, ['EXPIRED', 'FAILED'])) {
+                    $invoice->update([
+                        'status'                  => $payloadStatus,
+                        'xendit_callback_payload' => $payload,
+                    ]);
+                }
+                DB::commit();
+                return response()->json(['message' => 'Non-PAID event recorded']);
+            }
+
+            // === 5. PROSES PEMBAYARAN PAID ===
+            $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now());
+            $paymentMethod = $payload['payment_channel'] ?? $payload['payment_method'] ?? null;
+
             // Update invoice utama terlebih dahulu
             $invoice->update([
                 'status'                  => 'PAID',
@@ -121,8 +125,8 @@ class WebhookController extends Controller
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('[Xendit Webhook] GAGAL memproses.', [
-                'invoice_id' => $invoice->id,
-                'type'       => $invoice->type,
+                'invoice_id' => $invoice->id ?? null,
+                'type'       => $invoice->type ?? null,
                 'error'      => $e->getMessage(),
                 'trace'      => $e->getTraceAsString(),
             ]);

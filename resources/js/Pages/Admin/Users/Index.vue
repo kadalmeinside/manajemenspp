@@ -93,9 +93,13 @@ const closeModal = () => {
 };
 
 const submitUserForm = () => {
+    const params = {};
+    if (searchQuery.value) params.search = searchQuery.value;
+    if (selectedRole.value) params.role = selectedRole.value;
+
     const submissionRoute = isEditMode.value
-        ? route('admin.users.update', form.id)
-        : route('admin.users.store');
+        ? route('admin.users.update', { user: form.id, ...params })
+        : route('admin.users.store', params);
     const httpMethod = isEditMode.value ? 'put' : 'post';
 
     form.submit(httpMethod, submissionRoute, {

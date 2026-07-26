@@ -84,4 +84,9 @@ class User extends Authenticatable
     //         }
     //     });
     // }
+
+    public function agreements()
+    {
+        return $this->hasMany(UserAgreement::class, 'user_id', 'id');
+    }
 }

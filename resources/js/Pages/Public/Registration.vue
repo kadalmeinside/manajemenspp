@@ -8,6 +8,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import Modal from '@/Components/Modal.vue';
 import FormStepper from '@/Components/FormStepper.vue';
+import AnimatedBackground from '@/Components/AnimatedBackground.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -142,9 +143,10 @@ const formattedFee = computed(() => {
     <div class="relative min-h-screen overflow-hidden flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         
         <!-- Latar Belakang Gradasi Animasi -->
-        <div class="animated-gradient absolute inset-0 -z-10"></div>
+        <div class="animated-gradient absolute inset-0 -z-20"></div>
+        <AnimatedBackground />
         
-        <div class="w-full max-w-4xl space-y-8 z-10">
+        <div class="w-full max-w-4xl space-y-8 z-10 relative">
             <div class="text-center">
                 <div class="flex justify-center items-center gap-4">
                     <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ pageTitle }}</h2>
@@ -154,7 +156,7 @@ const formattedFee = computed(() => {
                 </p>
             </div>
 
-            <form @submit.prevent="submit" novalidate class="mt-8 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-2xl rounded-2xl p-8 space-y-6">
+            <form @submit.prevent="submit" novalidate class="mt-8 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-2xl rounded-2xl p-4 sm:p-8 space-y-6">
                 <div v-if="errors.general" class="p-4 bg-red-100 text-red-700 rounded-md">
                     {{ errors.general }}
                 </div>
@@ -184,8 +186,8 @@ const formattedFee = computed(() => {
                              <InputError :message="form.errors.id_kelas" class="mt-2" />
                         </div>
                     </div>
-                    <div class="mt-8 flex justify-end">
-                        <PrimaryButton @click="nextStep" type="button" class="px-8 bg-red-600 hover:bg-red-700">Selanjutnya</PrimaryButton>
+                    <div class="mt-12 mb-8 flex justify-end">
+                        <PrimaryButton @click="nextStep" type="button" class="w-full sm:w-auto px-8 bg-red-600 hover:bg-red-700 justify-center">Selanjutnya</PrimaryButton>
                     </div>
                 </div>
 
@@ -233,9 +235,9 @@ const formattedFee = computed(() => {
                             <InputError :message="form.errors.user_password_confirmation" class="mt-2" />
                         </div>
                     </div>
-                    <div class="mt-8 flex justify-between">
-                        <SecondaryButton @click="prevStep" type="button" class="px-8">Kembali</SecondaryButton>
-                        <PrimaryButton @click="nextStep" type="button" class="px-8 bg-red-600 hover:bg-red-700">Selanjutnya</PrimaryButton>
+                    <div class="mt-12 mb-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">
+                        <SecondaryButton @click="prevStep" type="button" class="w-full sm:w-auto px-8 justify-center">Kembali</SecondaryButton>
+                        <PrimaryButton @click="nextStep" type="button" class="w-full sm:w-auto px-8 bg-red-600 hover:bg-red-700 justify-center">Selanjutnya</PrimaryButton>
                     </div>
                 </div>
                 
@@ -269,15 +271,15 @@ const formattedFee = computed(() => {
                         </div>
                      </div>
 
-                    <div class="mt-8 flex justify-between items-center">
-                        <SecondaryButton @click="prevStep" type="button" class="px-6">Kembali</SecondaryButton>
-                        <PrimaryButton class="px-8 text-md bg-red-600 hover:bg-red-700 focus:ring-red-500" :disabled="form.processing || !form.terms" :class="{ 'opacity-50 cursor-not-allowed': !form.terms }">
-                            <span v-if="form.processing">Memproses...</span>
-                            <span v-else>Lanjut ke Pembayaran</span>
-                        </PrimaryButton>
+                        <div class="mt-12 mb-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4 items-center sm:items-stretch">
+                            <SecondaryButton @click="prevStep" type="button" class="w-full sm:w-auto px-6 justify-center">Kembali</SecondaryButton>
+                            <PrimaryButton class="w-full sm:w-auto px-8 bg-red-600 hover:bg-red-700 focus:ring-red-500 justify-center" :disabled="form.processing || !form.terms" :class="{ 'opacity-50 cursor-not-allowed': !form.terms }">
+                                <span v-if="form.processing">Menyimpan...</span>
+                                <span v-else>Daftar<span class="hidden sm:inline"> & Lanjutkan Pembayaran</span></span>
+                            </PrimaryButton>
+                        </div>
                     </div>
-                </div>
-            </form>
+                </form>
         </div>
 
         <!-- Modal untuk Syarat & Ketentuan -->

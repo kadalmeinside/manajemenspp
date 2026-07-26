@@ -4,7 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Bar, Doughnut } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement } from 'chart.js';
 import { ref, computed, watch } from 'vue';
-import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/vue/24/outline';
+import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
 import { debounce } from 'lodash';
 
 // Registrasi komponen Chart.js
@@ -198,7 +198,7 @@ const getJobStatusClass = (status) => {
                 </div>
 
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <Link :href="route('admin.siswa.index')" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 group transition hover:shadow-lg hover:-translate-y-1">
                         <div class="flex items-start justify-between">
                             <div class="w-0 flex-1">
@@ -227,6 +227,34 @@ const getJobStatusClass = (status) => {
                             <span class="ml-1 text-gray-500 dark:text-gray-400">vs bulan lalu</span>
                         </div>
                     </div>
+
+                    <!-- Siswa Belum Ditagih (Bulan Ini) -->
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5">
+                        <div class="flex items-start justify-between">
+                            <div class="w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Siswa Belum Ditagih</p>
+                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.siswa_tanpa_tagihan.count }}</p>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Bulan {{ months[filters.bulan - 1]?.name ?? '' }}</p>
+                            </div>
+                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-orange-500">
+                                <ExclamationTriangleIcon class="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Tunggakan (Semua Waktu) -->
+                    <Link :href="route('admin.invoices.index', { status: 'PENDING' })" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 group transition hover:shadow-lg hover:-translate-y-1">
+                         <div class="flex items-start justify-between">
+                            <div class="w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Tunggakan Keseluruhan</p>
+                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.total_tunggakan.count }}</p>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ formatCurrency(stats.total_tunggakan.total_amount) }}</p>
+                            </div>
+                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-red-500">
+                                <DocumentTextIcon class="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </Link>
                     
                     <!-- ### PEMBARUAN: Kartu pendapatan dengan toggle ### -->
                     <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 flex flex-col justify-between">

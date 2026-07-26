@@ -43,13 +43,9 @@ class ReRegistrationController extends Controller
     public function createAcademy()
     {
         $academyClass = Kelas::where('nama_kelas', 'Persija Academy')->firstOrFail();
-        // Ambil dokumen legal berdasarkan name (UNIQUE di DB), bukan UUID hardcoded
-        $terms = LegalDocument::where('name', 'pendafataran academy boarding school')
-                              ->latest('published_at')
-                              ->first()
-                       ?? LegalDocument::where('type', 'terms_and_conditions')
-                              ->latest('published_at')
-                              ->first();
+        
+        $docId = \App\Models\Setting::where('key', 'legal_doc_registration_academy')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::where('type', 'terms_and_conditions')->latest('published_at')->first();
 
         return Inertia::render('Public/ReRegisterAcademy', [
             'pageTitle'     => 'Formulir Daftar Ulang Siswa Academy',
@@ -60,13 +56,8 @@ class ReRegistrationController extends Controller
 
     public function createSs()
     {
-        // Ambil dokumen legal berdasarkan name (UNIQUE di DB), bukan UUID hardcoded
-        $terms = LegalDocument::where('name', 'pendafataran academy boarding school')
-                              ->latest('published_at')
-                              ->first()
-                       ?? LegalDocument::where('type', 'terms_and_conditions')
-                              ->latest('published_at')
-                              ->first();
+        $docId = \App\Models\Setting::where('key', 'legal_doc_registration_ss')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::where('type', 'terms_and_conditions')->latest('published_at')->first();
 
         return Inertia::render('Public/ReRegisterSs', [
             'pageTitle'     => 'Formulir Daftar Ulang Siswa Soccer School',
@@ -141,7 +132,7 @@ class ReRegistrationController extends Controller
                 ]);
                 $user->assignRole($siswaRole);
 
-                Siswa::create([
+                $siswa = Siswa::create([
                     'nis' => $newNis,
                     'nama_siswa' => $validated['nama_siswa'],
                     'tanggal_lahir' => $validated['tanggal_lahir'],
@@ -155,6 +146,7 @@ class ReRegistrationController extends Controller
 
                 UserAgreement::create([
                     'user_id' => $user->id,
+                    'id_siswa' => $siswa->id_siswa,
                     'legal_document_id' => $validated['legal_document_id'],
                     'agreed_at' => now(),
                     'ip_address' => $request->ip(),
@@ -166,8 +158,11 @@ class ReRegistrationController extends Controller
                     'nama_wali' => $validated['user_name'],
                     'email_wali' => $validated['email_wali'],
                 ];
-                Mail::to($validated['email_wali'])->send(new RegistrationSuccess($dataForEmail));
-                
+                try {
+                    Mail::to($validated['email_wali'])->send(new RegistrationSuccess($dataForEmail));
+                } catch (\Exception $mailEx) {
+                    \Illuminate\Support\Facades\Log::warning('Gagal mengirim email pendaftaran ulang: ' . $mailEx->getMessage());
+                }
             });
         } catch (\Exception $e) {
             return Redirect::back()->withErrors(['general' => 'Terjadi kesalahan: ' . $e->getMessage()]);

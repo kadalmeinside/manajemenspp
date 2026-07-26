@@ -165,7 +165,7 @@ const submitLeave = () => {
                 </div>
 
                 <!-- Card Ajukan Cuti -->
-                 <div class="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                 <div v-if="false" class="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900 dark:text-gray-100 flex justify-between items-center">
                         <div>
                             <h3 class="text-lg font-medium">Pengajuan Cuti</h3>

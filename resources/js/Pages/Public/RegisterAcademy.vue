@@ -231,8 +231,8 @@ const submit = () => {
                         <InputError :message="form.errors.id_kelas" class="mt-2" />
                     </div>
                 </div>
-                <div class="mt-8 flex justify-end">
-                    <PrimaryButton @click="nextStep" type="button" class="px-8 bg-red-600 hover:bg-red-700">Selanjutnya</PrimaryButton>
+                <div class="mt-12 mb-8 flex justify-end">
+                    <PrimaryButton @click="nextStep" type="button" class="w-full sm:w-auto px-8 bg-red-600 hover:bg-red-700 justify-center">Selanjutnya</PrimaryButton>
                 </div>
             </div>
 
@@ -278,9 +278,9 @@ const submit = () => {
                         <InputError :message="form.errors.user_password_confirmation" class="mt-2" />
                     </div>
                 </div>
-                <div class="mt-8 flex justify-between">
-                    <SecondaryButton @click="prevStep" type="button" class="px-8">Kembali</SecondaryButton>
-                    <PrimaryButton @click="nextStep" type="button" class="px-8 bg-red-600 hover:bg-red-700">Selanjutnya</PrimaryButton>
+                <div class="mt-12 mb-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">
+                    <SecondaryButton @click="prevStep" type="button" class="w-full sm:w-auto px-8 justify-center">Kembali</SecondaryButton>
+                    <PrimaryButton @click="nextStep" type="button" class="w-full sm:w-auto px-8 bg-red-600 hover:bg-red-700 justify-center">Selanjutnya</PrimaryButton>
                 </div>
             </div>
             
@@ -337,10 +337,11 @@ const submit = () => {
                     <InputError :message="form.errors.terms || form.errors.legal_document_id" class="mt-2" />
                 </div>
                 
-                <div class="mt-8 flex justify-between items-center">
-                    <SecondaryButton @click="prevStep" type="button" class="px-6">Kembali</SecondaryButton>
-                    <PrimaryButton class="px-8 text-md bg-red-600 hover:bg-red-700 focus:ring-red-500" :disabled="form.processing || !form.terms" :class="{ 'opacity-50 cursor-not-allowed': !form.terms }">
-                        <span v-if="form.processing">Menyimpan...</span><span v-else>Daftar & Lanjutkan Pembayaran</span>
+                <div class="mt-12 mb-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4 items-center sm:items-stretch">
+                    <SecondaryButton @click="prevStep" type="button" class="w-full sm:w-auto px-6 justify-center">Kembali</SecondaryButton>
+                    <PrimaryButton class="w-full sm:w-auto px-8 bg-red-600 hover:bg-red-700 focus:ring-red-500 justify-center" :disabled="form.processing || !form.terms" :class="{ 'opacity-50 cursor-not-allowed': !form.terms }">
+                        <span v-if="form.processing">Menyimpan...</span>
+                        <span v-else>Daftar<span class="hidden sm:inline"> & Lanjutkan Pembayaran</span></span>
                     </PrimaryButton>
                 </div>
             </div>

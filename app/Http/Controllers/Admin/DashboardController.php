@@ -46,7 +46,7 @@ class DashboardController extends Controller
 
         $incomeInvoiceTypes = ['spp', 'pendaftaran']; 
 
-        $totalSiswaAktifQuery = Siswa::where('status_siswa', 'Aktif');
+        $totalSiswaAktifQuery = Siswa::whereIn('status_siswa', ['Aktif', 'Cuti']);
         $siswaBaruBulanIniQuery = Siswa::whereMonth('created_at', $selectedBulan)->whereYear('created_at', $selectedTahun);
         $siswaBaruBulanLaluQuery = Siswa::whereMonth('created_at', $previousMonthDate->month)->whereYear('created_at', $previousMonthDate->year);
         
@@ -144,19 +144,39 @@ class DashboardController extends Controller
             ->count();
 
         // 3. Siswa aktif yang belum punya tagihan SPP bulan ini
-        $siswaAktifIds = Siswa::where('status_siswa', 'Aktif')->pluck('id_siswa');
-        $siswaYangSudahTagihanIds = Invoice::where('type', 'spp')
+        $siswaAktifIdsQuery = Siswa::where('status_siswa', 'Aktif');
+        if ($managedKelasIds) {
+            $siswaAktifIdsQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+        $siswaAktifIds = $siswaAktifIdsQuery->pluck('id_siswa');
+        
+        $siswaYangSudahTagihanIdsQuery = Invoice::where('type', 'spp')
             ->whereMonth('periode_tagihan', $selectedBulan)
-            ->whereYear('periode_tagihan', $selectedTahun)
-            ->whereIn('id_siswa', $siswaAktifIds)
-            ->pluck('id_siswa');
+            ->whereYear('periode_tagihan', $selectedTahun);
+        if ($managedKelasIds) {
+            $siswaYangSudahTagihanIdsQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+        }
+        $siswaYangSudahTagihanIds = $siswaYangSudahTagihanIdsQuery->pluck('id_siswa');
+        
         $siswaTanpaTagihanCount = $siswaAktifIds->diff($siswaYangSudahTagihanIds)->count();
 
         // 4. Siswa aktif tanpa konfigurasi nominal SPP (jumlah_spp_custom 0 atau null)
-        $siswaTanpaSppConfigCount = Siswa::where('status_siswa', 'Aktif')
+        $siswaTanpaSppConfigQuery = Siswa::where('status_siswa', 'Aktif')
             ->where(function($q) {
                 $q->whereNull('jumlah_spp_custom')->orWhere('jumlah_spp_custom', '<=', 0);
-            })->count();
+            });
+        if ($managedKelasIds) {
+            $siswaTanpaSppConfigQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+        $siswaTanpaSppConfigCount = $siswaTanpaSppConfigQuery->count();
+
+        // 5. Total Tunggakan Keseluruhan (Semua Waktu)
+        $totalTunggakanKeseluruhanQuery = Invoice::where('status', 'PENDING')->where('type', 'spp');
+        if ($managedKelasIds) {
+            $totalTunggakanKeseluruhanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+        }
+        $totalTunggakanKeseluruhanAmount = $totalTunggakanKeseluruhanQuery->sum('total_amount');
+        $totalTunggakanKeseluruhanCount = $totalTunggakanKeseluruhanQuery->count();
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
@@ -173,6 +193,11 @@ class DashboardController extends Controller
                     'count' => $tagihanTertundaBulanIniCount,
                     'total_amount' => $tagihanTertundaBulanIniAmount,
                 ],
+                'total_tunggakan' => [
+                    'count' => $totalTunggakanKeseluruhanCount, 
+                    'total_amount' => $totalTunggakanKeseluruhanAmount
+                ],
+                'siswa_tanpa_tagihan' => ['count' => $siswaTanpaTagihanCount],
             ],
             'grafikPendapatan' => ['labels' => array_values($labelsGrafikPendapatan), 'data' => array_values($dataGrafikPendapatan)],
             'grafikStatusTagihan' => ['labels' => $statusTagihanBulanIni->keys(), 'data' => $statusTagihanBulanIni->values()],

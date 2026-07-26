@@ -13,12 +13,17 @@ trait HandlesActiveSiswa
         $activeId = session('active_siswa_id');
         
         if ($activeId) {
-            $siswa = $user->siswas()->where('id_siswa', $activeId)->first();
+            $siswa = $user->siswas()
+                          ->where('id_siswa', $activeId)
+                          ->whereNotIn('status_siswa', ['Keluar', 'Non-Aktif'])
+                          ->first();
             if ($siswa) {
                 return $siswa;
             }
         }
         
-        return $user->siswas()->first();
+        return $user->siswas()
+                    ->whereNotIn('status_siswa', ['Keluar', 'Non-Aktif'])
+                    ->first();
     }
 }

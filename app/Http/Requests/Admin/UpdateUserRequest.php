@@ -30,6 +30,8 @@ class UpdateUserRequest extends FormRequest
             'password' => 'nullable|string|min:8|confirmed', // Password opsional saat update
             'roles' => 'nullable|array',
             'roles.*' => 'string|exists:roles,name',
+            'kelas_ids' => 'nullable|array',
+            'kelas_ids.*' => 'exists:kelas,id_kelas',
         ];
     }
 }

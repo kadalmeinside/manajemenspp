@@ -16,9 +16,12 @@ class RegistrationSuccessController extends Controller
         // Tidak perlu lagi memeriksa session, karena data siswa sudah dijamin ada
         // berkat Route Model Binding.
 
+        $siswa->load('kelas');
+
         return Inertia::render('Public/RegistrationSuccess', [
             'pageTitle' => 'Pendaftaran Berhasil',
             'siswaName' => $siswa->nama_siswa,
+            'cabangName' => $siswa->kelas ? $siswa->kelas->nama_kelas : 'Persija',
             'adminContact' => '0811-2626-323',
             'instagramUrl' => 'https://www.instagram.com/persija.ac/',
         ]);

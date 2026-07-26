@@ -94,12 +94,13 @@ const getStatusClass = (status) => {
         </template>
 
         <div class="pb-12 pt-4">
-            <div class="max-w-7xl mx-auto">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
+            <div class="max-w-full mx-auto">
+                <!-- Card Filter -->
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                    <div class="p-4 sm:p-6">
                         <!-- Filter Section -->
-                        <div class="flex flex-col sm:flex-row items-end gap-3">
-                            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                            <div class="w-full sm:flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <TextInput
                                     type="text"
                                     v-model="searchQuery"
@@ -120,13 +121,18 @@ const getStatusClass = (status) => {
                                title="Export ke Excel"
                             >
                                 <ArrowDownTrayIcon class="h-4 w-4" />
-                                Export Excel
+                                <span class="hidden sm:inline">Export Excel</span>
+                                <span class="sm:hidden">Export</span>
                             </a>
                         </div>
                     </div>
+                </div>
 
+                <!-- Card Content -->
+                <div class="bg-transparent sm:bg-white sm:dark:bg-gray-800 sm:shadow-sm sm:rounded-lg">
+                    
                     <!-- Tabel dengan Header Sticky (Desktop) -->
-                    <div class="hidden md:block relative max-h-[70vh] overflow-auto border-t dark:border-gray-700">
+                    <div class="hidden md:block relative max-h-[70vh] overflow-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                                 <tr>
@@ -179,7 +185,7 @@ const getStatusClass = (status) => {
                     </div>
 
                     <!-- Tampilan Mobile (Card Grid) -->
-                    <div class="block md:hidden p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700">
+                    <div class="block md:hidden space-y-4 mt-2">
                         <div v-if="laporanData.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                             Tidak ada data untuk ditampilkan.
                         </div>
@@ -213,17 +219,25 @@ const getStatusClass = (status) => {
                     </div>
 
                     <!-- Paginasi -->
-                    <div v-if="laporanData.links.length > 3" class="p-4 border-t dark:border-gray-700">
-                        <div class="flex flex-wrap -mb-1 justify-center">
-                            <template v-for="(link, key) in laporanData.links" :key="key">
-                                <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm leading-4 text-gray-400 border rounded select-none" v-html="link.label" />
-                                <Link v-else
-                                      class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                      :class="{ 'bg-indigo-500 text-white dark:bg-indigo-600': link.active }"
-                                      :href="link.url"
-                                      v-html="link.label"
-                                      preserve-scroll />
-                            </template>
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-lg sm:mt-0 mt-2 shadow-sm sm:shadow-none gap-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                            <span v-if="laporanData.total > 0">
+                                Menampilkan <span class="font-medium">{{ laporanData.from }}</span>–<span class="font-medium">{{ laporanData.to }}</span>
+                                dari <span class="font-medium">{{ laporanData.total }}</span> invoice
+                            </span>
+                        </p>
+                        <div v-if="laporanData.links.length > 3" class="p-4 border-t dark:border-gray-700">
+                            <div class="flex flex-wrap -mb-1 justify-center">
+                                <template v-for="(link, key) in laporanData.links" :key="key">
+                                    <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm leading-4 text-gray-400 border rounded select-none" v-html="link.label" />
+                                    <Link v-else
+                                        class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        :class="{ 'bg-indigo-500 text-white dark:bg-indigo-600': link.active }"
+                                        :href="link.url"
+                                        v-html="link.label"
+                                        preserve-scroll />
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </div>

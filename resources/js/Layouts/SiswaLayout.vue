@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watchEffect } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link, usePage, router } from '@inertiajs/vue3';
+import { Link, usePage, router, useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -62,6 +62,34 @@ const switchSiswa = (id_siswa) => {
         preserveScroll: true
     });
 };
+
+const missingAgreements = computed(() => page.props.missing_agreements);
+const isMissingAgreement = computed(() => !!missingAgreements.value);
+
+const agreementForm = useForm({
+    legal_document_id: null,
+    id_siswa: [],
+    terms_accepted: false,
+});
+
+watchEffect(() => {
+    if (missingAgreements.value) {
+        agreementForm.legal_document_id = missingAgreements.value.document?.id;
+        agreementForm.id_siswa = missingAgreements.value.siswa.map(s => s.id_siswa);
+    }
+});
+
+const submitAgreement = () => {
+    if (!agreementForm.terms_accepted) return;
+    agreementForm.post(route('siswa.agreements.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            // Modal tertutup karena missing_agreements akan null di HandleInertiaRequests
+            agreementForm.reset();
+        }
+    });
+};
+
 </script>
 
 <template>
@@ -216,6 +244,54 @@ const switchSiswa = (id_siswa) => {
                     <SecondaryButton @click="showLogoutConfirm = false">Batal</SecondaryButton>
                     <DangerButton @click="logout">Ya, Keluar</DangerButton>
                 </div>
+            </div>
+        </Modal>
+
+        <!-- Missing Agreement Intercept Modal -->
+        <Modal :show="isMissingAgreement" maxWidth="2xl" :closeable="false">
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 border-b pb-4">
+                    Pembaruan Syarat & Ketentuan
+                </h2>
+                
+                <div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    <p class="mb-4">
+                        Halo <strong>{{ userName }}</strong>, kami mendeteksi bahwa data pendaftaran untuk anak Anda berikut ini belum dilengkapi dengan persetujuan Syarat & Ketentuan elektronik terbaru:
+                    </p>
+                    
+                    <ul class="list-disc pl-5 mb-4 font-semibold text-gray-800 dark:text-gray-200">
+                        <li v-for="siswa in missingAgreements?.siswa" :key="siswa.id_siswa">
+                            {{ siswa.nama_siswa }}
+                        </li>
+                    </ul>
+
+                    <p class="mb-2">Untuk melanjutkan akses layanan, silakan baca dan setujui dokumen berikut:</p>
+                </div>
+
+                <div class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert">
+                    <div v-html="missingAgreements?.document?.content"></div>
+                </div>
+
+                <form @submit.prevent="submitAgreement" class="mt-6">
+                    <div class="flex items-start mb-4">
+                        <div class="flex items-center h-5">
+                            <input id="terms_accepted" type="checkbox" v-model="agreementForm.terms_accepted" required
+                                class="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                        <label for="terms_accepted" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                            Saya telah membaca, memahami, dan menyetujui seluruh Syarat dan Ketentuan di atas untuk pendaftaran anak saya.
+                        </label>
+                    </div>
+
+                    <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button type="submit" 
+                                :disabled="agreementForm.processing || !agreementForm.terms_accepted"
+                                :class="{'opacity-50 cursor-not-allowed': agreementForm.processing || !agreementForm.terms_accepted}"
+                                class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                            Saya Setuju & Lanjutkan
+                        </button>
+                    </div>
+                </form>
             </div>
         </Modal>
     </div>

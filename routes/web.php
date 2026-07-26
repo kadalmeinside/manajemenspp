@@ -96,8 +96,13 @@ Route::get('/daftar-ulang', [ReRegistrationController::class, 'create'])->name('
 Route::get('/daftar-ulang-academy', [ReRegistrationController::class, 'createAcademy'])->name('re-register-academy.create');
 // Route::get('/daftar-ss', [ReRegistrationController::class, 'createSs'])->name('re-register-ss.create');
 Route::post('/daftar-ulang', [ReRegistrationController::class, 'store'])->middleware('throttle:10,1')->name('re-register.store');
+use App\Http\Controllers\Public\ResignationController;
+
 Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoiceCallback'])->name('webhooks.xendit.invoice');
 
+// Resignation Routes (Signed)
+Route::get('/pengunduran-diri/{siswa}', [ResignationController::class, 'showForm'])->name('public.resignation.form')->middleware('signed');
+Route::post('/pengunduran-diri/{siswa}', [ResignationController::class, 'submitForm'])->name('public.resignation.submit')->middleware('signed');
 
 Route::get('/daftar-academy', [RegistrationController::class, 'createAcademy'])->name('register-academy.create');
 Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('register-ss.create');
@@ -111,7 +116,7 @@ Route::get('/dashboard', function () {
         return redirect()->route('siswa.dashboard');
     }
     // Jika admin atau role lain, redirect ke dashboard admin
-    if (auth()->check() && auth()->user()->hasAnyRole(['admin', 'user'])) {
+    if (auth()->check() && auth()->user()->hasAnyRole(['admin', 'user', 'admin_kelas', 'staff_akademik'])) {
         return redirect()->route('admin.dashboard');
     }
     // Fallback jika tidak ada role yang cocok (seharusnya tidak terjadi jika setup benar)
@@ -123,6 +128,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    Route::post('/siswa/agreements', [\App\Http\Controllers\UserAgreementController::class, 'store'])->name('siswa.agreements.store');
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -160,12 +167,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('settings', [SettingsController::class, 'update'])->name('settings.update');
             Route::get('activity-log', [ActivityLogController::class, 'index'])->name('activity.index');
             
-            // Student Leaves Management
-            Route::get('leaves', [\App\Http\Controllers\StudentLeaveController::class, 'index'])->name('leaves.index');
-            Route::patch('/leaves/{studentLeave}/approve', [\App\Http\Controllers\StudentLeaveController::class, 'approve'])->name('leaves.approve');
-            Route::patch('/leaves/{studentLeave}/reject', [\App\Http\Controllers\StudentLeaveController::class, 'reject'])->name('leaves.reject');
-            Route::patch('/leaves/{studentLeave}/cancel', [\App\Http\Controllers\StudentLeaveController::class, 'cancel'])->name('leaves.cancel');
-            Route::post('/leaves/store-admin', [\App\Http\Controllers\StudentLeaveController::class, 'storeAdmin'])->name('leaves.storeAdmin');
         });
 
         Route::middleware(['role:admin|user|admin_kelas'])->group(function() {
@@ -174,7 +175,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('siswa/export', [SiswaController::class, 'export'])->name('siswa.export');
             Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
             Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');
-            Route::resource('siswa', SiswaController::class);
+            Route::get('siswa/{siswa}/legal-pdf/{agreement}', [SiswaController::class, 'downloadLegalPdf'])->name('siswa.legal_pdf');
+            Route::post('siswa/{siswa}/generate-resignation-url', [SiswaController::class, 'generateResignationUrl'])->name('siswa.generate_resignation_url');
+            // Remove the delete route manually or let except(['destroy']) handle it
+            Route::resource('siswa', SiswaController::class)->except(['destroy']);
             Route::resource('invoices', InvoiceController::class);
             Route::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');
             Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');
@@ -182,8 +186,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');
             Route::resource('promos', PromoController::class)->except(['show']);
             Route::get('laporan/pembayaran-bulanan', [LaporanController::class, 'pembayaranBulanan'])->name('laporan.pembayaran_bulanan');
+            Route::get('laporan/riwayat-pembayaran', [LaporanController::class, 'riwayatPembayaran'])->name('laporan.riwayat_pembayaran');
             Route::get('laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
             Route::get('jobs', [\App\Http\Controllers\Admin\JobBatchController::class, 'index'])->name('jobs.index');
+
+            // Student Leaves Management
+            Route::get('leaves', [\App\Http\Controllers\StudentLeaveController::class, 'index'])->name('leaves.index');
+            Route::patch('/leaves/{studentLeave}/approve', [\App\Http\Controllers\StudentLeaveController::class, 'approve'])->name('leaves.approve');
+            Route::patch('/leaves/{studentLeave}/reject', [\App\Http\Controllers\StudentLeaveController::class, 'reject'])->name('leaves.reject');
+            Route::patch('/leaves/{studentLeave}/cancel', [\App\Http\Controllers\StudentLeaveController::class, 'cancel'])->name('leaves.cancel');
+            Route::post('/leaves/store-admin', [\App\Http\Controllers\StudentLeaveController::class, 'storeAdmin'])->name('leaves.storeAdmin');
         });
 
     });
@@ -221,5 +233,7 @@ Route::controller(CekSppController::class)->group(function () {
     Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->middleware('throttle:20,1')->name('tagihan.spp.pay');
     Route::get('/cek-spp/sukses/{siswa}', 'showSuccess')->name('tagihan.spp.success');
 });
+
+Route::post('/cek-spp/agreements', [\App\Http\Controllers\UserAgreementController::class, 'storePublic'])->name('tagihan.spp.agreements.store');
 
 require __DIR__.'/auth.php';

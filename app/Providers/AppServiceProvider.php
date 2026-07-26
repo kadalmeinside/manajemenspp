@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Carbon\Carbon::setLocale(config('app.locale'));
+
         Vite::prefetch(concurrency: 3);
 
         Event::listen(

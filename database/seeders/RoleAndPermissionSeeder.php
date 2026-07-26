@@ -27,8 +27,13 @@ class RoleAndPermissionSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'manage_kelas', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'view_kelas', 'guard_name' => 'web']);
 
-        // Siswa
-        Permission::firstOrCreate(['name' => 'manage_siswa', 'guard_name' => 'web']);
+        // Siswa (Granular)
+        Permission::firstOrCreate(['name' => 'view_siswa', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'create_siswa', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'edit_siswa', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'delete_siswa', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'import_siswa', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'export_siswa', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'view_own_siswa_data', 'guard_name' => 'web']);
 
         // Tagihan SPP
@@ -43,7 +48,14 @@ class RoleAndPermissionSeeder extends Seeder
         $adminRole->givePermissionTo(Permission::all()); 
 
         $adminKelasRole = Role::firstOrCreate(['name' => 'admin_kelas', 'guard_name' => 'web']);
-        $adminKelasRole->givePermissionTo('manage_siswa');
+        $adminKelasRole->givePermissionTo([
+            'view_siswa', 
+            'create_siswa', 
+            'edit_siswa', 
+            'delete_siswa', 
+            'import_siswa', 
+            'export_siswa'
+        ]);
         $adminKelasRole->givePermissionTo('manage_all_tagihan');
 
         // User

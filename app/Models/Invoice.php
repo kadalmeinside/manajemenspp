@@ -37,6 +37,7 @@ class Invoice extends Model
         'xendit_callback_payload',
         'recreated_from_id',
         'parent_payment_id',
+        'bukti_pembayaran',
     ];
 
     protected $casts = [

@@ -113,6 +113,7 @@ const submit = () => {
                                     <option value="terms_and_conditions">Syarat & Ketentuan</option>
                                     <option value="privacy_policy">Kebijakan Privasi</option>
                                     <option value="refund_policy">Kebijakan Pengembalian</option>
+                                    <option value="resignation">Pengunduran Diri (Resign)</option>
                                 </select>
                                 <InputError :message="form.errors.type" class="mt-2" />
                             </div>

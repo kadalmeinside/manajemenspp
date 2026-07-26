@@ -6,7 +6,7 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import Modal from '@/Components/Modal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import { Link, usePage, router } from '@inertiajs/vue3';
+import { Link, usePage, router, Head } from '@inertiajs/vue3';
 import JobStatusToast from '@/Components/JobStatusToast.vue';
 import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
@@ -124,9 +124,10 @@ const mainMenu = computed(() => {
 });
 
 const adminMenu = [
-    { name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: ChartBarIcon, current: 'admin.laporan.*', requiredPermission: 'manage_all_tagihan' },
+    { name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: ChartBarIcon, current: 'admin.laporan.pembayaran_bulanan', requiredPermission: 'manage_all_tagihan' },
+    { name: 'Riwayat Pembayaran', route: 'admin.laporan.riwayat_pembayaran', icon: CurrencyDollarIcon, current: 'admin.laporan.riwayat_pembayaran', requiredPermission: 'manage_all_tagihan' },
     { name: 'Manajemen Invoice', route: 'admin.invoices.index', icon: DocumentChartBarIcon, current: 'admin.invoices.*', requiredPermission: 'manage_all_tagihan' },
-    { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', requiredPermission: 'manage_siswa' },
+    { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', requiredPermission: 'view_siswa' },
     { name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', requiredPermission: 'manage_kelas' },
     { name: 'Manajemen Promo', route: 'admin.promos.index', icon: CurrencyDollarIcon, current: 'admin.promos.*', requiredPermission: 'manage_kelas' },
     { name: 'Pengajuan Cuti', route: 'admin.leaves.index', icon: CalendarDaysIcon, current: 'admin.leaves.*', requiredPermission: 'manage_all_tagihan', badge: true },

@@ -123,6 +123,20 @@ class UserController extends Controller
             abort(403);
         }
 
+        if (\App\Models\Siswa::where('id_user', $user->id)->exists()) {
+            return Redirect::back()->with([
+                'message' => 'User tidak dapat dihapus karena masih terkait dengan data Siswa.',
+                'type' => 'error'
+            ]);
+        }
+
+        if ($user->id === $request->user()->id) {
+            return Redirect::back()->with([
+                'message' => 'Anda tidak dapat menghapus akun Anda sendiri.',
+                'type' => 'error'
+            ]);
+        }
+
         $user->delete();
 
         return Redirect::route('admin.users.index', $request->only(['search', 'role']))

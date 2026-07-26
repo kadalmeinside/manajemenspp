@@ -28,6 +28,8 @@ class StoreUserRequest extends FormRequest
             'password' => 'required|string|min:8|confirmed',
             'roles' => 'nullable|array',
             'roles.*' => 'string|exists:roles,name', // Validasi bahwa role name ada di tabel roles
+            'kelas_ids' => 'nullable|array',
+            'kelas_ids.*' => 'exists:kelas,id_kelas',
         ];
     }
 }

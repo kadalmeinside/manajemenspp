@@ -54,11 +54,12 @@ class CekSppController extends Controller
         ];
 
         $foundSiswa = Siswa::whereIn('nomor_telepon_wali', array_unique($possibleFormats))
+                           ->whereNotIn('status_siswa', ['Keluar', 'Non-Aktif'])
                            ->with('kelas:id_kelas,nama_kelas')
                            ->get();
 
         if ($foundSiswa->isEmpty()) {
-            return Redirect::back()->withInput()->withErrors(['lookup' => 'Nomor telepon tidak terdaftar.']);
+            return Redirect::back()->withInput()->withErrors(['lookup' => 'Nomor telepon tidak terdaftar atau siswa berstatus tidak aktif.']);
         }
 
         // Jika hanya ditemukan satu siswa, langsung arahkan ke halaman tagihan
@@ -117,8 +118,52 @@ class CekSppController extends Controller
             ->get();
         $pendingLeaveMonths = $pendingLeaves->map(fn($leave) => $leave->year . '-' . $leave->month);
 
+        $missingAgreement = null;
+        $settings = \App\Models\Setting::whereIn('key', [
+            'legal_doc_registration_academy',
+            'legal_doc_registration_ss',
+            'legal_doc_registration_public',
+        ])->pluck('value', 'key');
+
+        $requiredDocId = null;
+        $siswa->load('kelas');
+        if ($siswa->kelas) {
+            if ($siswa->kelas->nama_kelas === 'Persija Academy') {
+                $requiredDocId = $settings['legal_doc_registration_academy'] ?? null;
+            } elseif ($siswa->kelas->deskripsi === 'Soccer School') {
+                $requiredDocId = $settings['legal_doc_registration_ss'] ?? null;
+            } else {
+                $requiredDocId = $settings['legal_doc_registration_public'] ?? null;
+            }
+        }
+
+        if (!$requiredDocId) {
+            $fallback = \App\Models\LegalDocument::where('type', 'terms_and_conditions')
+                            ->where('is_active', true)
+                            ->latest('version')
+                            ->first();
+            $requiredDocId = $fallback ? $fallback->id : null;
+        }
+
+        if ($requiredDocId) {
+            $hasAgreed = \App\Models\UserAgreement::where('id_siswa', $siswa->id_siswa)
+                ->where('legal_document_id', $requiredDocId)
+                ->exists();
+
+            if (!$hasAgreed) {
+                $missingAgreement = [
+                    'document' => \App\Models\LegalDocument::find($requiredDocId),
+                    'siswa' => [[
+                        'id_siswa' => $siswa->id_siswa,
+                        'nama_siswa' => $siswa->nama_siswa,
+                    ]]
+                ];
+            }
+        }
+
         return Inertia::render('Public/CekSpp', [
             'pageTitle'    => 'Tagihan SPP',
+            'missing_agreement' => $missingAgreement,
             'selectedSiswa' => [
                 'id_siswa'        => $siswa->id_siswa,
                 'nama_siswa'      => $siswa->nama_siswa,
@@ -240,7 +285,7 @@ class CekSppController extends Controller
                 Carbon::setLocale('id');
                 $startPeriod = Carbon::parse($periods->first());
                 $endPeriod = Carbon::parse($periods->last());
-                $description = "Pembayaran SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+                $description = "SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
 
                 $parentInvoice = Invoice::create([
                     'id_siswa'         => $siswa->id_siswa,
