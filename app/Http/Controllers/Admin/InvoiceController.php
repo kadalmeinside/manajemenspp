@@ -482,20 +482,34 @@ class InvoiceController extends Controller
                 DB::transaction(function () use ($siswa, $validated, $kelas, $periodeTagihan, $tanggalJatuhTempo, $request, &$successCount) {
                     $jumlahSPP = ($validated['jenis_jumlah_spp'] === 'manual') ? $validated['jumlah_spp_manual'] : ($siswa->jumlah_spp_custom ?? $kelas->biaya_spp_default ?? 0);
                     
-                    if ($jumlahSPP <= 0) {
+                    // Cek Cuti
+                    $approvedLeave = \App\Models\StudentLeave::where('id_siswa', $siswa->id_siswa)
+                        ->where('month', $periodeTagihan->month)
+                        ->where('year', $periodeTagihan->year)
+                        ->where('status', 'approved')
+                        ->first();
+
+                    $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
+                    $sppAmount = $approvedLeave ? $cutiAmount : (float) $jumlahSPP;
+
+                    if ($sppAmount <= 0) {
                         return;
                     }
 
                     $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+                    if ($approvedLeave) {
+                        $deskripsi .= " (CUTI)";
+                    }
+                    
                     $invoice = Invoice::create([
                         'id_siswa' => $siswa->id_siswa,
                         'user_id' => $request->user()->id,
                         'type' => 'spp',
                         'description' => $deskripsi,
                         'periode_tagihan' => $periodeTagihan,
-                        'amount' => $realSppAmount,
+                        'amount' => $sppAmount,
                         'admin_fee' => 0, // Admin fee di tagihan bulanan selalu 0
-                        'total_amount' => $realSppAmount, // Total amount hanya sebesar SPP
+                        'total_amount' => $sppAmount, // Total amount hanya sebesar SPP
                         'due_date' => $tanggalJatuhTempo,
                         'status' => 'PENDING',
                     ]);

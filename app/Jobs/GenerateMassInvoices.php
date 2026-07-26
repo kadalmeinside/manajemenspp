@@ -71,17 +71,28 @@ class GenerateMassInvoices implements ShouldQueue
         
         foreach ($siswasToBill as $siswa) {
             try {
-                DB::transaction(function () use ($siswa, $xenditService, $periodeTagihan, $tanggalJatuhTempo) {
+                DB::transaction(function () use ($siswa, $periodeTagihan, $tanggalJatuhTempo) {
                     $kelas = $siswa->kelas;
                     $jumlahSPP = ($this->params['jenis_jumlah_spp'] === 'manual') ? $this->params['jumlah_spp_manual'] : ($siswa->jumlah_spp_custom ?? $kelas->biaya_spp_default ?? 0);
-                    $adminFee = ($this->params['jenis_admin_fee'] === 'manual') ? ($this->params['admin_fee_manual'] ?? 0) : ($siswa->admin_fee_custom ?? 0);
-                    $totalTagihan = (float)($jumlahSPP + $adminFee);
+                    
+                    // Cek Cuti
+                    $approvedLeave = \App\Models\StudentLeave::where('id_siswa', $siswa->id_siswa)
+                        ->where('month', $periodeTagihan->month)
+                        ->where('year', $periodeTagihan->year)
+                        ->where('status', 'approved')
+                        ->first();
 
-                    if ($totalTagihan < 10000) {
+                    $cutiAmount = (float) (\App\Models\Setting::where('key', 'spp_cuti_amount')->value('value') ?? 250000);
+                    $sppAmount = $approvedLeave ? $cutiAmount : (float) $jumlahSPP;
+
+                    if ($sppAmount <= 0) {
                         return;
                     }
 
                     $deskripsiInvoice = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
+                    if ($approvedLeave) {
+                        $deskripsiInvoice .= " (CUTI)";
+                    }
 
                     $invoice = Invoice::create([
                         'id_siswa' => $siswa->id_siswa,
@@ -89,24 +100,16 @@ class GenerateMassInvoices implements ShouldQueue
                         'type' => 'spp',
                         'description' => $deskripsiInvoice,
                         'periode_tagihan' => $periodeTagihan,
-                        'amount' => $jumlahSPP,
-                        'admin_fee' => $adminFee,
-                        'total_amount' => $totalTagihan,
+                        'amount' => $sppAmount,
+                        'admin_fee' => 0,
+                        'total_amount' => $sppAmount,
                         'due_date' => $tanggalJatuhTempo,
                         'status' => 'PENDING',
-                        'external_id_xendit' => 'SPP-'.$siswa->id_siswa.'-'.$this->params['tahun'].str_pad($this->params['bulan'], 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
                     ]);
 
-                    $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
-                    $notificationChannels = ($this->params['send_whatsapp_notif'] ?? false) ? ['email', 'whatsapp'] : ['email'];
-
-                    $xenditInvoiceData = $xenditService->createInvoice((float)$jumlahSPP, (float)$adminFee, $deskripsiInvoice, $payerInfo, $invoice->external_id_xendit, route('payment.success'), route('payment.failure'), $tanggalJatuhTempo, $notificationChannels);
-
-                    if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
-                        throw new \Exception("Gagal membuat link pembayaran Xendit untuk siswa: {$siswa->nama_siswa}");
+                    if (!empty($this->params['send_whatsapp_notif']) && $siswa->user && $siswa->user->email) {
+                        $siswa->user->notify(new \App\Notifications\InvoiceCreatedNotification($invoice));
                     }
-
-                    $invoice->update(['xendit_invoice_id' => $xenditInvoiceData['id'], 'xendit_payment_url' => $xenditInvoiceData['invoice_url'], 'status' => $xenditInvoiceData['status']]);
                 });
 
                 $berhasilDibuat++;
