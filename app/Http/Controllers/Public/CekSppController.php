@@ -139,7 +139,7 @@ class CekSppController extends Controller
 
         if (!$requiredDocId) {
             $fallback = \App\Models\LegalDocument::where('type', 'terms_and_conditions')
-                            ->where('is_active', true)
+                            ->whereNotNull('published_at')
                             ->latest('version')
                             ->first();
             $requiredDocId = $fallback ? $fallback->id : null;
