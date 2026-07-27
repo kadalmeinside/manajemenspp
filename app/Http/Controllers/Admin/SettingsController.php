@@ -53,14 +53,20 @@ class SettingsController extends Controller
             'app_name' => 'nullable|string|max:255',
             'app_logo' => 'nullable|image|max:1024', // Max 1MB
             'app_logo_cek_spp' => 'nullable|image|max:1024', // Max 1MB
+            'kop_surat_nama' => 'nullable|string|max:255',
+            'kop_surat_alamat' => 'nullable|string',
+            'kop_surat_kontak' => 'nullable|string',
         ]);
 
-        // Simpan atau update nama aplikasi
-        if ($request->has('app_name')) {
-            Setting::updateOrCreate(
-                ['key' => 'app_name'],
-                ['value' => $validated['app_name']]
-            );
+        // Simpan atau update pengaturan teks
+        $textSettings = ['app_name', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak'];
+        foreach ($textSettings as $key) {
+            if ($request->has($key)) {
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    ['value' => $validated[$key] ?? '']
+                );
+            }
         }
 
         // Simpan atau update logo aplikasi

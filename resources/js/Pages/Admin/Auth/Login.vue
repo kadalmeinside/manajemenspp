@@ -44,7 +44,6 @@ const submit = () => {
     <GuestLayout>
         <Head title="Masuk Akun" />
 
-        <!-- Menggunakan struktur dari permintaan pengguna -->
         <div class="w-full">
             <div class="mb-8 text-center">
                 <div class="px-12 flex justify-center">

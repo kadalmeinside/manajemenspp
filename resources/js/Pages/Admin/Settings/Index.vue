@@ -26,6 +26,9 @@ const form = useForm({
     app_name: props.settings.app_name || '',
     app_logo: null,
     app_logo_cek_spp: null,
+    kop_surat_nama: props.settings.kop_surat_nama || '',
+    kop_surat_alamat: props.settings.kop_surat_alamat || '',
+    kop_surat_kontak: props.settings.kop_surat_kontak || '',
     legal_doc_registration_public: props.settings.legal_doc_registration_public || '',
     legal_doc_registration_academy: props.settings.legal_doc_registration_academy || '',
     legal_doc_registration_ss: props.settings.legal_doc_registration_ss || '',
@@ -119,6 +122,45 @@ function submit() {
                                     </div>
                                     <InputError class="mt-2" :message="form.errors.app_logo_cek_spp" />
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="border-b pb-4 mb-4">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Kop Surat (Cetak PDF)</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <InputLabel for="kop_surat_nama" value="Nama Institusi / Sekolah (Misal: PERSIJA DEVELOPMENT)" />
+                                    <TextInput
+                                        id="kop_surat_nama"
+                                        type="text"
+                                        class="mt-1 block w-full"
+                                        v-model="form.kop_surat_nama"
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.kop_surat_nama" />
+                                </div>
+                                <div>
+                                    <InputLabel for="kop_surat_alamat" value="Alamat Lengkap" />
+                                    <TextInput
+                                        id="kop_surat_alamat"
+                                        type="text"
+                                        class="mt-1 block w-full"
+                                        v-model="form.kop_surat_alamat"
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.kop_surat_alamat" />
+                                </div>
+                                <div>
+                                    <InputLabel for="kop_surat_kontak" value="Kontak (Telepon / Email / Website)" />
+                                    <TextInput
+                                        id="kop_surat_kontak"
+                                        type="text"
+                                        class="mt-1 block w-full"
+                                        v-model="form.kop_surat_kontak"
+                                    />
+                                    <InputError class="mt-2" :message="form.errors.kop_surat_kontak" />
+                                </div>
+                                <p class="text-sm text-gray-500 italic mt-2">
+                                    Catatan: Logo pada kop surat akan secara otomatis menggunakan "Logo Aplikasi" yang Anda unggah di bagian Umum.
+                                </p>
                             </div>
                         </div>
 
