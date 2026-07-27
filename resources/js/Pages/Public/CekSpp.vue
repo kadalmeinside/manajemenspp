@@ -1,4 +1,5 @@
 <script setup>
+// Force rebuild for cache busting
 import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
