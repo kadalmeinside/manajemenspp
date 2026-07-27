@@ -72,7 +72,7 @@ class HandleInertiaRequests extends Middleware
                         // Fallback to latest active terms_and_conditions if settings are empty
                         if (!$requiredDocId) {
                             $fallback = \App\Models\LegalDocument::where('type', 'terms_and_conditions')
-                                            ->where('is_active', true)
+                                            ->whereNotNull('published_at')
                                             ->latest('version')
                                             ->first();
                             $requiredDocId = $fallback ? $fallback->id : null;
