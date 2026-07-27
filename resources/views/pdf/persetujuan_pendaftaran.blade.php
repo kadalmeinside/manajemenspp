@@ -104,6 +104,7 @@
         .signature-section {
             margin-top: 40px;
             width: 100%;
+            page-break-inside: avoid;
         }
         .signature-box {
             float: right;
@@ -117,7 +118,7 @@
         }
         .footer {
             position: fixed;
-            bottom: 0;
+            bottom: -20px;
             width: 100%;
             text-align: center;
             font-size: 10px;
@@ -137,12 +138,12 @@
     <div class="kop-surat">
         <table>
             <tr>
-                @if($logoSrc)
-                <td style="width: 15%; text-align: center;">
+                <td style="width: 15%; text-align: left; vertical-align: middle;">
+                    @if($logoSrc)
                     <img src="{{ $logoSrc }}" style="max-height: 80px; max-width: 80px;">
+                    @endif
                 </td>
-                @endif
-                <td style="width: {{ $logoSrc ? '85%' : '100%' }}; text-align: {{ $logoSrc ? 'left' : 'center' }};">
+                <td style="width: 70%; text-align: center; vertical-align: middle;">
                     <h1 class="nama">{{ $kopSuratNama }}</h1>
                     @if($kopSuratAlamat)
                         <p class="alamat">{{ $kopSuratAlamat }}</p>
@@ -151,6 +152,7 @@
                         <p class="kontak">{{ $kopSuratKontak }}</p>
                     @endif
                 </td>
+                <td style="width: 15%;"></td>
             </tr>
         </table>
     </div>

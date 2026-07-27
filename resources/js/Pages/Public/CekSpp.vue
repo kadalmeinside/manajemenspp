@@ -1,6 +1,6 @@
 <script setup>
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import { CreditCardIcon, ArrowPathIcon, UserIcon, CheckCircleIcon, BanknotesIcon, CalendarIcon, DocumentTextIcon, ClockIcon } from '@heroicons/vue/24/outline';
 import { XCircleIcon } from '@heroicons/vue/20/solid';
@@ -62,14 +62,22 @@ const leaveForm = useForm({
     reason: '',
 });
 
-// --- Intercept Agreement ---
+// --- Intercept: Pembaruan Syarat & Ketentuan ---
 const missingAgreements = computed(() => page.props.missing_agreement);
 const isMissingAgreement = computed(() => !!missingAgreements.value);
+
 const agreementForm = useForm({
     legal_document_id: missingAgreements.value?.document?.id || null,
     id_siswa: missingAgreements.value?.siswa?.map(s => s.id_siswa) || [],
     terms_accepted: false,
 });
+
+watch(missingAgreements, (newVal) => {
+    if (newVal) {
+        agreementForm.legal_document_id = newVal.document?.id || null;
+        agreementForm.id_siswa = newVal.siswa?.map(s => s.id_siswa) || [];
+    }
+}, { immediate: true });
 
 const submitAgreement = () => {
     if (!agreementForm.terms_accepted) return;
@@ -77,9 +85,17 @@ const submitAgreement = () => {
         preserveScroll: true,
         onSuccess: () => {
             agreementForm.reset();
-        }
+        },
     });
 };
+
+const selectSiswa = (siswa) => {
+    isRedirecting.value = true;
+    router.get(route('tagihan.spp.show', siswa.id_siswa), {}, {
+        onFinish: () => isRedirecting.value = false
+    });
+};
+
 const openLeaveModal = () => {
     leaveForm.id_siswa = props.selectedSiswa.id_siswa;
     leaveForm.year = String(new Date().getFullYear());
