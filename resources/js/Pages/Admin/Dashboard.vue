@@ -7,6 +7,8 @@ import { ref, computed, watch } from 'vue';
 import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon, DocumentTextIcon, ChartBarIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import { debounce } from 'lodash';
 
+import { usePage } from '@inertiajs/vue3';
+
 // Registrasi komponen Chart.js
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, LineElement, PointElement);
 
@@ -24,6 +26,10 @@ const props = defineProps({
     availableYears: Array,
     alerts: Object,
 });
+
+const page = usePage();
+const userRoles = computed(() => page.props.auth?.user?.roles || []);
+const isSuperAdmin = computed(() => userRoles.value.includes('admin'));
 
 const pageTitle = "Dashboard Admin";
 
@@ -152,7 +158,7 @@ const getJobStatusClass = (status) => {
                 <!-- ============================================== -->
                 <!-- SECTION 1: ANNUAL & OVERALL OVERVIEW (MODERN)  -->
                 <!-- ============================================== -->
-                <div class="mb-8">
+                <div v-if="isSuperAdmin" class="mb-8">
                     <div class="flex items-center justify-between mb-4 px-2">
                         <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                             <ChartBarIcon class="w-6 h-6 text-indigo-500" />
@@ -226,7 +232,7 @@ const getJobStatusClass = (status) => {
 
 
                 <!-- Divider -->
-                <div class="relative py-4">
+                <div v-if="isSuperAdmin" class="relative py-4">
                     <div class="absolute inset-0 flex items-center" aria-hidden="true">
                         <div class="w-full border-t border-gray-300 dark:border-gray-600 border-dashed"></div>
                     </div>
