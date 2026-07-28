@@ -47,8 +47,13 @@ class DashboardController extends Controller
         $incomeInvoiceTypes = ['spp', 'pendaftaran']; 
 
         $totalSiswaAktifQuery = Siswa::whereIn('status_siswa', ['Aktif', 'Cuti']);
-        $siswaBaruBulanIniQuery = Siswa::whereMonth('created_at', $selectedBulan)->whereYear('created_at', $selectedTahun);
-        $siswaBaruBulanLaluQuery = Siswa::whereMonth('created_at', $previousMonthDate->month)->whereYear('created_at', $previousMonthDate->year);
+        $siswaBaruBulanIniQuery = Siswa::whereMonth('created_at', $selectedBulan)
+            ->whereYear('created_at', $selectedTahun)
+            ->whereHas('invoices', fn($q) => $q->where('type', 'pendaftaran')->where('status', 'PAID'));
+            
+        $siswaBaruBulanLaluQuery = Siswa::whereMonth('created_at', $previousMonthDate->month)
+            ->whereYear('created_at', $previousMonthDate->year)
+            ->whereHas('invoices', fn($q) => $q->where('type', 'pendaftaran')->where('status', 'PAID'));
         
         $pendapatanBulanIniQuery = Invoice::where('status', 'PAID')
             ->whereIn('type', $incomeInvoiceTypes) 
@@ -115,7 +120,8 @@ class DashboardController extends Controller
             ->with('siswa')
             ->latest('paid_at');
 
-        $siswaBaruQuery = Siswa::latest('tanggal_bergabung');
+        $siswaBaruQuery = Siswa::whereHas('invoices', fn($q) => $q->where('type', 'pendaftaran')->where('status', 'PAID'))
+            ->latest('tanggal_bergabung');
         $siswaPerKelasQuery = Kelas::withCount(['siswa' => fn($q) => $q->where('status_siswa', 'Aktif')])->orderBy('nama_kelas');
 
         if ($managedKelasIds) {
@@ -191,7 +197,10 @@ class DashboardController extends Controller
             ->whereYear('periode_tagihan', $selectedTahun);
             
         $pendaftarTahunanQuery = Siswa::select(DB::raw('MONTH(tanggal_bergabung) as bulan'), DB::raw('count(*) as total'))
-            ->whereYear('tanggal_bergabung', $selectedTahun);
+            ->whereYear('tanggal_bergabung', $selectedTahun)
+            ->whereHas('invoices', function ($q) {
+                $q->where('type', 'pendaftaran')->where('status', 'PAID');
+            });
 
         if ($managedKelasIds) {
             $pendapatanTahunanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
