@@ -178,6 +178,43 @@ class DashboardController extends Controller
         $totalTunggakanKeseluruhanAmount = $totalTunggakanKeseluruhanQuery->sum('total_amount');
         $totalTunggakanKeseluruhanCount = $totalTunggakanKeseluruhanQuery->count();
 
+        // --- Data Tahunan (Annual) ---
+        $pendapatanTahunanQuery = Invoice::where('status', 'PAID')
+            ->whereIn('type', $incomeInvoiceTypes)
+            ->whereYear('paid_at', $selectedTahun);
+            
+        $semuaTagihanTahunanQuery = Invoice::where('type', 'spp')
+            ->whereYear('periode_tagihan', $selectedTahun);
+            
+        $tagihanLunasTahunanQuery = Invoice::where('type', 'spp')
+            ->where('status', 'PAID')
+            ->whereYear('periode_tagihan', $selectedTahun);
+            
+        $pendaftarTahunanQuery = Siswa::select(DB::raw('MONTH(tanggal_bergabung) as bulan'), DB::raw('count(*) as total'))
+            ->whereYear('tanggal_bergabung', $selectedTahun);
+
+        if ($managedKelasIds) {
+            $pendapatanTahunanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $semuaTagihanTahunanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $tagihanLunasTahunanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $pendaftarTahunanQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+
+        $pendapatanTahunan = $pendapatanTahunanQuery->sum('total_amount');
+        
+        $semuaTagihanTahunanCount = $semuaTagihanTahunanQuery->count();
+        $tagihanLunasTahunanCount = $tagihanLunasTahunanQuery->count();
+        $paymentRate = $semuaTagihanTahunanCount > 0 ? round(($tagihanLunasTahunanCount / $semuaTagihanTahunanCount) * 100, 1) : 0;
+
+        $pendaftarTahunanRaw = $pendaftarTahunanQuery->groupBy('bulan')->pluck('total', 'bulan');
+        $dataGrafikPendaftar = [];
+        $labelsGrafikPendaftar = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $monthName = Carbon::create(null, $i, 1)->isoFormat('MMM');
+            $labelsGrafikPendaftar[] = $monthName;
+            $dataGrafikPendaftar[] = $pendaftarTahunanRaw->get($i, 0);
+        }
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'total_siswa' => ['value' => $totalSiswaAktif],
@@ -199,6 +236,13 @@ class DashboardController extends Controller
                 ],
                 'siswa_tanpa_tagihan' => ['count' => $siswaTanpaTagihanCount],
             ],
+            'annual_stats' => [
+                'pendapatan_total' => $pendapatanTahunan,
+                'payment_rate' => $paymentRate,
+                'tagihan_lunas_count' => $tagihanLunasTahunanCount,
+                'tagihan_semua_count' => $semuaTagihanTahunanCount,
+            ],
+            'grafikPendaftar' => ['labels' => $labelsGrafikPendaftar, 'data' => $dataGrafikPendaftar],
             'grafikPendapatan' => ['labels' => array_values($labelsGrafikPendapatan), 'data' => array_values($dataGrafikPendapatan)],
             'grafikStatusTagihan' => ['labels' => $statusTagihanBulanIni->keys(), 'data' => $statusTagihanBulanIni->values()],
             'pembayaranTerakhir' => $pembayaranTerakhir->map(fn($invoice) => ['id_siswa' => $invoice->id_siswa, 'nama_siswa' => $invoice->siswa?->nama_siswa ?? 'N/A', 'total_tagihan_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'), 'tanggal_bayar' => Carbon::parse($invoice->paid_at)->diffForHumans(), 'periode' => $invoice->periode_tagihan ? Carbon::parse($invoice->periode_tagihan)->isoFormat('MMMM YYYY') : '-']),

@@ -1,19 +1,21 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Bar, Doughnut } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement } from 'chart.js';
+import { Bar, Doughnut, Line } from 'vue-chartjs';
+import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, LineElement, PointElement } from 'chart.js';
 import { ref, computed, watch } from 'vue';
-import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
+import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon, DocumentTextIcon, ChartBarIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import { debounce } from 'lodash';
 
 // Registrasi komponen Chart.js
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement);
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, LineElement, PointElement);
 
 const props = defineProps({
     stats: Object,
+    annual_stats: Object,
     grafikPendapatan: Object,
     grafikStatusTagihan: Object,
+    grafikPendaftar: Object,
     pembayaranTerakhir: Array,
     siswaBaru: Array,
     siswaPerKelas: Array,
@@ -29,7 +31,7 @@ const pageTitle = "Dashboard Admin";
 const activeTab = ref('pembayaran');
 const activeRevenueView = ref('total'); // 'total', 'xendit', 'manual'
 
-// ### PEMBARUAN: Computed property untuk menampilkan pendapatan dinamis ###
+// Computed property untuk menampilkan pendapatan dinamis
 const displayedRevenue = computed(() => {
     switch (activeRevenueView.value) {
         case 'xendit':
@@ -76,6 +78,19 @@ const barChartData = computed(() => ({
   }],
 }));
 
+const lineChartData = computed(() => ({
+  labels: props.grafikPendaftar.labels,
+  datasets: [{
+      label: 'Pendaftar Baru',
+      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+      borderColor: 'rgba(16, 185, 129, 1)',
+      pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+      data: props.grafikPendaftar.data,
+      tension: 0.4,
+      fill: true
+  }],
+}));
+
 const doughnutChartData = computed(() => ({
     labels: props.grafikStatusTagihan.labels.map(label => label.charAt(0).toUpperCase() + label.slice(1).toLowerCase()),
     datasets: [{
@@ -96,6 +111,14 @@ const barChartOptions = {
   plugins: { legend: { display: false } },
   scales: {
     y: { ticks: { callback: value => 'Rp ' + (value / 1000) + 'k' } }
+  }
+};
+const lineChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    y: { beginAtZero: true, ticks: { precision: 0 } }
   }
 };
 const doughnutChartOptions = {
@@ -125,221 +148,212 @@ const getJobStatusClass = (status) => {
 
         <div class="pb-12 pt-4">
             <div class="max-w-7xl mx-auto">
-                <!-- Filter Section -->
-                <div class="mb-6 flex justify-end items-center gap-2">
-                    <select v-model="selectedBulan" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
-                        <option v-for="month in months" :key="month.value" :value="month.value">{{ month.name }}</option>
-                    </select>
-                    <select v-model="selectedTahun" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
-                        <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-                    </select>
-                </div>
-
-                <!-- Alert Cards -- Tampilkan jika ada sesuatu yang perlu diperhatikan -->
-                <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <!-- Cuti Pending -->
-                    <Link
-                        v-if="alerts.cuti_pending > 0"
-                        :href="route('admin.leaves.index', { status: 'pending' })"
-                        class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors"
-                    >
-                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-400 dark:bg-yellow-600 flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">{{ alerts.cuti_pending }}</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Pengajuan Cuti Menunggu</p>
-                            <p class="text-xs text-yellow-600 dark:text-yellow-400">Klik untuk review &amp; approve</p>
-                        </div>
-                    </Link>
-
-                    <!-- Invoice Expired -->
-                    <Link
-                        v-if="alerts.expired_invoices > 0"
-                        :href="route('admin.invoices.index', { status: 'EXPIRED', periode_bulan: filters.bulan, periode_tahun: filters.tahun })"
-                        class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                    >
-                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">{{ alerts.expired_invoices }}</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-red-800 dark:text-red-300">Invoice Expired Belum Diperbarui</p>
-                            <p class="text-xs text-red-600 dark:text-red-400">Klik untuk buat ulang tagihan</p>
-                        </div>
-                    </Link>
-
-                    <!-- Siswa Tanpa Tagihan -->
-                    <div
-                        v-if="alerts.siswa_tanpa_tagihan > 0"
-                        class="flex items-center gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg"
-                    >
-                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-orange-400 dark:bg-orange-600 flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">{{ alerts.siswa_tanpa_tagihan }}</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-orange-800 dark:text-orange-300">Siswa Belum Ada Tagihan</p>
-                            <p class="text-xs text-orange-600 dark:text-orange-400">Bulan {{ months[filters.bulan - 1]?.name ?? '' }} {{ filters.tahun }}</p>
-                        </div>
+                
+                <!-- ============================================== -->
+                <!-- SECTION 1: ANNUAL & OVERALL OVERVIEW (MODERN)  -->
+                <!-- ============================================== -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                            <ChartBarIcon class="w-6 h-6 text-indigo-500" />
+                            Ringkasan Tahunan & Keseluruhan
+                        </h3>
+                        <!-- Year Filter for Annual Data -->
+                        <select v-model="selectedTahun" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                        </select>
                     </div>
 
-                    <!-- Siswa Tanpa Konfigurasi SPP -->
-                    <Link
-                        v-if="alerts.siswa_tanpa_spp_config > 0"
-                        :href="route('admin.siswa.index')"
-                        class="flex items-center gap-3 p-4 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-700 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors"
-                    >
-                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-pink-400 dark:bg-pink-600 flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">{{ alerts.siswa_tanpa_spp_config }}</span>
+                    <!-- Top Annual Cards (Modern Glass/Gradient Style) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-2 sm:px-0">
+                        <!-- Total Pendapatan Tahunan -->
+                        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+                            <div class="absolute -right-6 -top-6 opacity-20">
+                                <BanknotesIcon class="w-32 h-32" />
+                            </div>
+                            <p class="text-indigo-100 text-sm font-medium uppercase tracking-wider relative z-10">Total Pendapatan {{ selectedTahun }}</p>
+                            <p class="text-2xl font-bold mt-2 relative z-10">{{ formatCurrency(annual_stats.pendapatan_total) }}</p>
                         </div>
-                        <div>
-                            <p class="text-sm font-semibold text-pink-800 dark:text-pink-300">Siswa Tanpa Config SPP</p>
-                            <p class="text-xs text-pink-600 dark:text-pink-400">Klik untuk periksa nominal SPP</p>
-                        </div>
-                    </Link>
-                </div>
 
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <Link :href="route('admin.siswa.index')" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 group transition hover:shadow-lg hover:-translate-y-1">
-                        <div class="flex items-start justify-between">
-                            <div class="w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Total Siswa Aktif</p>
-                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.total_siswa.value }}</p>
+                        <!-- Payment Rate Tahunan -->
+                        <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+                            <div class="absolute -right-6 -top-6 opacity-20">
+                                <CheckCircleIcon class="w-32 h-32" />
                             </div>
-                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-indigo-500">
-                                <UserGroupIcon class="h-6 w-6 text-white" />
-                            </div>
-                        </div>
-                    </Link>
-                     <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5">
-                        <div class="flex items-start justify-between">
-                            <div class="w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Siswa Baru</p>
-                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.siswa_baru.value }}</p>
-                            </div>
-                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-teal-500">
-                                <UserPlusIcon class="h-6 w-6 text-white" />
+                            <p class="text-emerald-100 text-sm font-medium uppercase tracking-wider relative z-10">Payment Rate {{ selectedTahun }}</p>
+                            <div class="flex items-end gap-2 mt-2 relative z-10">
+                                <p class="text-3xl font-bold">{{ annual_stats.payment_rate }}%</p>
+                                <p class="text-sm mb-1 opacity-80">({{ annual_stats.tagihan_lunas_count }}/{{ annual_stats.tagihan_semua_count }} Tagihan)</p>
                             </div>
                         </div>
-                         <div class="mt-4 flex items-center text-sm">
-                             <ArrowUpIcon v-if="stats.siswa_baru.change >= 0" class="h-4 w-4 text-green-500 mr-1"/>
-                             <ArrowDownIcon v-else class="h-4 w-4 text-red-500 mr-1"/>
-                             <span :class="stats.siswa_baru.change >= 0 ? 'text-green-600' : 'text-red-600'">{{ Math.abs(stats.siswa_baru.change).toFixed(1) }}%</span>
-                            <span class="ml-1 text-gray-500 dark:text-gray-400">vs bulan lalu</span>
-                        </div>
+
+                        <!-- Total Siswa Aktif -->
+                        <Link :href="route('admin.siswa.index')" class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden hover:-translate-y-1 transition transform duration-200 block">
+                            <div class="absolute -right-6 -top-6 opacity-20">
+                                <UserGroupIcon class="w-32 h-32" />
+                            </div>
+                            <p class="text-blue-100 text-sm font-medium uppercase tracking-wider relative z-10">Total Siswa Aktif</p>
+                            <p class="text-3xl font-bold mt-2 relative z-10">{{ stats.total_siswa.value }}</p>
+                        </Link>
+
+                        <!-- Total Tunggakan Keseluruhan -->
+                        <Link :href="route('admin.invoices.index', { status: 'PENDING' })" class="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden hover:-translate-y-1 transition transform duration-200 block">
+                            <div class="absolute -right-6 -top-6 opacity-20">
+                                <DocumentTextIcon class="w-32 h-32" />
+                            </div>
+                            <p class="text-rose-100 text-sm font-medium uppercase tracking-wider relative z-10">Total Tunggakan (All Time)</p>
+                            <p class="text-2xl font-bold mt-2 relative z-10">{{ formatCurrency(stats.total_tunggakan.total_amount) }}</p>
+                            <p class="text-sm mt-1 opacity-80 relative z-10">{{ stats.total_tunggakan.count }} Tagihan Tertunda</p>
+                        </Link>
                     </div>
 
-                    <!-- Siswa Belum Ditagih (Bulan Ini) -->
-                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5">
-                        <div class="flex items-start justify-between">
-                            <div class="w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Siswa Belum Ditagih</p>
-                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.siswa_tanpa_tagihan.count }}</p>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Bulan {{ months[filters.bulan - 1]?.name ?? '' }}</p>
-                            </div>
-                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-orange-500">
-                                <ExclamationTriangleIcon class="h-6 w-6 text-white" />
+                    <!-- Annual Charts -->
+                    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5 px-2 sm:px-0">
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tren Pendaftar Baru ({{ selectedTahun }})</h3>
+                            <div class="mt-4 h-[250px]">
+                                <Line :data="lineChartData" :options="lineChartOptions" />
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Total Tunggakan (Semua Waktu) -->
-                    <Link :href="route('admin.invoices.index', { status: 'PENDING' })" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 group transition hover:shadow-lg hover:-translate-y-1">
-                         <div class="flex items-start justify-between">
-                            <div class="w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Tunggakan Keseluruhan</p>
-                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.total_tunggakan.count }}</p>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ formatCurrency(stats.total_tunggakan.total_amount) }}</p>
-                            </div>
-                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-red-500">
-                                <DocumentTextIcon class="h-6 w-6 text-white" />
-                            </div>
-                        </div>
-                    </Link>
-                    
-                    <!-- ### PEMBARUAN: Kartu pendapatan dengan toggle ### -->
-                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-start justify-between">
-                                <div class="w-0 flex-1">
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Pendapatan</p>
-                                    <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(displayedRevenue) }}</p>
-                                </div>
-                                <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-green-500">
-                                    <BanknotesIcon class="h-6 w-6 text-white" />
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="mt-4 flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-1 text-xs">
-                                <button @click="activeRevenueView = 'total'" :class="[activeRevenueView === 'total' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Total</button>
-                                <button @click="activeRevenueView = 'xendit'" :class="[activeRevenueView === 'xendit' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Xendit</button>
-                                <button @click="activeRevenueView = 'manual'" :class="[activeRevenueView === 'manual' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Manual</button>
-                            </div>
-                            <div v-if="activeRevenueView === 'total'" class="mt-3 flex items-center text-sm">
-                                <ArrowUpIcon v-if="stats.pendapatan.change >= 0" class="h-4 w-4 text-green-500 mr-1"/>
-                                <ArrowDownIcon v-else class="h-4 w-4 text-red-500 mr-1"/>
-                                <span :class="stats.pendapatan.change >= 0 ? 'text-green-600' : 'text-red-600'">{{ Math.abs(stats.pendapatan.change).toFixed(1) }}%</span>
-                                <span class="ml-1 text-gray-500 dark:text-gray-400">vs bulan lalu</span>
-                            </div>
-                            <div v-else class="mt-3 h-[20px]"></div> <!-- Placeholder for height consistency -->
-                        </div>
-                    </div>
-
-                    <Link :href="route('admin.invoices.index', { status: 'PENDING', periode_bulan: filters.bulan, periode_tahun: filters.tahun })" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-lg p-5 group transition hover:shadow-lg hover:-translate-y-1">
-                         <div class="flex items-start justify-between">
-                            <div class="w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Tagihan Tertunda</p>
-                                <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.tagihan_tertunda.count }}</p>
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ formatCurrency(stats.tagihan_tertunda.total_amount) }}</p>
-                            </div>
-                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-amber-500">
-                                <ClockIcon class="h-6 w-6 text-white" />
-                            </div>
-                        </div>
-                    </Link>
-                </div>
-
-                <!-- Grafik Section -->
-                <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
-                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Pendapatan 6 Bulan Terakhir</h3>
-                            <div class="mt-4 h-[300px]">
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
+                            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendapatan 6 Bulan Terakhir</h3>
+                            <div class="mt-4 h-[250px]">
                                 <Bar :data="barChartData" :options="barChartOptions" />
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Status Tagihan ({{ months[selectedBulan - 1].name }})</h3>
-                            <div v-if="grafikStatusTagihan.data.length > 0" class="mt-4 h-[300px]">
+                </div>
+
+
+                <!-- Divider -->
+                <div class="relative py-4">
+                    <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div class="w-full border-t border-gray-300 dark:border-gray-600 border-dashed"></div>
+                    </div>
+                    <div class="relative flex justify-center">
+                        <span class="px-3 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">Laporan Bulanan</span>
+                    </div>
+                </div>
+
+
+                <!-- ============================================== -->
+                <!-- SECTION 2: MONTHLY SNAPSHOT                    -->
+                <!-- ============================================== -->
+                <div class="mt-4 mb-8">
+                    <!-- Month Filter -->
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                            Snapshot Bulan:
+                            <select v-model="selectedBulan" class="text-lg font-bold border-none bg-transparent text-indigo-600 dark:text-indigo-400 focus:ring-0 p-0 ml-1 cursor-pointer">
+                                <option v-for="month in months" :key="month.value" :value="month.value">{{ month.name }}</option>
+                            </select>
+                        </h3>
+                    </div>
+
+                    <!-- Alert Cards -->
+                    <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 px-2 sm:px-0">
+                        <Link v-if="alerts.cuti_pending > 0" :href="route('admin.leaves.index', { status: 'pending' })" class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl hover:bg-yellow-100 transition-colors">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-400 dark:bg-yellow-600 flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ alerts.cuti_pending }}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Pengajuan Cuti Menunggu</p>
+                            </div>
+                        </Link>
+                        <Link v-if="alerts.expired_invoices > 0" :href="route('admin.invoices.index', { status: 'EXPIRED', periode_bulan: filters.bulan, periode_tahun: filters.tahun })" class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl hover:bg-red-100 transition-colors">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ alerts.expired_invoices }}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-red-800 dark:text-red-300">Invoice Expired</p>
+                            </div>
+                        </Link>
+                        <div v-if="alerts.siswa_tanpa_tagihan > 0" class="flex items-center gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-orange-400 dark:bg-orange-600 flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ alerts.siswa_tanpa_tagihan }}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-orange-800 dark:text-orange-300">Siswa Belum Ditagih SPP</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Stats Cards -->
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 px-2 sm:px-0">
+                        <!-- Pendapatan Bulan Ini -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendapatan Bulan Ini</p>
+                                <p class="mt-2 text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(displayedRevenue) }}</p>
+                            </div>
+                            <div class="mt-3">
+                                <div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-xs">
+                                    <button @click="activeRevenueView = 'total'" :class="[activeRevenueView === 'total' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Total</button>
+                                    <button @click="activeRevenueView = 'xendit'" :class="[activeRevenueView === 'xendit' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Xendit</button>
+                                    <button @click="activeRevenueView = 'manual'" :class="[activeRevenueView === 'manual' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Manual</button>
+                                </div>
+                                <div v-if="activeRevenueView === 'total'" class="mt-2 flex items-center text-xs">
+                                    <ArrowUpIcon v-if="stats.pendapatan.change >= 0" class="h-3 w-3 text-green-500 mr-1"/>
+                                    <ArrowDownIcon v-else class="h-3 w-3 text-red-500 mr-1"/>
+                                    <span :class="stats.pendapatan.change >= 0 ? 'text-green-600' : 'text-red-600'">{{ Math.abs(stats.pendapatan.change).toFixed(1) }}%</span>
+                                    <span class="ml-1 text-gray-400">vs bln lalu</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tagihan Tertunda Bulan Ini -->
+                        <Link :href="route('admin.invoices.index', { status: 'PENDING', periode_bulan: filters.bulan, periode_tahun: filters.tahun })" class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition">
+                            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tagihan Tertunda (Bulan Ini)</p>
+                            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.tagihan_tertunda.count }}</p>
+                            <p class="mt-1 text-sm text-amber-600 dark:text-amber-400 font-medium">{{ formatCurrency(stats.tagihan_tertunda.total_amount) }}</p>
+                        </Link>
+
+                        <!-- Siswa Baru Bulan Ini -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+                            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Siswa Baru Bergabung</p>
+                            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ stats.siswa_baru.value }}</p>
+                            <div class="mt-2 flex items-center text-xs">
+                                <ArrowUpIcon v-if="stats.siswa_baru.change >= 0" class="h-3 w-3 text-green-500 mr-1"/>
+                                <ArrowDownIcon v-else class="h-3 w-3 text-red-500 mr-1"/>
+                                <span :class="stats.siswa_baru.change >= 0 ? 'text-green-600' : 'text-red-600'">{{ Math.abs(stats.siswa_baru.change).toFixed(1) }}%</span>
+                                <span class="ml-1 text-gray-400">vs bln lalu</span>
+                            </div>
+                        </div>
+
+                        <!-- Status Tagihan Chart -->
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center">
+                            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 w-full text-left">Status Tagihan SPP</p>
+                            <div v-if="grafikStatusTagihan.data.length > 0" class="h-[120px] w-full">
                                 <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
                             </div>
-                            <div v-else class="mt-4 flex items-center justify-center h-[300px] text-center text-gray-500">
-                                <p>Tidak ada data tagihan<br>pada periode ini.</p>
+                            <div v-else class="h-[120px] flex items-center justify-center text-xs text-gray-400 text-center">
+                                Tidak ada data tagihan
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Aktivitas & Laporan Section -->
-                <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
+
+                <!-- ============================================== -->
+                <!-- SECTION 3: ACTIVITY & DETAILS                  -->
+                <!-- ============================================== -->
+                <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3 px-2 sm:px-0">
                     <!-- Kartu Aktivitas dengan Tab -->
-                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700">
                         <div class="px-6 pt-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Aktivitas Terbaru</h3>
-                            <div class="mt-4 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Aktivitas Terbaru</h3>
+                            <div class="mt-4 border-b border-gray-100 dark:border-gray-700">
                                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                                    <button @click="activeTab = 'pembayaran'" :class="[activeTab === 'pembayaran' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm']">Pembayaran</button>
-                                    <button @click="activeTab = 'siswa'" :class="[activeTab === 'siswa' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm']">Siswa Baru</button>
-                                    <button @click="activeTab = 'jobs'" :class="[activeTab === 'jobs' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm']">Proses Latar</button>
+                                    <button @click="activeTab = 'pembayaran'" :class="[activeTab === 'pembayaran' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Pembayaran</button>
+                                    <button @click="activeTab = 'siswa'" :class="[activeTab === 'siswa' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Siswa Baru</button>
+                                    <button @click="activeTab = 'jobs'" :class="[activeTab === 'jobs' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Proses Latar</button>
                                 </nav>
                             </div>
                         </div>
                         
                         <div class="p-6 max-h-[400px] overflow-y-auto">
                             <div v-if="activeTab === 'pembayaran'">
-                                <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-800">
                                     <li v-for="(pembayaran, index) in pembayaranTerakhir" :key="'pembayaran-'+index" class="py-3 flex justify-between items-center group">
                                         <div>
                                             <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ pembayaran.nama_siswa }}</p>
@@ -356,7 +370,7 @@ const getJobStatusClass = (status) => {
                                 </ul>
                             </div>
                             <div v-if="activeTab === 'siswa'">
-                                <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-800">
                                     <li v-for="(siswa, index) in siswaBaru" :key="'siswa-'+index" class="py-3 flex justify-between items-center group">
                                         <div>
                                             <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ siswa.nama_siswa }}</p>
@@ -365,7 +379,7 @@ const getJobStatusClass = (status) => {
                                         <div class="flex items-center gap-3">
                                             <div>
                                                 <span v-if="siswa.status_siswa === 'pending_payment'" class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                                    Menunggu Pembayaran
+                                                    Menunggu
                                                 </span>
                                                 <span v-else-if="siswa.status_siswa === 'Aktif'" class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                                     Aktif
@@ -393,7 +407,7 @@ const getJobStatusClass = (status) => {
                                             <div class="bg-indigo-600 h-2.5 rounded-full" :style="{ width: job.progress + '%' }"></div>
                                        </div>
                                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex justify-between">
-                                           <span>Dijalankan oleh: {{ job.user_name }}</span>
+                                           <span>Oleh: {{ job.user_name }}</span>
                                            <span>{{ job.created_at }}</span>
                                        </div>
                                    </li>
@@ -404,13 +418,13 @@ const getJobStatusClass = (status) => {
                     </div>
 
                     <!-- Kartu Siswa per Kelas -->
-                    <div class="lg:col-span-1 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="lg:col-span-1 bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700">
                         <div class="p-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Siswa per Kelas</h3>
-                            <ul role="list" class="mt-4 divide-y divide-gray-200 dark:divide-gray-700">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Siswa per Kelas</h3>
+                            <ul role="list" class="mt-4 divide-y divide-gray-100 dark:divide-gray-800">
                                 <li v-for="kelas in siswaPerKelas" :key="kelas.nama_kelas" class="py-3 flex justify-between items-center">
                                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ kelas.nama_kelas }}</p>
-                                    <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ kelas.jumlah_siswa }} Siswa</p>
+                                    <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded-md">{{ kelas.jumlah_siswa }} Siswa</p>
                                 </li>
                                 <li v-if="siswaPerKelas.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada data kelas.</li>
                             </ul>
@@ -421,4 +435,3 @@ const getJobStatusClass = (status) => {
         </div>
     </AuthenticatedLayout>
 </template>
-

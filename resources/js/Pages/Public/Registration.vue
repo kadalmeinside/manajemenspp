@@ -202,7 +202,7 @@ const formattedFee = computed(() => {
                         </div>
                          <div>
                             <InputLabel for="nomor_telepon_wali" value="Nomor WhatsApp Wali" required/>
-                            <TextInput id="nomor_telepon_wali" v-model="form.nomor_telepon_wali" @input="form.clearErrors('nomor_telepon_wali')" type="tel" class="mt-1 block w-full" placeholder="Cth: 081234567890" required />
+                            <TextInput id="nomor_telepon_wali" v-model="form.nomor_telepon_wali" @input="form.nomor_telepon_wali = form.nomor_telepon_wali.replace(/\D/g, ''); form.clearErrors('nomor_telepon_wali')" type="tel" inputmode="numeric" class="mt-1 block w-full" placeholder="Cth: 081234567890" required />
                             <InputError :message="form.errors.nomor_telepon_wali" class="mt-2" />
                         </div>
                         <div class="sm:col-span-2">

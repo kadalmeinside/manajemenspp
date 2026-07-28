@@ -33,7 +33,7 @@ const headerClass = computed(() => {
     const baseClasses = 'fixed top-0 left-0 right-0 z-50 transition-all duration-300';
     const solidBgClasses = 'bg-black/70 backdrop-blur-sm shadow-lg';
     
-    const transparentHeaderPages = ['Welcome', 'Soccerschool', 'Academy', 'Persijadna'];
+    const transparentHeaderPages = ['Welcome'];
     const isTransparentPage = transparentHeaderPages.includes(page.component);
 
     if (!isTransparentPage) {
@@ -65,7 +65,7 @@ onUnmounted(() => {
             </div>
         </transition>
 
-        <header :class="headerClass">
+        <header v-if="page.component !== 'Welcome'" :class="headerClass">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-20">
                     <Link href="/" class="flex-shrink-0 flex items-center space-x-2">
@@ -75,9 +75,6 @@ onUnmounted(() => {
                     
                     <nav class="hidden md:flex items-center space-x-2">
                         <Link :href="route('welcome')" :class="['px-4 py-2 rounded-full transition-colors font-semibold', page.component === 'Welcome' ? 'bg-red-600 text-white' : 'text-white/80 hover:text-white']">Beranda</Link>
-                        <Link :href="route('soccer-school')" :class="['px-4 py-2 rounded-full transition-colors font-semibold', page.component === 'Soccerschool' ? 'bg-red-600 text-white' : 'text-white/80 hover:text-white']">Soccer School</Link>
-                        <Link :href="route('academy')" :class="['px-4 py-2 rounded-full transition-colors font-semibold', page.component === 'Academy' ? 'bg-red-600 text-white' : 'text-white/80 hover:text-white']">Academy</Link>
-                        <Link :href="route('persija-dna')" :class="['px-4 py-2 rounded-full transition-colors font-semibold', page.component === 'Persijadna' ? 'bg-red-600 text-white' : 'text-white/80 hover:text-white']">Persija DNA</Link>
                     </nav>
 
                     <div class="hidden md:flex items-center space-x-2">
@@ -100,9 +97,6 @@ onUnmounted(() => {
             >
                 <nav v-if="mobileMenuOpen" class="md:hidden bg-zinc-900/95 backdrop-blur-lg px-4 pt-2 pb-4 space-y-1">
                     <Link @click="mobileMenuOpen = false" :href="route('welcome')" :class="['block w-full text-left py-2 px-3 text-base font-medium rounded-md', page.component === 'Welcome' ? 'bg-red-600 text-white' : 'text-white/80 hover:bg-zinc-700']">Beranda</Link>
-                    <Link @click="mobileMenuOpen = false" :href="route('soccer-school')" :class="['block w-full text-left py-2 px-3 text-base font-medium rounded-md', page.component === 'Soccerschool' ? 'bg-red-600 text-white' : 'text-white/80 hover:bg-zinc-700']">Soccer School</Link>
-                    <Link @click="mobileMenuOpen = false" :href="route('academy')" :class="['block w-full text-left py-2 px-3 text-base font-medium rounded-md', page.component === 'Academy' ? 'bg-red-600 text-white' : 'text-white/80 hover:bg-zinc-700']">Academy</Link>
-                    <Link @click="mobileMenuOpen = false" :href="route('persija-dna')" :class="['block w-full text-left py-2 px-3 text-base font-medium rounded-md', page.component === 'PersijaDna' ? 'bg-red-600 text-white' : 'text-white/80 hover:bg-zinc-700']">Persija DNA</Link>
                     
                     <div class="border-t border-zinc-700 pt-4 mt-4 flex flex-col space-y-3">
                          <Link @click="mobileMenuOpen = false" :href="route('tagihan.check_form')" class="w-full text-center bg-white text-gray-900 font-bold py-2 px-5 rounded-md hover:bg-gray-200 transition-colors">Bayar SPP</Link>
@@ -127,8 +121,8 @@ onUnmounted(() => {
                 <div>
                     <h3 class="font-bold text-white">Program</h3>
                      <ul class="mt-2 space-y-1 text-sm">
-                        <li><Link :href="route('academy')" class="hover:text-white cursor-pointer">Academy Boarding School</Link></li>
-                        <li><Link :href="route('soccer-school')" class="hover:text-white cursor-pointer">Soccer School</Link></li>
+                        <li class="text-gray-400">Academy Boarding School</li>
+                        <li class="text-gray-400">Soccer School</li>
                     </ul>
                 </div>
                  <div>

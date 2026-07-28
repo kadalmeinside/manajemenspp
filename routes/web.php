@@ -55,34 +55,7 @@ Route::get('/', function (Request $request) {
         }),
     ]);
 })->name('welcome'); 
-Route::get('/soccer-school', function (Request $request) {
-    return Inertia::render('Soccerschool', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'userIp' => $request->ip()
-    ]);
-})->name('soccer-school');
-Route::get('/academy', function (Request $request) {
-    return Inertia::render('Academy', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'userIp' => $request->ip()
-    ]);
-})->name('academy');
-Route::get('/persija-dna', function (Request $request) {
-    return Inertia::render('Persijadna', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'userIp' => $request->ip()
-    ]);
-})->name('persija-dna');
-Route::get('/kontak', function (Request $request) {
-    return Inertia::render('Kontak', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'userIp' => $request->ip()
-    ]);
-})->name('kontak'); 
+
 // Route::get('/cek-tagihan', [CekTagihanController::class, 'showForm'])->name('tagihan.check_form');
 // Route::post('/cek-tagihan', [CekTagihanController::class, 'checkStatus'])->name('tagihan.check_status');
 Route::get('/pembayaran/sukses', [PaymentController::class, 'success'])->name('payment.success');

@@ -32,7 +32,7 @@
             <img src="https://siswa.persijadevelopment.id/images/logo-black.png" alt="Persija Development" style="height: 48px; width: auto;">
         </div>
 
-        <div class="header">Pendaftaran Login Berhasil!</div>
+        <div class="header">Pendaftaran Berhasil!</div>
         <p>
             Halo, <strong>{{ $registrationData['nama_wali'] }}</strong>,
         </p>
@@ -49,20 +49,20 @@
                 <td>{{ $registrationData['nama_siswa'] }}</td>
             </tr>
             <tr>
-                <td>Email Wali (Login)</td>
+                <td>Email Wali</td>
                 <td>{{ $registrationData['email_wali'] }}</td>
             </tr>
         </table>
 
         <div class="button-container">
-            <a href="https://siswa.persijadevelopment.id/login" class="login-button">Login ke Akun Anda</a>
+            <a href="{{ url('/cek-spp') }}" class="login-button">Cek Tagihan SPP</a>
         </div>
         <p class="footer">
-            Anda sekarang dapat login menggunakan email dan password yang telah Anda buat. Harap simpan informasi ini dengan baik.
+            Untuk memantau tagihan dan riwayat pembayaran, Anda dapat selalu mengakses portal Cek SPP menggunakan nomor handphone wali terdaftar.
             <br><br>
             Jika tombol di atas tidak berfungsi, silakan salin dan tempel URL berikut di browser Anda:
             <br>
-            <a href="https://siswa.persijadevelopment.id/login">https://siswa.persijadevelopment.id/login</a>
+            <a href="{{ url('/cek-spp') }}">{{ url('/cek-spp') }}</a>
         </p>
     </div>
 </body>

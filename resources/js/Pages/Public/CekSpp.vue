@@ -290,7 +290,7 @@ const formatPeriod = (dateStr) => {
                         </div>
                         <div>
                             <label for="nomor_telepon_wali" class="block text-sm font-medium text-gray-700 dark:text-gray-300">No. Telepon Wali</label>
-                            <input v-model="lookupForm.nomor_telepon_wali" id="nomor_telepon_wali" type="tel" required class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <input v-model="lookupForm.nomor_telepon_wali" @input="lookupForm.nomor_telepon_wali = lookupForm.nomor_telepon_wali.replace(/\D/g, '')" id="nomor_telepon_wali" type="tel" inputmode="numeric" placeholder="Contoh: 081234567890" required class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                             <div v-if="lookupForm.errors.nomor_telepon_wali" class="text-red-500 text-xs mt-1">{{ lookupForm.errors.nomor_telepon_wali }}</div>
                         </div>
                         <div>
