@@ -51,6 +51,8 @@ class SettingsController extends Controller
 
         $validated = $request->validate([
             'app_name' => 'nullable|string|max:255',
+            'app_version' => 'nullable|string|max:255',
+            'app_build' => 'nullable|string|max:255',
             'app_logo' => 'nullable|image|max:1024', // Max 1MB
             'app_logo_cek_spp' => 'nullable|image|max:1024', // Max 1MB
             'kop_surat_nama' => 'nullable|string|max:255',
@@ -59,7 +61,7 @@ class SettingsController extends Controller
         ]);
 
         // Simpan atau update pengaturan teks
-        $textSettings = ['app_name', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak'];
+        $textSettings = ['app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak'];
         foreach ($textSettings as $key) {
             if ($request->has($key)) {
                 Setting::updateOrCreate(

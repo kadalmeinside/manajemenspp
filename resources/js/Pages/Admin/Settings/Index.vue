@@ -24,6 +24,8 @@ const resignationDocs = computed(() => props.legalDocuments.filter(doc => doc.ty
 
 const form = useForm({
     app_name: props.settings.app_name || '',
+    app_version: props.settings.app_version || '',
+    app_build: props.settings.app_build || '',
     app_logo: null,
     app_logo_cek_spp: null,
     kop_surat_nama: props.settings.kop_surat_nama || '',
@@ -97,6 +99,31 @@ function submit() {
                                         v-model="form.app_name"
                                     />
                                     <InputError class="mt-2" :message="form.errors.app_name" />
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <InputLabel for="app_version" value="Versi Aplikasi" />
+                                        <TextInput
+                                            id="app_version"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            placeholder="Contoh: 1.0.0"
+                                            v-model="form.app_version"
+                                        />
+                                        <InputError class="mt-2" :message="form.errors.app_version" />
+                                    </div>
+                                    <div>
+                                        <InputLabel for="app_build" value="Build / Environment" />
+                                        <TextInput
+                                            id="app_build"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            placeholder="Contoh: Local / Production"
+                                            v-model="form.app_build"
+                                        />
+                                        <InputError class="mt-2" :message="form.errors.app_build" />
+                                    </div>
                                 </div>
 
                                 <div>

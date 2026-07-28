@@ -233,6 +233,13 @@ const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermis
                     </div>
                 </template>
             </nav>
+            <div v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-shrink-0 p-4 bg-black/10 border-t border-[--color-primary-700] text-center text-xs text-gray-400">
+                <span v-if="appSettings.app_version || appSettings.app_build">
+                    {{ appSettings.app_version ? `v${appSettings.app_version}` : '' }} 
+                    {{ appSettings.app_build ? `(${appSettings.app_build})` : '' }}
+                </span>
+                <span v-else>v1.0.0 (Local)</span>
+            </div>
         </aside>
 
         <div class="flex-1 flex flex-col overflow-hidden">
