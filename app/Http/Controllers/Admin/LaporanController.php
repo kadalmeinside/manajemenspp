@@ -144,6 +144,7 @@ class LaporanController extends Controller
                 DB::raw("CASE 
                     WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PENDING' THEN 'Pendaftaran Baru'
                     WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PAID' THEN 'Pendaftaran Lunas'
+                    WHEN invoices.type = 'pembayaran_spp_gabungan' THEN 'Pembayaran SPP'
                     ELSE CONCAT('Pembayaran ', UPPER(REPLACE(invoices.type, '_', ' '))) END as title"),
                 DB::raw("CONCAT(siswa.nama_siswa, ' ', CASE 
                     WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PENDING' THEN 'mendaftar (menunggu pembayaran)'

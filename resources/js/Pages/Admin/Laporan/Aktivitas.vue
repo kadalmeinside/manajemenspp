@@ -227,8 +227,7 @@ const getTypeIcon = (type) => {
                                     <tr>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Waktu</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktivitas</th>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Siswa</th>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Siswa / Kelas</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nominal Tagihan</th>
                                     </tr>
                                 </thead>
@@ -257,14 +256,10 @@ const getTypeIcon = (type) => {
                                             </div>
                                         </td>
                                         
-                                        <!-- Siswa -->
+                                        <!-- Siswa / Kelas -->
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ act.nama_siswa }}</div>
-                                        </td>
-                                        
-                                        <!-- Kelas -->
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900 dark:text-gray-300">{{ act.nama_kelas }}</div>
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ act.nama_siswa }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ act.nama_kelas }}</div>
                                         </td>
                                         
                                         <!-- Amount -->
@@ -277,7 +272,7 @@ const getTypeIcon = (type) => {
                                     </tr>
                                     
                                     <tr v-if="activities.data.length === 0">
-                                        <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                        <td colspan="4" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                             <div class="flex flex-col items-center gap-3">
                                                 <QueueListIcon class="w-12 h-12 text-gray-300 dark:text-gray-600" />
                                                 <p>Belum ada aktivitas publik yang ditemukan.</p>
