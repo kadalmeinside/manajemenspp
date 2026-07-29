@@ -12,6 +12,7 @@ import Checkbox from '@/Components/Checkbox.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import Toast from '@/Components/Toast.vue';
 import Dropdown from '@/Components/Dropdown.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { PlusIcon, EyeIcon, ChevronDownIcon, PencilIcon, TrashIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/vue/20/solid';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
@@ -220,24 +221,52 @@ const formatDescription = (desc) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Invoice & Tagihan</h2>
+            <h2 class="hidden md:block font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Invoice & Tagihan</h2>
         </template>
 
         <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="pb-12 pt-4">
-            <div class="max-w-full mx-auto">
-                <!-- Mobile Filter & Search Bar (Sticky) -->
-                <div class="sticky top-0 z-30 bg-white dark:bg-gray-800 -mx-4 px-4 py-3 mb-4 border-b border-gray-200 dark:border-gray-700 shadow-sm flex gap-2 lg:hidden">
-                    <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full" aria-label="Cari invoice"/>
-                    <SecondaryButton @click="showMobileFilters = true" class="px-3 shrink-0 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>
-                    </SecondaryButton>
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
+                <!-- MOBILE: Search & Info Card (Sticky) -->
+                <div class="sticky -top-4 z-10 bg-white dark:bg-gray-800 -mx-4 -mt-8 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
+                    <div class="flex gap-2">
+                        <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari invoice"/>
+                        <SecondaryButton @click="showMobileFilters = true" class="px-3 shrink-0 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>
+                        </SecondaryButton>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                            <span v-if="invoiceList.total > 0">
+                                Menampilkan <span class="font-semibold text-gray-700 dark:text-gray-300">{{ invoiceList.from }}–{{ invoiceList.to }}</span>
+                                dari <span class="font-semibold text-gray-700 dark:text-gray-300">{{ invoiceList.total }}</span> invoice
+                            </span>
+                            <span v-else>Tidak ada data yang cocok</span>
+                        </p>
+                    </div>
                 </div>
 
-                <div class="mb-6 p-4 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
+                <!-- MOBILE: Action Button Card -->
+                <div class="lg:hidden mb-4 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-lg p-4" v-if="can?.create_invoice">
+                    <Dropdown align="left" width="48" class="w-full">
+                        <template #trigger>
+                            <PrimaryButton class="w-full flex justify-center py-2.5">
+                                <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" /> Buat Tagihan
+                                <ChevronDownIcon class="ml-2 -mr-0.5 h-4 w-4" />
+                            </PrimaryButton>
+                        </template>
+                        <template #content>
+                            <button @click="openCreateIndividualModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Individual (SPP)</button>
+                            <button @click="openBulkByClassModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Per Kelas)</button>
+                            <button @click="openBulkAllModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Semua Siswa)</button>
+                        </template>
+                    </Dropdown>
+                </div>
 
-                    <div class="hidden lg:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                <!-- DESKTOP: Filter & Search Card -->
+                <div class="hidden lg:block mb-6 p-4 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
                         <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full lg:col-span-2" aria-label="Cari invoice"/>
                         <select v-model="selectedKelasId" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter kelas">
                             <option value="">Semua Kelas</option>
@@ -281,7 +310,7 @@ const formatDescription = (desc) => {
                     </div>
                 </div>
 
-                <div class="bg-transparent sm:bg-white sm:dark:bg-gray-800 sm:shadow-sm sm:rounded-lg">
+                <div class="bg-transparent sm:bg-white/80 sm:dark:bg-gray-800/80 sm:shadow-sm sm:rounded-lg">
                     <div class="overflow-x-auto pb-4">
                         <!-- Tampilan Desktop (Table) -->
                         <div class="hidden md:block">
@@ -393,24 +422,16 @@ const formatDescription = (desc) => {
                             </div>
                         </div>
                     </div>
+                    <!-- Paginasi -->
                     <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-lg sm:mt-0 mt-2 shadow-sm sm:shadow-none gap-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                             <span v-if="invoiceList.total > 0">
                                 Menampilkan <span class="font-medium">{{ invoiceList.from }}</span>–<span class="font-medium">{{ invoiceList.to }}</span>
                                 dari <span class="font-medium">{{ invoiceList.total }}</span> invoice
                             </span>
+                            <span v-else>Tidak ada data yang cocok</span>
                         </p>
-                        <div v-if="invoiceList.links && invoiceList.links.length > 3" class="flex flex-wrap -mb-1 justify-center">
-                            <template v-for="(link, key) in invoiceList.links" :key="key">
-                                <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm select-none text-gray-400" v-html="link.label" />
-                                <Link v-else 
-                                    class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:border-indigo-500 dark:focus:border-indigo-700 focus:text-indigo-500 dark:focus:text-indigo-300"
-                                    :class="{ 'bg-indigo-500 text-white dark:bg-indigo-600 dark:text-white dark:border-indigo-700': link.active }"
-                                    :href="link.url"
-                                    v-html="link.label"
-                                    preserve-scroll />
-                            </template>
-                        </div>
+                        <Pagination :links="invoiceList.links" />
                     </div>
                 </div>
             </div>

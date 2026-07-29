@@ -10,9 +10,10 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import Toast from '@/Components/Toast.vue';
-import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, Squares2X2Icon, Bars3Icon } from '@heroicons/vue/20/solid';
+import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, Squares2X2Icon, Bars3Icon, FunnelIcon, XMarkIcon } from '@heroicons/vue/20/solid';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
+import Pagination from '@/Components/Pagination.vue';
 
 const page = usePage();
 
@@ -52,6 +53,15 @@ const selectedStatusSiswa = ref(filters.value.status_siswa || '');
 const sppBelumDiset = ref(filters.value.spp_belum_diset === 'true' || filters.value.spp_belum_diset === true);
 const isLoading = ref(false);
 const viewMode = ref('grid');
+const showMobileFilters = ref(false);
+
+const activeFilterCount = computed(() => {
+    let count = 0;
+    if (selectedKelasId.value) count++;
+    if (selectedStatusSiswa.value) count++;
+    if (sppBelumDiset.value) count++;
+    return count;
+});
 
 const getStatusBadgeClass = (status) => {
     const map = {
@@ -216,80 +226,117 @@ onMounted(() => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Siswa</h2>
+            <h2 class="hidden md:block font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Siswa</h2>
         </template>
 
         <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="pb-12 pt-4">
-            <div class="max-w-full mx-auto">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 pb-0 text-gray-900 dark:text-gray-100">
-                        <div class="mb-6 space-y-4">
-                            <!-- Baris Utama (Search, Toggle View, & Action Buttons) -->
-                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                                <div class="w-full sm:w-1/2 md:w-1/3">
-                                    <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email wali, kelas..." class="w-full" aria-label="Cari Siswa"/>
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
+                <!-- MOBILE: Search & Info Card (Sticky) -->
+                <div class="sticky -top-4 z-10 bg-white dark:bg-gray-800 -mx-4 -mt-8 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
+                    <div class="flex gap-2">
+                        <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, kelas..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari Siswa"/>
+                        <SecondaryButton @click="showMobileFilters = true" class="px-3 shrink-0 flex items-center justify-center relative">
+                            <FunnelIcon class="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                            <span v-if="activeFilterCount > 0" class="absolute top-1 right-1 flex h-3 w-3 items-center justify-center rounded-full bg-indigo-600 text-[8px] font-bold text-white">{{ activeFilterCount }}</span>
+                        </SecondaryButton>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                            <span v-if="siswaList.total > 0">
+                                Menampilkan <span class="font-semibold text-gray-700 dark:text-gray-300">{{ siswaList.from }}–{{ siswaList.to }}</span>
+                                dari <span class="font-semibold text-gray-700 dark:text-gray-300">{{ siswaList.total }}</span> siswa
+                            </span>
+                            <span v-else>Tidak ada data yang cocok</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- MOBILE: Action Button Card -->
+                <div class="lg:hidden mb-4 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-lg p-4" v-if="can?.create_siswa || can?.import_siswa || can?.export_siswa">
+                    <PrimaryButton v-if="can?.create_siswa" @click="openCreateModal" class="w-full flex justify-center py-2.5 mb-2">
+                        <PlusIcon class="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> Siswa Baru
+                    </PrimaryButton>
+                    <div class="flex gap-2" v-if="can?.import_siswa || can?.export_siswa">
+                        <button @click="openImportModal" v-if="can?.import_siswa" class="w-full inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none transition">
+                            <ArrowDownTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Impor
+                        </button>
+                        <a v-if="can?.export_siswa" :href="route('admin.siswa.export')" class="w-full inline-flex items-center justify-center px-3 py-2 border border-transparent shadow-sm text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none transition">
+                            <ArrowUpTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Ekspor
+                        </a>
+                    </div>
+                </div>
+
+                <!-- DESKTOP: Filters & Tools Card -->
+                <div class="hidden lg:block mb-6 p-6 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
+                    <div class="space-y-4">
+                        <!-- Baris Utama (Search, Toggle View, & Action Buttons) -->
+                        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div class="w-full sm:w-1/2 md:w-1/3">
+                                <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email wali, kelas..." class="w-full" aria-label="Cari Siswa"/>
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                <!-- Toggle View -->
+                                <div class="hidden sm:flex items-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 p-1">
+                                    <button @click="viewMode = 'grid'" :class="{'bg-gray-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-400': viewMode === 'grid', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300': viewMode !== 'grid'}" class="p-1.5 rounded" title="Tampilan Grid">
+                                        <Squares2X2Icon class="h-5 w-5" />
+                                    </button>
+                                    <button @click="viewMode = 'list'" :class="{'bg-gray-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-400': viewMode === 'list', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300': viewMode !== 'list'}" class="p-1.5 rounded" title="Tampilan List">
+                                        <Bars3Icon class="h-5 w-5" />
+                                    </button>
                                 </div>
-                                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                                    <!-- Toggle View -->
-                                    <div class="hidden sm:flex items-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 p-1">
-                                        <button @click="viewMode = 'grid'" :class="{'bg-gray-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-400': viewMode === 'grid', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300': viewMode !== 'grid'}" class="p-1.5 rounded" title="Tampilan Grid">
-                                            <Squares2X2Icon class="h-5 w-5" />
-                                        </button>
-                                        <button @click="viewMode = 'list'" :class="{'bg-gray-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-400': viewMode === 'list', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300': viewMode !== 'list'}" class="p-1.5 rounded" title="Tampilan List">
-                                            <Bars3Icon class="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                    <PrimaryButton @click="openCreateModal" v-if="can?.create_siswa" class="whitespace-nowrap shadow-sm">
-                                        <PlusIcon class="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> Siswa Baru
-                                    </PrimaryButton>
-                                </div>
+                                <PrimaryButton @click="openCreateModal" v-if="can?.create_siswa" class="whitespace-nowrap shadow-sm">
+                                    <PlusIcon class="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> Siswa Baru
+                                </PrimaryButton>
+                            </div>
+                        </div>
+                        
+                        <!-- Baris Kedua (Filters, Checkbox, Import/Export & Total) -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+                            <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-wrap">
+                                <select v-model="selectedKelasId" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm" aria-label="Filter berdasarkan kelas">
+                                    <option value="">Semua Kelas</option>
+                                    <option v-for="kelasItem in allKelas" :key="kelasItem.id_kelas" :value="kelasItem.id_kelas">{{ kelasItem.nama_kelas }}</option>
+                                </select>
+                                <select v-model="selectedStatusSiswa" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm" aria-label="Filter berdasarkan status">
+                                    <option value="">Semua Status</option>
+                                    <option v-for="s in allStatusSiswa" :key="s" :value="s">{{ s === 'pending_payment' ? 'Menunggu Pembayaran' : s }}</option>
+                                </select>
+                                
+                                <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer ml-1 whitespace-nowrap">
+                                    <input type="checkbox" v-model="sppBelumDiset" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" :disabled="isLoading" />
+                                    <span :class="{'opacity-50': isLoading}">SPP Belum Diset</span>
+                                </label>
                             </div>
                             
-                            <!-- Baris Kedua (Filters, Checkbox, Import/Export & Total) -->
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-gray-100 dark:border-gray-700 pt-4">
-                                <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-wrap">
-                                    <select v-model="selectedKelasId" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm" aria-label="Filter berdasarkan kelas">
-                                        <option value="">Semua Kelas</option>
-                                        <option v-for="kelasItem in allKelas" :key="kelasItem.id_kelas" :value="kelasItem.id_kelas">{{ kelasItem.nama_kelas }}</option>
-                                    </select>
-                                    <select v-model="selectedStatusSiswa" class="w-full sm:w-auto border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm" aria-label="Filter berdasarkan status">
-                                        <option value="">Semua Status</option>
-                                        <option v-for="s in allStatusSiswa" :key="s" :value="s">{{ s === 'pending_payment' ? 'Menunggu Pembayaran' : s }}</option>
-                                    </select>
-                                    
-                                    <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer ml-1 whitespace-nowrap">
-                                        <input type="checkbox" v-model="sppBelumDiset" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" :disabled="isLoading" />
-                                        <span :class="{'opacity-50': isLoading}">SPP Belum Diset</span>
-                                    </label>
+                            <div class="flex items-center gap-2 justify-end w-full md:w-auto shrink-0 flex-wrap">
+                                <div v-if="isLoading" class="flex items-center text-xs text-indigo-600 dark:text-indigo-400 font-medium mr-2">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Memuat Data...
                                 </div>
-                                
-                                <div class="flex items-center gap-2 justify-end w-full md:w-auto shrink-0 flex-wrap">
-                                    <div v-if="isLoading" class="flex items-center text-xs text-indigo-600 dark:text-indigo-400 font-medium mr-2">
-                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Memuat Data...
-                                    </div>
-                                    <p v-else class="text-xs text-gray-500 dark:text-gray-400 mr-2 whitespace-nowrap">
-                                        <span v-if="siswaList.total > 0">Total: <span class="font-semibold">{{ siswaList.total }}</span> siswa</span>
-                                    </p>
-                                    <button @click="openImportModal" v-if="can?.import_siswa" class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none transition whitespace-nowrap">
-                                        <ArrowDownTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Impor
-                                    </button>
-                                    <a v-if="can?.export_siswa" :href="route('admin.siswa.export')" class="inline-flex items-center justify-center px-3 py-2 border border-transparent shadow-sm text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none transition whitespace-nowrap">
-                                        <ArrowUpTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Ekspor
-                                    </a>
-                                </div>
+                                <p v-else class="text-xs text-gray-500 dark:text-gray-400 mr-2 whitespace-nowrap">
+                                    <span v-if="siswaList.total > 0">Total: <span class="font-semibold">{{ siswaList.total }}</span> siswa</span>
+                                </p>
+                                <button @click="openImportModal" v-if="can?.import_siswa" class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none transition whitespace-nowrap">
+                                    <ArrowDownTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Impor
+                                </button>
+                                <a v-if="can?.export_siswa" :href="route('admin.siswa.export')" class="inline-flex items-center justify-center px-3 py-2 border border-transparent shadow-sm text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none transition whitespace-nowrap">
+                                    <ArrowUpTrayIcon class="-ml-1 mr-1.5 h-4 w-4" aria-hidden="true" /> Ekspor
+                                </a>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="px-6 pb-4 overflow-x-auto">
+                <div class="bg-transparent sm:bg-white/80 sm:dark:bg-gray-800/80 sm:shadow-sm sm:rounded-lg">
+
+                    <div class="px-0 sm:px-6 pb-4 overflow-x-auto">
                         <!-- Tampilan List (Table) -->
-                        <div v-if="viewMode === 'list'">
+                        <div v-if="viewMode === 'list'" class="hidden sm:block">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
@@ -327,11 +374,11 @@ onMounted(() => {
                         </div>
 
                         <!-- Tampilan Grid (Card) -->
-                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
-                            <div v-if="!siswaList || !siswaList.data || siswaList.data.length === 0" class="text-center text-sm text-gray-500 py-4">
+                        <div :class="{'hidden sm:grid': viewMode === 'list', 'grid': true}" class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4 px-1 sm:px-0">
+                            <div v-if="!siswaList || !siswaList.data || siswaList.data.length === 0" class="text-center text-sm text-gray-500 py-4 col-span-full">
                                 Tidak ada data siswa.
                             </div>
-                            <div v-else v-for="item in siswaList.data" :key="'mobile-'+item.id_siswa" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 shadow-sm flex flex-col gap-2">
+                            <div v-else v-for="item in siswaList.data" :key="'mobile-'+item.id_siswa" class="bg-white dark:bg-gray-800 sm:dark:bg-gray-700 border border-gray-200 dark:border-gray-700 sm:dark:border-gray-600 rounded-lg p-4 shadow-sm flex flex-col gap-2">
                                 <div class="flex justify-between items-start">
                                     <div>
                                         <h3 class="font-bold text-gray-900 dark:text-white">{{ item.nama_siswa }}</h3>
@@ -345,8 +392,8 @@ onMounted(() => {
                                     <p><span class="font-medium">Wali:</span> {{ item.email_wali }}</p>
                                     <p><span class="font-medium">Gabung:</span> {{ item.tanggal_bergabung_formatted }}</p>
                                 </div>
-                                <div class="mt-2 pt-3 border-t border-gray-100 dark:border-gray-600 flex justify-end gap-2">
-                                    <Link :href="route('admin.siswa.show', item.id_siswa)" class="p-2 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500" title="Lihat Detail">
+                                <div class="mt-2 pt-3 border-t border-gray-100 dark:border-gray-700 sm:dark:border-gray-600 flex justify-end gap-2">
+                                    <Link :href="route('admin.siswa.show', item.id_siswa)" class="p-2 bg-gray-100 dark:bg-gray-700 sm:dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500" title="Lihat Detail">
                                         <EyeIcon class="h-4 w-4" />
                                     </Link>
                                     <button @click="openEditModal(item)" v-if="can?.edit_siswa" class="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/60" title="Edit Siswa">
@@ -356,24 +403,17 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-gray-200 dark:border-gray-700">
-                        <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                    <!-- Paginasi -->
+                    <div class="px-0 sm:px-6 py-4 bg-transparent sm:bg-gray-50 sm:dark:bg-gray-700/50 sm:border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-b-none sm:mt-0 mt-2 gap-4">
+                        <p class="hidden sm:block text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
                             <span v-if="siswaList.total > 0">
                                 Menampilkan <span class="font-medium">{{ siswaList.from }}</span>–<span class="font-medium">{{ siswaList.to }}</span>
                                 dari <span class="font-medium">{{ siswaList.total }}</span> siswa
                             </span>
                             <span v-else>Tidak ada data yang cocok</span>
                         </p>
-                        <div v-if="siswaList && siswaList.links && siswaList.links.length > 3" class="flex flex-wrap -mb-1 justify-center">
-                            <template v-for="(link, key) in siswaList.links" :key="key">
-                                <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm leading-4 text-gray-400 dark:text-gray-500 border rounded dark:border-gray-600 select-none" v-html="link.label" />
-                                <Link v-else
-                                      class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:border-indigo-500 dark:focus:border-indigo-700 focus:text-indigo-500 dark:focus:text-indigo-300"
-                                      :class="{ 'bg-indigo-500 text-white dark:bg-indigo-600 dark:text-white dark:border-indigo-700': link.active }"
-                                      :href="link.url"
-                                      v-html="link.label"
-                                      preserve-scroll />
-                            </template>
+                        <div class="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+                            <Pagination :links="siswaList.links" />
                         </div>
                     </div>
                 </div>
@@ -520,6 +560,44 @@ onMounted(() => {
             </div>
         </Modal>
 
+        <!-- Mobile Filter Modal -->
+        <Modal :show="showMobileFilters" @close="showMobileFilters = false" maxWidth="sm">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4 border-b pb-3 dark:border-gray-700">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">Filter Pencarian</h2>
+                    <button @click="showMobileFilters = false" class="text-gray-400 hover:text-gray-500">
+                        <XMarkIcon class="w-6 h-6" />
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <InputLabel value="Kelas" class="mb-1" />
+                        <select v-model="selectedKelasId" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
+                            <option value="">Semua Kelas</option>
+                            <option v-for="kelasItem in allKelas" :key="kelasItem.id_kelas" :value="kelasItem.id_kelas">{{ kelasItem.nama_kelas }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <InputLabel value="Status Siswa" class="mb-1" />
+                        <select v-model="selectedStatusSiswa" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
+                            <option value="">Semua Status</option>
+                            <option v-for="s in allStatusSiswa" :key="s" :value="s">{{ s === 'pending_payment' ? 'Menunggu Pembayaran' : s }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                            <input type="checkbox" v-model="sppBelumDiset" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" :disabled="isLoading" />
+                            <span :class="{'opacity-50': isLoading}">Tampilkan hanya yang SPP-nya belum diset</span>
+                        </label>
+                    </div>
+                    <div class="pt-4 border-t dark:border-gray-700">
+                        <PrimaryButton class="w-full justify-center" @click="showMobileFilters = false">
+                            Terapkan Filter
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </div>
+        </Modal>
 
     </AuthenticatedLayout>
 </template>

@@ -4,6 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import { debounce } from 'lodash';
 import TextInput from '@/Components/TextInput.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { ArrowDownTrayIcon } from '@heroicons/vue/20/solid';
 
 const props = defineProps({
@@ -88,13 +89,13 @@ const getStatusClass = (status) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            <h2 class="hidden md:block font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 {{ pageTitle }}
             </h2>
         </template>
 
-        <div class="pb-12 pt-4">
-            <div class="max-w-full mx-auto">
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
                 <!-- Card Filter -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-4 sm:p-6">
@@ -226,19 +227,7 @@ const getStatusClass = (status) => {
                                 dari <span class="font-medium">{{ laporanData.total }}</span> invoice
                             </span>
                         </p>
-                        <div v-if="laporanData.links.length > 3" class="p-4 border-t dark:border-gray-700">
-                            <div class="flex flex-wrap -mb-1 justify-center">
-                                <template v-for="(link, key) in laporanData.links" :key="key">
-                                    <div v-if="link.url === null" class="mr-1 mb-1 px-3 py-2 text-sm leading-4 text-gray-400 border rounded select-none" v-html="link.label" />
-                                    <Link v-else
-                                        class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        :class="{ 'bg-indigo-500 text-white dark:bg-indigo-600': link.active }"
-                                        :href="link.url"
-                                        v-html="link.label"
-                                        preserve-scroll />
-                                </template>
-                            </div>
-                        </div>
+                        <Pagination :links="laporanData.links" />
                     </div>
                 </div>
             </div>

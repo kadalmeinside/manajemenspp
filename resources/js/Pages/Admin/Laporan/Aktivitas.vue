@@ -144,13 +144,13 @@ const getTypeIcon = (type) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
+            <h2 class="hidden md:block text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
                 {{ pageTitle }}
             </h2>
         </template>
 
-        <div class="pb-12 pt-4">
-            <div class="max-w-full mx-auto">
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
 
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -183,10 +183,11 @@ const getTypeIcon = (type) => {
                     </div>
                 </div>
 
-                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl overflow-hidden shadow-sm sm:rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
-                    <div class="p-6">
+                <!-- Card Filter -->
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl overflow-hidden shadow-sm sm:rounded-lg border border-gray-200/50 dark:border-gray-700/50 mb-6">
+                    <div class="p-4 sm:p-6">
                         <!-- Filters & Export -->
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div class="flex-1 w-full sm:max-w-md relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
@@ -219,9 +220,14 @@ const getTypeIcon = (type) => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Desktop Table -->
-                        <div class="hidden md:block overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                <!-- Card Content -->
+                <div class="bg-transparent sm:bg-white/80 sm:dark:bg-gray-800/80 sm:backdrop-blur-xl sm:shadow-sm sm:rounded-lg sm:border sm:border-gray-200/50 sm:dark:border-gray-700/50">
+                    <!-- Desktop Table -->
+                    <div class="hidden md:block p-6">
+                        <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-50/50 dark:bg-gray-800/50">
                                     <tr>
@@ -282,29 +288,36 @@ const getTypeIcon = (type) => {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
 
-                        <!-- Mobile Cards -->
-                        <div class="md:hidden space-y-4">
-                            <div v-for="act in activities.data" :key="'mob-'+act.id" class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-shadow hover:shadow-md">
-                                <div class="flex justify-between items-start mb-3 border-b border-gray-100 dark:border-gray-700 pb-3">
+                    <!-- Mobile Cards -->
+                    <div class="md:hidden space-y-4 mt-2">
+                            <div v-for="act in activities.data" :key="'mob-'+act.id" class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2 mb-3">
                                     <div>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-gray-200">{{ act.date }}</span>
-                                        <p class="text-xs text-gray-500">{{ act.date_full }}</p>
+                                        <h3 class="font-bold text-gray-900 dark:text-white">{{ act.nama_siswa }}</h3>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ act.nama_kelas }}</p>
                                     </div>
-                                    <span v-if="act.amount" class="text-sm font-bold text-green-600 dark:text-green-400">{{ act.amount }}</span>
+                                    <div class="text-right">
+                                        <p class="text-xs text-gray-500">{{ act.date }}</p>
+                                        <span v-if="act.amount" class="text-sm font-bold text-green-600 dark:text-green-400">{{ act.amount }}</span>
+                                        <span v-else class="text-xs text-gray-400">-</span>
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-1">{{ act.nama_siswa }}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ act.nama_kelas }}</div>
-                                    <span :class="['inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border', getTypeBadgeColor(act.type)]">
-                                        <component :is="getTypeIcon(act.type)" class="w-3.5 h-3.5" />
-                                        {{ act.title }}
-                                    </span>
+                                
+                                <div class="flex flex-col gap-2">
+                                    <div class="flex items-center justify-between">
+                                        <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] leading-tight font-semibold border', getTypeBadgeColor(act.type)]">
+                                            <component :is="getTypeIcon(act.type)" class="w-3 h-3" />
+                                            {{ act.title }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-600 dark:text-gray-300">{{ act.description }}</p>
+                                    <p class="text-[10px] text-gray-400">{{ act.date_full }}</p>
                                 </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ act.description }}</p>
                             </div>
                             
-                            <div v-if="activities.data.length === 0" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400 bg-white/30 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <div v-if="activities.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                                 <div class="flex flex-col items-center gap-3">
                                     <QueueListIcon class="w-12 h-12 text-gray-300 dark:text-gray-600" />
                                     <p>Belum ada aktivitas publik yang ditemukan.</p>
@@ -313,14 +326,18 @@ const getTypeIcon = (type) => {
                         </div>
                         
                         <!-- Pagination -->
-                        <div class="mt-6">
+                        <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-lg sm:mt-0 mt-2 shadow-sm sm:shadow-none gap-4">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                                <span v-if="activities.total > 0">
+                                    Menampilkan <span class="font-medium">{{ activities.from }}</span>–<span class="font-medium">{{ activities.to }}</span>
+                                    dari <span class="font-medium">{{ activities.total }}</span> aktivitas
+                                </span>
+                            </p>
                             <Pagination :links="activities.links" />
                         </div>
                     </div>
                 </div>
-
             </div>
-        </div>
         
         <!-- Export Modal -->
         <Modal :show="showExportModal" @close="closeExportModal">

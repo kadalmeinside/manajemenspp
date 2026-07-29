@@ -9,6 +9,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { computed, ref, onMounted } from 'vue';
 
 const props = defineProps({
@@ -44,19 +45,19 @@ const flashType = computed(() => props.flash?.type || 'info');
 
 const approve = (id) => {
     if (confirm('Setujui pengajuan cuti ini? Jika invoice PENDING sudah ada, nominal akan diupdate menjadi 250.000.')) {
-        router.post(route('admin.leaves.approve', id), {}, { preserveScroll: true });
+        router.patch(route('admin.leaves.approve', id), {}, { preserveScroll: true });
     }
 };
 
 const reject = (id) => {
     if (confirm('Tolak pengajuan cuti ini?')) {
-        router.post(route('admin.leaves.reject', id), {}, { preserveScroll: true });
+        router.patch(route('admin.leaves.reject', id), {}, { preserveScroll: true });
     }
 };
 
 const cancel = (id) => {
     if (confirm('Batalkan cuti ini? Tagihan SPP akan dikembalikan ke nominal normal.')) {
-        router.post(route('admin.leaves.cancel', id), {}, { preserveScroll: true });
+        router.patch(route('admin.leaves.cancel', id), {}, { preserveScroll: true });
     }
 };
 
@@ -75,37 +76,55 @@ onMounted(() => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">{{ pageTitle || 'Pengajuan Cuti Siswa' }}</h2>
+            <h2 class="hidden md:block font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">{{ pageTitle || 'Pengajuan Cuti Siswa' }}</h2>
         </template>
 
         <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="pb-12 pt-4">
-            <div class="max-w-full mx-auto">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900 dark:text-gray-100">
-                        
-                        <!-- Filters & Actions -->
-                        <div class="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-gray-700 pb-4 md:pb-0">
-                            <!-- Tabs -->
-                            <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
-                                <Link :href="route('admin.leaves.index')" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="!filters.status ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Semua</Link>
-                                <Link :href="route('admin.leaves.index', { status: 'pending' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'pending' ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Pending</Link>
-                                <Link :href="route('admin.leaves.index', { status: 'approved' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'approved' ? 'border-green-500 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Disetujui</Link>
-                                <Link :href="route('admin.leaves.index', { status: 'rejected' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'rejected' ? 'border-red-500 text-red-600 dark:text-red-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Ditolak</Link>
-                                <Link :href="route('admin.leaves.index', { status: 'cancelled' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'cancelled' ? 'border-gray-500 text-gray-600 dark:text-gray-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Dibatalkan</Link>
-                            </nav>
-                            <div class="pb-3 md:pb-3">
-                                <PrimaryButton @click="showAddModal = true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                    Tambah Cuti
-                                </PrimaryButton>
-                            </div>
-                        </div>
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
+                <!-- MOBILE: Tabs & Actions (Sticky) -->
+                <div class="sticky -top-4 z-10 bg-white dark:bg-gray-800 -mx-4 -mt-8 px-4 pt-4 pb-3 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
+                    <nav class="flex space-x-2 overflow-x-auto pb-1 scrollbar-hide" aria-label="Tabs">
+                        <Link :href="route('admin.leaves.index')" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-colors" :class="!filters.status ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'">Semua</Link>
+                        <Link :href="route('admin.leaves.index', { status: 'pending' })" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-colors" :class="filters.status === 'pending' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'">Pending</Link>
+                        <Link :href="route('admin.leaves.index', { status: 'approved' })" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-colors" :class="filters.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'">Disetujui</Link>
+                        <Link :href="route('admin.leaves.index', { status: 'rejected' })" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-colors" :class="filters.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'">Ditolak</Link>
+                        <Link :href="route('admin.leaves.index', { status: 'cancelled' })" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold transition-colors" :class="filters.status === 'cancelled' ? 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-100' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'">Dibatalkan</Link>
+                    </nav>
+                </div>
 
-                        <div>
-                            <!-- Desktop View -->
-                            <div class="hidden md:block overflow-x-auto">
+                <!-- MOBILE: Action Button Card -->
+                <div class="lg:hidden mb-4 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <PrimaryButton @click="showAddModal = true" class="w-full flex justify-center py-2.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        Tambah Cuti
+                    </PrimaryButton>
+                </div>
+
+                <!-- DESKTOP: Filters & Tools Card -->
+                <div class="hidden lg:block mb-6 p-6 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-gray-700 pb-0">
+                        <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+                            <Link :href="route('admin.leaves.index')" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="!filters.status ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Semua</Link>
+                            <Link :href="route('admin.leaves.index', { status: 'pending' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'pending' ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Pending</Link>
+                            <Link :href="route('admin.leaves.index', { status: 'approved' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'approved' ? 'border-green-500 text-green-600 dark:text-green-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Disetujui</Link>
+                            <Link :href="route('admin.leaves.index', { status: 'rejected' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'rejected' ? 'border-red-500 text-red-600 dark:text-red-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Ditolak</Link>
+                            <Link :href="route('admin.leaves.index', { status: 'cancelled' })" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors" :class="filters.status === 'cancelled' ? 'border-gray-500 text-gray-600 dark:text-gray-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'">Dibatalkan</Link>
+                        </nav>
+                        <div class="pb-3 md:pb-3">
+                            <PrimaryButton @click="showAddModal = true">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                Tambah Cuti
+                            </PrimaryButton>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-transparent sm:bg-white sm:dark:bg-gray-800 sm:shadow-sm sm:rounded-lg">
+                    <div class="px-0 sm:px-6 pb-4 overflow-x-auto">
+                        <!-- Desktop View -->
+                        <div class="hidden md:block">
                                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                                     <thead class="bg-gray-50 dark:bg-gray-700/50">
                                         <tr>
@@ -167,11 +186,11 @@ onMounted(() => {
                             </div>
                             
                             <!-- Mobile View (Cards) -->
-                            <div class="block md:hidden space-y-4">
-                                <div v-if="leaves.data.length === 0" class="text-center py-8 text-gray-500 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                            <div class="block md:hidden space-y-4 mt-2 px-1 sm:px-0">
+                                <div v-if="leaves.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                                     Tidak ada data pengajuan.
                                 </div>
-                                <div v-else v-for="leave in leaves.data" :key="'mob-'+leave.id" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 flex flex-col gap-3">
+                                <div v-else v-for="leave in leaves.data" :key="'mob-'+leave.id" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col gap-3">
                                     <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2">
                                         <div>
                                             <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ leave.siswa_nama }}</h3>
@@ -225,16 +244,23 @@ onMounted(() => {
                             </div>
                         </div>
                         
-                        <!-- Pagination -->
-                         <div class="mt-4" v-if="leaves.links && leaves.links.length > 3">
-                            <!-- Simple Previous/Next or full pagination component if available -->
+                        <!-- Paginasi -->
+                        <div class="px-0 sm:px-6 py-4 bg-transparent sm:bg-gray-50 sm:dark:bg-gray-700/50 sm:border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-b-none sm:mt-0 mt-2 gap-4">
+                            <p class="hidden sm:block text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                                <span v-if="leaves.total > 0">
+                                    Menampilkan <span class="font-medium">{{ leaves.from }}</span>–<span class="font-medium">{{ leaves.to }}</span>
+                                    dari <span class="font-medium">{{ leaves.total }}</span> pengajuan
+                                </span>
+                                <span v-else>Tidak ada data yang cocok</span>
+                            </p>
+                            <div class="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0" v-if="leaves.links">
+                                <Pagination :links="leaves.links" />
+                            </div>
                         </div>
 
                     </div>
                 </div>
             </div>
-        </div>
-        
         <!-- Add Modal -->
         <Modal :show="showAddModal" @close="showAddModal = false" maxWidth="md">
             <div class="p-6">

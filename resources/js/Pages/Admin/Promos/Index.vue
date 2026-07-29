@@ -232,7 +232,17 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                             </div>
                         </div>
                     </div>
-                    <Pagination :links="promoList.links" class="p-6" />
+                    <!-- Paginasi -->
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-lg sm:mt-0 mt-2 shadow-sm sm:shadow-none gap-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                            <span v-if="promoList.total > 0">
+                                Menampilkan <span class="font-medium">{{ promoList.from }}</span>–<span class="font-medium">{{ promoList.to }}</span>
+                                dari <span class="font-medium">{{ promoList.total }}</span> promo
+                            </span>
+                            <span v-else>Tidak ada data yang cocok</span>
+                        </p>
+                        <Pagination :links="promoList.links" />
+                    </div>
                 </div>
             </div>
         </div>

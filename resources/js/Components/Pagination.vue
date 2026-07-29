@@ -7,7 +7,7 @@ defineProps({
 </script>
 
 <template>
-    <div v-if="links.length > 3" class="flex flex-wrap -mb-1 mt-6">
+    <div v-if="links.length > 3" class="flex flex-wrap -mb-1 justify-center">
         <template v-for="(link, key) in links" :key="key">
             <div
                 v-if="link.url === null"

@@ -152,6 +152,16 @@ const systemMenu = {
 const canViewAdminMenu = computed(() => adminMenu.some(item => hasPermission(item.requiredPermission)));
 const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermission));
 
+const activeMenuName = computed(() => {
+    const allMenus = [
+        ...mainMenu.value,
+        ...adminMenu,
+        ...(systemMenu.children || [])
+    ];
+    const active = allMenus.find(item => isMenuActive(item));
+    return active ? active.name : 'Dashboard';
+});
+
 </script>
 
 <template>
@@ -243,26 +253,32 @@ const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermis
         </aside>
 
         <div class="flex-1 flex flex-col overflow-hidden">
-            <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+            <header class="bg-gray-800 shadow-sm sticky top-0 z-10 flex-shrink-0 border-b border-gray-700">
                 <div class="mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between items-center h-16">
-                        <div class="flex items-center">
-                            <button @click="desktopSidebarOpen = !desktopSidebarOpen" class="hidden md:inline-flex items-center justify-center rounded-md p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700">
+                    <div class="flex justify-between items-center h-16 relative">
+                        <div class="flex items-center z-10">
+                            <button @click="desktopSidebarOpen = !desktopSidebarOpen" class="hidden md:inline-flex items-center justify-center rounded-md p-2 text-gray-300 hover:text-gray-200 hover:bg-gray-700 focus:outline-none focus:bg-gray-700">
                                 <span class="sr-only">Toggle desktop sidebar</span>
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
                                 </svg>
                             </button>
-                            <button @click="mobileSidebarOpen = !mobileSidebarOpen" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700">
+                            <!-- Mobile toggle button with rounded full background -->
+                            <button @click="mobileSidebarOpen = !mobileSidebarOpen" class="md:hidden inline-flex items-center justify-center rounded-full p-2 bg-gray-700 text-white hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">
                                 <span class="sr-only">Open sidebar</span>
-                                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             </button>
                         </div>
 
-                        <div class="flex items-center space-x-3">
-                            <button class="p-1 rounded-full text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-100 focus:outline-none">
+                        <!-- Title centered on mobile -->
+                        <div class="absolute inset-0 flex justify-center items-center pointer-events-none md:hidden">
+                            <span class="text-sm font-semibold text-white">{{ activeMenuName }}</span>
+                        </div>
+
+                        <div class="flex items-center space-x-3 z-10">
+                            <button class="p-1 rounded-full text-gray-300 hover:text-white focus:outline-none">
                                 <span class="sr-only">View notifications</span>
                                 <BellIcon class="h-6 w-6" aria-hidden="true" />
                             </button>
@@ -270,15 +286,13 @@ const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermis
                             <div class="relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
-                                        <button class="flex items-center text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition duration-150 ease-in-out">
-                                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-[--color-primary-100] dark:bg-[--color-primary-900] mr-2">
-                                                <span class="text-sm font-medium leading-none text-[--color-primary-700] dark:text-[--color-primary-300]">{{ userInitial }}</span>
+                                        <button class="flex items-center text-sm font-medium text-gray-300 hover:text-white focus:outline-none transition duration-150 ease-in-out">
+                                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-[--color-primary-900] md:mr-2">
+                                                <span class="text-sm font-medium leading-none text-[--color-primary-300]">{{ userInitial }}</span>
                                             </span>
-                                            <div>{{ userName }}</div>
-                                            <div class="ml-1">
-                                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                                </svg>
+                                            <div class="hidden md:block">{{ userName }}</div>
+                                            <div class="ml-1 md:ml-1">
+                                                <ChevronDownIcon class="h-4 w-4" />
                                             </div>
                                         </button>
                                     </template>
@@ -290,17 +304,7 @@ const canViewSystemMenu = computed(() => hasPermission(systemMenu.requiredPermis
                                         <DropdownLink :href="route('profile.edit')">
                                             <Cog6ToothIcon class="mr-2 h-4 w-4 inline-block text-gray-400" /> Profil
                                         </DropdownLink>
-                                        <div class="px-4 py-3 border-b border-t dark:border-gray-600">
-                                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Pilih Tema</p>
-                                            <div class="mt-2 flex items-center space-x-2">
-                                                <button @click="currentTheme = 'gray'" title="Default" class="h-6 w-6 rounded-full bg-gray-500 focus:outline-none ring-2 ring-offset-2 dark:ring-offset-gray-800" :class="currentTheme === 'gray' ? 'ring-gray-500' : 'ring-transparent'"></button>
-                                                <button @click="currentTheme = 'maroon'" title="Maroon" class="h-6 w-6 rounded-full bg-red-800 focus:outline-none ring-2 ring-offset-2 dark:ring-offset-gray-800" :class="currentTheme === 'maroon' ? 'ring-red-500' : 'ring-transparent'"></button>
-                                                <button @click="currentTheme = 'indigo'" title="Indigo" class="h-6 w-6 rounded-full bg-indigo-500 focus:outline-none ring-2 ring-offset-2 dark:ring-offset-gray-800" :class="currentTheme === 'indigo' ? 'ring-[--color-primary-500]' : 'ring-transparent'"></button>
-                                                <button @click="currentTheme = 'blue'" title="Blue" class="h-6 w-6 rounded-full bg-blue-500 focus:outline-none ring-2 ring-offset-2 dark:ring-offset-gray-800" :class="currentTheme === 'blue' ? 'ring-blue-500' : 'ring-transparent'"></button>
-                                                <button @click="currentTheme = 'teal'" title="Teal" class="h-6 w-6 rounded-full bg-teal-500 focus:outline-none ring-2 ring-offset-2 dark:ring-offset-gray-800" :class="currentTheme === 'teal' ? 'ring-teal-500' : 'ring-transparent'"></button>
-                                                <button @click="currentTheme = 'rose'" title="Rose" class="h-6 w-6 rounded-full bg-rose-500 focus:outline-none ring-2 ring-offset-2 dark:ring-offset-gray-800" :class="currentTheme === 'rose' ? 'ring-rose-500' : 'ring-transparent'"></button>
-                                            </div>
-                                        </div>
+                                        <!-- Theme chooser removed -->
                                         
                                         <button
                                             type="button"

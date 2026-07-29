@@ -162,23 +162,47 @@ const formatCurrency = (value) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Kelas</h2>
+            <h2 class="hidden md:block font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Kelas</h2>
         </template>
 
         <Toast :message="flashMessage" :type="flashType" />
-        <div class="pb-12 pt-4">
-            <div class="max-w-full mx-auto">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 pb-0 text-gray-900 dark:text-gray-100">
-                        <div class="mb-6 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                            <TextInput type="text" v-model="searchQuery" placeholder="Cari nama atau deskripsi kelas..." class="w-full md:max-w-sm" aria-label="Cari kelas"/>
-                            <PrimaryButton @click="openCreateModal" v-if="can?.create_kelas" class="w-full md:w-auto">
-                                <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" /> Tambah Kelas Baru
-                            </PrimaryButton>
-                        </div>
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
+                <!-- MOBILE: Search & Info Card (Sticky) -->
+                <div class="sticky -top-4 z-10 bg-white dark:bg-gray-800 -mx-4 -mt-8 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
+                    <div class="flex gap-2">
+                        <TextInput type="text" v-model="searchQuery" placeholder="Cari nama kelas..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari kelas"/>
                     </div>
+                    <div class="mt-3 text-center">
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">
+                            <span v-if="kelas.total > 0">
+                                Menampilkan <span class="font-semibold text-gray-700 dark:text-gray-300">{{ kelas.from }}–{{ kelas.to }}</span>
+                                dari <span class="font-semibold text-gray-700 dark:text-gray-300">{{ kelas.total }}</span> kelas
+                            </span>
+                            <span v-else>Tidak ada data yang cocok</span>
+                        </p>
+                    </div>
+                </div>
 
-                    <div class="overflow-x-auto pb-4">
+                <!-- MOBILE: Action Button Card -->
+                <div class="lg:hidden mb-4 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-lg p-4" v-if="can?.create_kelas">
+                    <PrimaryButton @click="openCreateModal" class="w-full flex justify-center py-2.5">
+                        <PlusIcon class="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> Tambah Kelas Baru
+                    </PrimaryButton>
+                </div>
+
+                <!-- DESKTOP: Filters & Tools Card -->
+                <div class="hidden lg:block mb-6 p-6 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                        <TextInput type="text" v-model="searchQuery" placeholder="Cari nama atau deskripsi kelas..." class="w-full md:max-w-sm" aria-label="Cari kelas"/>
+                        <PrimaryButton @click="openCreateModal" v-if="can?.create_kelas" class="w-full md:w-auto">
+                            <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" /> Tambah Kelas Baru
+                        </PrimaryButton>
+                    </div>
+                </div>
+
+                <div class="bg-transparent sm:bg-white sm:dark:bg-gray-800 sm:shadow-sm sm:rounded-lg">
+                    <div class="px-0 sm:px-6 pb-4 overflow-x-auto">
                         <!-- Tampilan Desktop (Table) -->
                         <div class="hidden md:block">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -212,12 +236,12 @@ const formatCurrency = (value) => {
                         </div>
 
                         <!-- Tampilan Mobile (Card) -->
-                        <div class="block md:hidden space-y-4 mt-2 px-6">
+                        <div class="block md:hidden space-y-4 mt-2 px-1 sm:px-0">
                             <div v-if="!kelas || !kelas.data || kelas.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                                 Tidak ada data kelas.
                             </div>
-                            <div v-else v-for="kelasItem in kelas.data" :key="'mob-'+kelasItem.id_kelas" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col gap-3">
-                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2">
+                            <div v-else v-for="kelasItem in kelas.data" :key="'mob-'+kelasItem.id_kelas" class="bg-white dark:bg-gray-800 sm:dark:bg-gray-700 border border-gray-200 dark:border-gray-700 sm:dark:border-gray-600 rounded-lg p-4 shadow-sm flex flex-col gap-3">
+                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 sm:dark:border-gray-600 pb-2">
                                     <h3 class="font-bold text-gray-900 dark:text-white text-lg leading-tight">{{ kelasItem.nama_kelas }}</h3>
                                     <div class="flex gap-2">
                                         <button @click="openEditModal(kelasItem)" class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100" v-if="can?.edit_kelas" title="Edit Kelas">
@@ -241,7 +265,19 @@ const formatCurrency = (value) => {
                             </div>
                         </div>
                     </div>
-                    <Pagination :links="kelas.links" class="p-6 border-t border-gray-200 dark:border-gray-700" />
+                    <!-- Paginasi -->
+                    <div class="px-0 sm:px-6 py-4 bg-transparent sm:bg-gray-50 sm:dark:bg-gray-700/50 sm:border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-b-none sm:mt-0 mt-2 gap-4">
+                        <p class="hidden sm:block text-sm text-gray-500 dark:text-gray-400 text-center sm:text-left">
+                            <span v-if="kelas.total > 0">
+                                Menampilkan <span class="font-medium">{{ kelas.from }}</span>–<span class="font-medium">{{ kelas.to }}</span>
+                                dari <span class="font-medium">{{ kelas.total }}</span> kelas
+                            </span>
+                            <span v-else>Tidak ada data yang cocok</span>
+                        </p>
+                        <div class="w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+                            <Pagination :links="kelas.links" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -158,31 +158,31 @@ const getJobStatusClass = (status) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            <h2 class="hidden md:block font-bold text-lg md:text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 {{ pageTitle }}
             </h2>
         </template>
 
-        <div class="pb-12 pt-4">
+        <div class="pb-12 pt-0 md:pt-4">
             <div class="max-w-7xl mx-auto">
                 
                 <!-- ============================================== -->
                 <!-- SECTION 1: ANNUAL & OVERALL OVERVIEW (MODERN)  -->
                 <!-- ============================================== -->
                 <div v-if="isSuperAdmin" class="mb-8">
-                    <div class="flex items-center justify-between mb-4 px-2">
-                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 px-1 sm:px-0 space-y-2 sm:space-y-0">
+                        <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 w-full sm:w-auto">
                             <ChartBarIcon class="w-6 h-6 text-indigo-500" />
-                            Ringkasan Tahunan & Keseluruhan
+                            Ringkasan Tahunan
                         </h3>
                         <!-- Year Filter for Annual Data -->
-                        <select v-model="selectedTahun" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                        <select v-model="selectedTahun" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm w-full sm:w-auto">
                             <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
                         </select>
                     </div>
 
                     <!-- Top Annual Cards (Modern Glass/Gradient Style) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-2 sm:px-0">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-1 sm:px-0">
                         <!-- Total Pendapatan Tahunan -->
                         <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
                             <div class="absolute -right-6 -top-6 opacity-20">
@@ -225,7 +225,7 @@ const getJobStatusClass = (status) => {
                     </div>
 
                     <!-- Annual Charts -->
-                    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5 px-2 sm:px-0">
+                    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 px-1 sm:px-0">
                         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
                             <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tren Pendaftar Baru ({{ selectedTahun }})</h3>
                             <div class="mt-4 h-[250px]">
@@ -258,7 +258,7 @@ const getJobStatusClass = (status) => {
                 <!-- ============================================== -->
                 <div class="mt-4 mb-8">
                     <!-- Month Filter -->
-                    <div class="flex items-center justify-between mb-4 px-2">
+                    <div class="flex items-center justify-between mb-4 px-1 sm:px-0">
                         <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                             Snapshot Bulan:
                             <select v-model="selectedBulan" class="text-lg font-bold border-none bg-transparent text-indigo-600 dark:text-indigo-400 focus:ring-0 p-0 ml-1 cursor-pointer">
@@ -268,7 +268,7 @@ const getJobStatusClass = (status) => {
                     </div>
 
                     <!-- Alert Cards -->
-                    <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 px-2 sm:px-0">
+                    <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 px-1 sm:px-0">
                         <Link v-if="alerts.cuti_pending > 0" :href="route('admin.leaves.index', { status: 'pending' })" class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl hover:bg-yellow-100 transition-colors">
                             <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-400 dark:bg-yellow-600 flex items-center justify-center">
                                 <span class="text-white font-bold text-sm">{{ alerts.cuti_pending }}</span>
@@ -296,7 +296,7 @@ const getJobStatusClass = (status) => {
                     </div>
 
                     <!-- Monthly Stats Cards -->
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 px-2 sm:px-0">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 px-1 sm:px-0">
                         <!-- Pendapatan Bulan Ini -->
                         <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
                             <div>
@@ -354,7 +354,7 @@ const getJobStatusClass = (status) => {
                 <!-- ============================================== -->
                 <!-- SECTION 3: ACTIVITY & DETAILS                  -->
                 <!-- ============================================== -->
-                <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3 px-2 sm:px-0">
+                <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3 px-1 sm:px-0">
                     <!-- Kartu Aktivitas dengan Tab -->
                     <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700">
                         <div class="px-6 pt-6 flex justify-between items-center">
