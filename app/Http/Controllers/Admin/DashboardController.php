@@ -115,24 +115,94 @@ class DashboardController extends Controller
             if (isset($dataGrafikPendapatan[$key])) { $dataGrafikPendapatan[$key] = $pendapatan->total; }
         }
         
-        $pembayaranTerakhirQuery = Invoice::where('status', 'PAID')
-            ->whereIn('type', $incomeInvoiceTypes)
-            ->with('siswa')
-            ->latest('paid_at');
+        // 1. Aktivitas Invoice (Pending & Lunas)
+        $invoiceActivityQuery = Invoice::with('siswa')
+            ->whereIn('status', ['PAID', 'PENDING'])
+            ->latest('updated_at');
+            
+        // 2. Aktivitas Cuti (Disetujui)
+        $leaveActivityQuery = StudentLeave::with('siswa')
+            ->where('status', 'approved')
+            ->latest('updated_at');
+            
+        // 3. Aktivitas Resign
+        $resignActivityQuery = Siswa::where('status_siswa', 'Resign')
+            ->latest('updated_at');
 
-        $siswaBaruQuery = Siswa::whereHas('invoices', fn($q) => $q->where('type', 'pendaftaran')->where('status', 'PAID'))
-            ->latest('tanggal_bergabung');
         $siswaPerKelasQuery = Kelas::withCount(['siswa' => fn($q) => $q->where('status_siswa', 'Aktif')])->orderBy('nama_kelas');
 
         if ($managedKelasIds) {
-            $pembayaranTerakhirQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
-            $siswaBaruQuery->whereIn('id_kelas', $managedKelasIds);
+            $invoiceActivityQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $leaveActivityQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
+            $resignActivityQuery->whereIn('id_kelas', $managedKelasIds);
             $siswaPerKelasQuery->whereIn('id_kelas', $managedKelasIds);
         }
 
-        $pembayaranTerakhir = $pembayaranTerakhirQuery->limit(15)->get();
-        $siswaBaru = $siswaBaruQuery->limit(15)->get();
         $siswaPerKelas = $siswaPerKelasQuery->get();
+        
+        $activities = collect();
+        
+        foreach ($invoiceActivityQuery->limit(20)->get() as $inv) {
+            if ($inv->type === 'pendaftaran' && $inv->status === 'PENDING') {
+                $activities->push([
+                    'type' => 'pendaftaran_pending',
+                    'title' => 'Pendaftaran Baru',
+                    'description' => ($inv->siswa?->nama_siswa ?? 'Siswa') . ' mendaftar (menunggu pembayaran)',
+                    'date' => $inv->created_at,
+                    'id_siswa' => $inv->id_siswa,
+                    'amount' => $inv->total_amount
+                ]);
+            } elseif ($inv->type === 'pendaftaran' && $inv->status === 'PAID') {
+                $activities->push([
+                    'type' => 'pendaftaran_lunas',
+                    'title' => 'Pendaftaran Lunas',
+                    'description' => ($inv->siswa?->nama_siswa ?? 'Siswa') . ' melunasi pendaftaran',
+                    'date' => $inv->paid_at ?? $inv->updated_at,
+                    'id_siswa' => $inv->id_siswa,
+                    'amount' => $inv->total_amount
+                ]);
+            } elseif ($inv->status === 'PAID') {
+                $activities->push([
+                    'type' => 'pembayaran_lunas',
+                    'title' => 'Pembayaran ' . strtoupper(str_replace('_', ' ', $inv->type)),
+                    'description' => ($inv->siswa?->nama_siswa ?? 'Siswa') . ' telah membayar tagihan',
+                    'date' => $inv->paid_at ?? $inv->updated_at,
+                    'id_siswa' => $inv->id_siswa,
+                    'amount' => $inv->total_amount
+                ]);
+            }
+        }
+        
+        foreach ($leaveActivityQuery->limit(10)->get() as $leave) {
+            $activities->push([
+                'type' => 'cuti_disetujui',
+                'title' => 'Cuti Disetujui',
+                'description' => ($leave->siswa?->nama_siswa ?? 'Siswa') . ' disetujui untuk cuti',
+                'date' => $leave->updated_at,
+                'id_siswa' => $leave->id_siswa,
+                'amount' => null
+            ]);
+        }
+        
+        foreach ($resignActivityQuery->limit(10)->get() as $resign) {
+            $activities->push([
+                'type' => 'siswa_resign',
+                'title' => 'Siswa Resign',
+                'description' => $resign->nama_siswa . ' telah resign',
+                'date' => $resign->updated_at,
+                'id_siswa' => $resign->id_siswa,
+                'amount' => null
+            ]);
+        }
+        
+        // Urutkan semua aktivitas berdasarkan tanggal terbaru, dan ambil 20 teratas
+        $aktivitasPublik = $activities->sortByDesc('date')->take(20)->values()->map(function($act) {
+            $act['date_formatted'] = \Carbon\Carbon::parse($act['date'])->diffForHumans();
+            if ($act['amount']) {
+                $act['amount_formatted'] = 'Rp ' . number_format($act['amount'], 0, ',', '.');
+            }
+            return $act;
+        });
         
         $latestJobs = JobBatch::with('user:id,name')->latest()->limit(5)->get();
 
@@ -254,8 +324,7 @@ class DashboardController extends Controller
             'grafikPendaftar' => ['labels' => $labelsGrafikPendaftar, 'data' => $dataGrafikPendaftar],
             'grafikPendapatan' => ['labels' => array_values($labelsGrafikPendapatan), 'data' => array_values($dataGrafikPendapatan)],
             'grafikStatusTagihan' => ['labels' => $statusTagihanBulanIni->keys(), 'data' => $statusTagihanBulanIni->values()],
-            'pembayaranTerakhir' => $pembayaranTerakhir->map(fn($invoice) => ['id_siswa' => $invoice->id_siswa, 'nama_siswa' => $invoice->siswa?->nama_siswa ?? 'N/A', 'total_tagihan_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'), 'tanggal_bayar' => Carbon::parse($invoice->paid_at)->diffForHumans(), 'periode' => $invoice->periode_tagihan ? Carbon::parse($invoice->periode_tagihan)->isoFormat('MMMM YYYY') : '-']),
-            'siswaBaru' => $siswaBaru->map(fn($s) => ['id_siswa' => $s->id_siswa, 'nama_siswa' => $s->nama_siswa, 'status_siswa' => $s->status_siswa, 'tanggal_bergabung' => Carbon::parse($s->tanggal_bergabung)->isoFormat('D MMM YY')]),
+            'aktivitasPublik' => $aktivitasPublik,
             'siswaPerKelas' => $siswaPerKelas->map(fn($k) => ['nama_kelas' => $k->nama_kelas, 'jumlah_siswa' => $k->siswa_count]),
             'latestJobs' => $latestJobs->map(fn($job) => [
                 'id' => $job->id,

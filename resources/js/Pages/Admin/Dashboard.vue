@@ -4,7 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { Bar, Doughnut, Line } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, LineElement, PointElement } from 'chart.js';
 import { ref, computed, watch } from 'vue';
-import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon, DocumentTextIcon, ChartBarIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
+import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon, DocumentTextIcon, ChartBarIcon, CheckCircleIcon, CalendarDaysIcon, UserMinusIcon } from '@heroicons/vue/24/outline';
 import { debounce } from 'lodash';
 
 import { usePage } from '@inertiajs/vue3';
@@ -18,8 +18,7 @@ const props = defineProps({
     grafikPendapatan: Object,
     grafikStatusTagihan: Object,
     grafikPendaftar: Object,
-    pembayaranTerakhir: Array,
-    siswaBaru: Array,
+    aktivitasPublik: Array,
     siswaPerKelas: Array,
     latestJobs: Array,
     filters: Object,
@@ -34,8 +33,20 @@ const isSuperAdmin = computed(() => userRoles.value.includes('admin'));
 const pageTitle = "Dashboard Admin";
 
 // --- State untuk Tab & Toggle ---
-const activeTab = ref('pembayaran');
+const activeTab = ref('aktivitas');
 const activeRevenueView = ref('total'); // 'total', 'xendit', 'manual'
+
+// Helper untuk ikon aktivitas publik
+const getActivityStyles = (type) => {
+    switch(type) {
+        case 'pendaftaran_pending': return { icon: ClockIcon, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30' };
+        case 'pendaftaran_lunas': return { icon: UserPlusIcon, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30' };
+        case 'pembayaran_lunas': return { icon: BanknotesIcon, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30' };
+        case 'cuti_disetujui': return { icon: CalendarDaysIcon, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-900/30' };
+        case 'siswa_resign': return { icon: UserMinusIcon, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30' };
+        default: return { icon: DocumentTextIcon, color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800' };
+    }
+};
 
 // Computed property untuk menampilkan pendapatan dinamis
 const displayedRevenue = computed(() => {
@@ -350,56 +361,39 @@ const getJobStatusClass = (status) => {
                             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Aktivitas Terbaru</h3>
                             <div class="mt-4 border-b border-gray-100 dark:border-gray-700">
                                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                                    <button @click="activeTab = 'pembayaran'" :class="[activeTab === 'pembayaran' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Pembayaran</button>
-                                    <button @click="activeTab = 'siswa'" :class="[activeTab === 'siswa' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Siswa Baru</button>
+                                    <button @click="activeTab = 'aktivitas'" :class="[activeTab === 'aktivitas' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Aktivitas Publik</button>
                                     <button @click="activeTab = 'jobs'" :class="[activeTab === 'jobs' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Proses Latar</button>
                                 </nav>
                             </div>
                         </div>
                         
                         <div class="p-6 max-h-[400px] overflow-y-auto">
-                            <div v-if="activeTab === 'pembayaran'">
+                            <div v-if="activeTab === 'aktivitas'">
                                 <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                    <li v-for="(pembayaran, index) in pembayaranTerakhir" :key="'pembayaran-'+index" class="py-3 flex justify-between items-center group">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ pembayaran.nama_siswa }}</p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">Periode: {{ pembayaran.periode }} • {{ pembayaran.tanggal_bayar }}</p>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ pembayaran.total_tagihan_formatted }}</p>
-                                            <Link v-if="pembayaran.id_siswa" :href="route('admin.siswa.show', pembayaran.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                                            </Link>
-                                        </div>
-                                    </li>
-                                    <li v-if="pembayaranTerakhir.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada pembayaran.</li>
-                                </ul>
-                            </div>
-                            <div v-if="activeTab === 'siswa'">
-                                <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                    <li v-for="(siswa, index) in siswaBaru" :key="'siswa-'+index" class="py-3 flex justify-between items-center group">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ siswa.nama_siswa }}</p>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ siswa.tanggal_bergabung }}</p>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <div>
-                                                <span v-if="siswa.status_siswa === 'pending_payment'" class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                                    Menunggu
-                                                </span>
-                                                <span v-else-if="siswa.status_siswa === 'Aktif'" class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                    Aktif
-                                                </span>
-                                                <span v-else class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                                    {{ siswa.status_siswa }}
-                                                </span>
+                                    <li v-for="(aktivitas, index) in aktivitasPublik" :key="'aktivitas-'+index" class="py-4 flex justify-between items-center group">
+                                        <div class="flex items-start gap-4">
+                                            <div :class="['flex-shrink-0 p-2 rounded-lg', getActivityStyles(aktivitas.type).bg]">
+                                                <component :is="getActivityStyles(aktivitas.type).icon" :class="['w-5 h-5', getActivityStyles(aktivitas.type).color]" />
                                             </div>
-                                            <Link v-if="siswa.id_siswa" :href="route('admin.siswa.show', siswa.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
+                                            <div>
+                                                <p class="text-sm font-bold text-gray-900 dark:text-gray-100">{{ aktivitas.title }}</p>
+                                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ aktivitas.description }}</p>
+                                                <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                                    <ClockIcon class="w-3.5 h-3.5" />
+                                                    {{ aktivitas.date_formatted }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-3 ml-4">
+                                            <p v-if="aktivitas.amount_formatted" class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                {{ aktivitas.amount_formatted }}
+                                            </p>
+                                            <Link v-if="aktivitas.id_siswa" :href="route('admin.siswa.show', aktivitas.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                                             </Link>
                                         </div>
                                     </li>
-                                    <li v-if="siswaBaru.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada siswa baru.</li>
+                                    <li v-if="aktivitasPublik.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada aktivitas.</li>
                                 </ul>
                             </div>
                             <div v-if="activeTab === 'jobs'">
