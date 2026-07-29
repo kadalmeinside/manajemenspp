@@ -70,8 +70,7 @@
                         <th>Waktu</th>
                         <th>Aktivitas</th>
                         <th>Keterangan</th>
-                        <th>Nama Siswa</th>
-                        <th>Kelas</th>
+                        <th>Siswa / Kelas</th>
                         <th>Nominal</th>
                     </tr>
                 </thead>
@@ -81,8 +80,10 @@
                             <td>{{ \Carbon\Carbon::parse($act->date)->format('Y-m-d H:i') }}</td>
                             <td>{{ $act->title }}</td>
                             <td>{{ $act->description }}</td>
-                            <td>{{ $act->nama_siswa }}</td>
-                            <td>{{ $act->nama_kelas }}</td>
+                            <td>
+                                {{ $act->nama_siswa }}<br>
+                                <span style="font-size: 0.85em; color: #555;">{{ $act->nama_kelas }}</span>
+                            </td>
                             <td>{{ $act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : '-' }}</td>
                         </tr>
                     @endforeach
@@ -96,8 +97,7 @@
                     <th>Waktu</th>
                     <th>Aktivitas</th>
                     <th>Keterangan</th>
-                    <th>Nama Siswa</th>
-                    <th>Kelas</th>
+                    <th>Siswa / Kelas</th>
                     <th>Nominal</th>
                 </tr>
             </thead>
@@ -107,8 +107,10 @@
                         <td>{{ \Carbon\Carbon::parse($act->date)->format('Y-m-d H:i') }}</td>
                         <td>{{ $act->title }}</td>
                         <td>{{ $act->description }}</td>
-                        <td>{{ $act->nama_siswa }}</td>
-                        <td>{{ $act->nama_kelas }}</td>
+                        <td>
+                            {{ $act->nama_siswa }}<br>
+                            <span style="font-size: 0.85em; color: #555;">{{ $act->nama_kelas }}</span>
+                        </td>
                         <td>{{ $act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : '-' }}</td>
                     </tr>
                 @endforeach

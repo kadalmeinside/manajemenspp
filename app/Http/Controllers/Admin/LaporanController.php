@@ -158,7 +158,14 @@ class LaporanController extends Controller
                 'invoices.periode_tagihan',
                 'invoices.type as original_type'
             )
-            ->whereIn('invoices.status', ['PAID', 'PENDING']);
+            ->where(function($query) {
+                $query->whereIn('invoices.status', ['PAID', 'SETTLED'])
+                      ->orWhere(function($q) {
+                          $q->where('invoices.type', 'pendaftaran')
+                            ->where('invoices.status', 'PENDING');
+                      });
+            })
+            ->whereNull('invoices.parent_payment_id');
 
         $leaves = DB::table('student_leaves')
             ->join('siswa', 'student_leaves.id_siswa', '=', 'siswa.id_siswa')
