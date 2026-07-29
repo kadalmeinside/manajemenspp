@@ -107,9 +107,10 @@ function submit() {
                                         <TextInput
                                             id="app_version"
                                             type="text"
-                                            class="mt-1 block w-full"
+                                            class="mt-1 block w-full bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                                             placeholder="Contoh: 1.0.0"
                                             v-model="form.app_version"
+                                            disabled
                                         />
                                         <InputError class="mt-2" :message="form.errors.app_version" />
                                     </div>
@@ -118,14 +119,18 @@ function submit() {
                                         <TextInput
                                             id="app_build"
                                             type="text"
-                                            class="mt-1 block w-full"
+                                            class="mt-1 block w-full bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
                                             placeholder="Contoh: Local / Production"
                                             v-model="form.app_build"
+                                            disabled
                                         />
                                         <InputError class="mt-2" :message="form.errors.app_build" />
                                     </div>
                                 </div>
-
+                                <p class="text-xs text-gray-500 italic mt-1 mb-4">
+                                    Catatan: Versi dan Build diisi secara otomatis dari sistem (composer.json dan Git commit hash).
+                                </p>
+                                
                                 <div>
                                     <InputLabel for="app_logo" value="Logo Aplikasi (Panel Admin)" />
                                     <div class="mt-2 flex items-center gap-x-3">

@@ -11,7 +11,7 @@ import JobStatusToast from '@/Components/JobStatusToast.vue';
 import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
-    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon
+    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
@@ -125,7 +125,7 @@ const mainMenu = computed(() => {
 
 const adminMenu = [
     { name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: ChartBarIcon, current: 'admin.laporan.pembayaran_bulanan', requiredPermission: 'manage_all_tagihan' },
-    { name: 'Riwayat Pembayaran', route: 'admin.laporan.riwayat_pembayaran', icon: CurrencyDollarIcon, current: 'admin.laporan.riwayat_pembayaran', requiredPermission: 'manage_all_tagihan' },
+    { name: 'Riwayat Aktivitas', route: 'admin.laporan.aktivitas', icon: QueueListIcon, current: 'admin.laporan.aktivitas', requiredPermission: 'manage_all_tagihan' },
     { name: 'Manajemen Invoice', route: 'admin.invoices.index', icon: DocumentChartBarIcon, current: 'admin.invoices.*', requiredPermission: 'manage_all_tagihan' },
     { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', requiredPermission: 'view_siswa' },
     { name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', requiredPermission: 'manage_kelas' },

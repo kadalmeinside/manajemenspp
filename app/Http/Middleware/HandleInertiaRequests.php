@@ -131,9 +131,42 @@ class HandleInertiaRequests extends Middleware
                 'key' => fn () => $request->session()->get('key'), 
             ],
             'app_settings' => function () {
-                return Cache::rememberForever('app_settings', function () {
-                    return Setting::all()->pluck('value', 'key');
+                // Gunakan cache pendek atau non-forever agar versi bisa update tanpa perlu clear cache manual
+                $settings = Cache::remember('app_settings_db', 60, function () {
+                    return Setting::all()->pluck('value', 'key')->toArray();
                 });
+
+                // Auto-detect version dari composer.json
+                try {
+                    $composerPath = base_path('composer.json');
+                    if (file_exists($composerPath)) {
+                        $composer = json_decode(file_get_contents($composerPath), true);
+                        if (isset($composer['version'])) {
+                            $settings['app_version'] = $composer['version'];
+                        }
+                    }
+                } catch (\Exception $e) {}
+
+                // Auto-detect build dari Git commit hash
+                try {
+                    $gitPath = base_path('.git');
+                    if (is_dir($gitPath)) {
+                        $head = trim(@file_get_contents($gitPath . '/HEAD'));
+                        if (strpos($head, 'ref: ') === 0) {
+                            $ref = substr($head, 5);
+                            $commit = trim(@file_get_contents($gitPath . '/' . $ref));
+                            $build = substr($commit, 0, 7);
+                        } else {
+                            $build = substr($head, 0, 7);
+                        }
+                        
+                        if ($build) {
+                            $settings['app_build'] = $build;
+                        }
+                    }
+                } catch (\Exception $e) {}
+
+                return $settings;
             },
             // Badge notifikasi cuti — hanya untuk admin yang punya akses
             'pending_leaves_count' => function () use ($request) {

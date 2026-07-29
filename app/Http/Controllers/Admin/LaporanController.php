@@ -130,48 +130,137 @@ class LaporanController extends Controller
         return Excel::download(new LaporanSppExport($tahun, $kelasId, $search), $filename);
     }
 
-    public function riwayatPembayaran(Request $request)
+    private function buildAktivitasQuery($search, $typeFilter, $startDate, $endDate, $sort, $kelasId)
+    {
+        $invoices = DB::table('invoices')
+            ->join('siswa', 'invoices.id_siswa', '=', 'siswa.id_siswa')
+            ->leftJoin('kelas', 'siswa.id_kelas', '=', 'kelas.id_kelas')
+            ->select(
+                'invoices.id as raw_id',
+                DB::raw("CASE 
+                    WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PENDING' THEN 'pendaftaran_pending'
+                    WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PAID' THEN 'pendaftaran_lunas'
+                    ELSE 'pembayaran_lunas' END as type"),
+                DB::raw("CASE 
+                    WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PENDING' THEN 'Pendaftaran Baru'
+                    WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PAID' THEN 'Pendaftaran Lunas'
+                    ELSE CONCAT('Pembayaran ', UPPER(REPLACE(invoices.type, '_', ' '))) END as title"),
+                DB::raw("CONCAT(siswa.nama_siswa, ' ', CASE 
+                    WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PENDING' THEN 'mendaftar (menunggu pembayaran)'
+                    WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PAID' THEN 'melunasi pendaftaran'
+                    ELSE 'telah membayar tagihan' END) as description"),
+                'invoices.total_amount as amount',
+                DB::raw("COALESCE(invoices.paid_at, invoices.updated_at) as date"),
+                'siswa.id_siswa',
+                'siswa.nama_siswa',
+                'siswa.id_kelas',
+                'kelas.nama_kelas',
+                'invoices.periode_tagihan',
+                'invoices.type as original_type'
+            )
+            ->whereIn('invoices.status', ['PAID', 'PENDING']);
+
+        $leaves = DB::table('student_leaves')
+            ->join('siswa', 'student_leaves.id_siswa', '=', 'siswa.id_siswa')
+            ->leftJoin('kelas', 'siswa.id_kelas', '=', 'kelas.id_kelas')
+            ->select(
+                'student_leaves.id as raw_id',
+                DB::raw("'cuti_disetujui' as type"),
+                DB::raw("'Cuti Disetujui' as title"),
+                DB::raw("CONCAT(siswa.nama_siswa, ' disetujui untuk cuti') as description"),
+                DB::raw("NULL as amount"),
+                'student_leaves.updated_at as date',
+                'siswa.id_siswa',
+                'siswa.nama_siswa',
+                'siswa.id_kelas',
+                'kelas.nama_kelas',
+                DB::raw("NULL as periode_tagihan"),
+                DB::raw("NULL as original_type")
+            )
+            ->where('student_leaves.status', 'approved');
+
+        $resigns = DB::table('siswa')
+            ->leftJoin('kelas', 'siswa.id_kelas', '=', 'kelas.id_kelas')
+            ->select(
+                'siswa.id_siswa as raw_id',
+                DB::raw("'siswa_resign' as type"),
+                DB::raw("'Siswa Resign' as title"),
+                DB::raw("CONCAT(siswa.nama_siswa, ' telah resign') as description"),
+                DB::raw("NULL as amount"),
+                'siswa.updated_at as date',
+                'siswa.id_siswa',
+                'siswa.nama_siswa',
+                'siswa.id_kelas',
+                'kelas.nama_kelas',
+                DB::raw("NULL as periode_tagihan"),
+                DB::raw("NULL as original_type")
+            )
+            ->where('siswa.status_siswa', 'Resign');
+
+        $sub = $invoices->union($leaves)->union($resigns);
+        
+        // Use fromSub to ensure correct binding order instead of DB::raw and mergeBindings
+        $query = DB::query()->fromSub($sub, 'activities');
+
+        if ($search) {
+            $query->where('nama_siswa', 'LIKE', "%{$search}%");
+        }
+        if ($typeFilter) {
+            $query->where('type', $typeFilter);
+        }
+        if ($startDate) {
+            $query->whereDate('date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('date', '<=', $endDate);
+        }
+        if ($kelasId) {
+            $query->where('id_kelas', $kelasId);
+        }
+
+        $sortDirection = $sort === 'asc' ? 'asc' : 'desc';
+        $query->orderBy('date', $sortDirection);
+
+        return $query;
+    }
+
+    public function aktivitas(Request $request)
     {
         if (!$request->user()->can('manage_all_tagihan')) {
             abort(403);
         }
 
-        $query = Invoice::with(['siswa' => function($q) {
-            $q->select('id_siswa', 'nama_siswa', 'id_kelas')->with('kelas:id_kelas,nama_kelas');
-        }])
-        ->whereIn('status', ['PAID', 'SETTLED'])
-        ->whereNotNull('paid_at')
-        ->whereNull('parent_payment_id');
+        $search = $request->input('search');
+        $typeFilter = $request->input('type');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $sort = $request->input('sort', 'desc');
+        $kelasId = $request->input('kelas_id');
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->input('type'));
-        }
+        $query = $this->buildAktivitasQuery($search, $typeFilter, $startDate, $endDate, $sort, $kelasId);
 
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->whereHas('siswa', function($q) use ($search) {
-                $q->where('nama_siswa', 'LIKE', "%{$search}%");
-            });
-        }
-
-        $payments = $query->orderBy('paid_at', 'desc')->paginate(20)->withQueryString()->through(function($invoice) {
-            $isSingle = $invoice->type === 'pembayaran_spp_gabungan' && is_array($invoice->selected_periods) && count($invoice->selected_periods) === 1;
+        $activities = $query->paginate(20)->withQueryString()->through(function($act) {
+            $desc = $act->description;
+            if ($act->original_type === 'spp' && $act->periode_tagihan) {
+                $bulan = \Carbon\Carbon::parse($act->periode_tagihan)->isoFormat('MMMM YYYY');
+                $desc .= ' bulan ' . $bulan;
+            }
             
             return [
-                'id' => $invoice->id,
-                'siswa_nama' => $invoice->siswa?->nama_siswa ?? 'N/A',
-                'kelas_nama' => $invoice->siswa?->kelas?->nama_kelas ?? 'N/A',
-                'type' => $invoice->type,
-                'is_single_gabungan' => $isSingle,
-                'description' => $invoice->description,
-                'total_amount' => $invoice->total_amount,
-                'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
-                'payment_method' => $invoice->payment_method ?? 'Transfer Bank (Lainnya)',
-                'paid_at' => Carbon::parse($invoice->paid_at)->isoFormat('D MMM YYYY, HH:mm'),
+                'id' => $act->raw_id,
+                'type' => $act->type,
+                'title' => $act->title,
+                'description' => $desc,
+                'amount' => $act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : null,
+                'date' => \Carbon\Carbon::parse($act->date)->diffForHumans(),
+                'date_full' => \Carbon\Carbon::parse($act->date)->isoFormat('D MMM YYYY, HH:mm'),
+                'id_siswa' => $act->id_siswa,
+                'nama_siswa' => $act->nama_siswa,
+                'nama_kelas' => $act->nama_kelas ?? '-'
             ];
         });
 
-        // Hitung total penerimaan hari ini & bulan ini (tanpa double count)
+        // Hitung statistik bulanan & harian dari tabel aslinya
         $todayTotal = Invoice::whereIn('status', ['PAID', 'SETTLED'])
             ->whereDate('paid_at', Carbon::today())
             ->whereNull('parent_payment_id')
@@ -183,14 +272,87 @@ class LaporanController extends Controller
             ->whereNull('parent_payment_id')
             ->sum('total_amount');
 
-        return Inertia::render('Admin/Laporan/RiwayatPembayaran', [
-            'pageTitle' => 'Riwayat Pembayaran (Log)',
-            'payments' => $payments,
-            'filters' => $request->only(['search', 'type']),
+        $kelasList = Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']);
+
+        return Inertia::render('Admin/Laporan/Aktivitas', [
+            'pageTitle' => 'Riwayat Aktivitas Publik',
+            'activities' => $activities,
+            'kelasList' => $kelasList,
+            'filters' => $request->only(['search', 'type', 'start_date', 'end_date', 'sort', 'kelas_id']),
             'stats' => [
                 'today' => 'Rp ' . number_format($todayTotal, 0, ',', '.'),
                 'month' => 'Rp ' . number_format($monthTotal, 0, ',', '.'),
             ]
         ]);
+    }
+
+    public function exportAktivitas(Request $request)
+    {
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        // Validate date range max 31 days to prevent memory exhaustion
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $start = \Carbon\Carbon::parse($request->input('start_date'));
+        $end = \Carbon\Carbon::parse($request->input('end_date'));
+        if ($start->diffInDays($end) > 31) {
+            abort(400, 'Rentang tanggal maksimal adalah 31 hari untuk mencegah kegagalan ekspor.');
+        }
+
+        // Tingkatkan batas waktu dan memori untuk laporan dengan ribuan data
+        set_time_limit(300);
+        ini_set('memory_limit', '2G');
+
+        $search = $request->input('search');
+        $typeFilter = $request->input('type');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $sort = $request->input('sort', 'desc');
+        $kelasId = $request->input('kelas_id');
+        $groupBy = filter_var($request->input('group_by', false), FILTER_VALIDATE_BOOLEAN);
+        $format = $request->input('format', 'pdf');
+
+        $query = $this->buildAktivitasQuery($search, $typeFilter, $startDate, $endDate, $sort, $kelasId);
+        $data = $query->get()->map(function($act) {
+            if ($act->original_type === 'spp' && $act->periode_tagihan) {
+                $bulan = \Carbon\Carbon::parse($act->periode_tagihan)->isoFormat('MMMM YYYY');
+                $act->description .= ' bulan ' . $bulan;
+            }
+            $act->nama_kelas = $act->nama_kelas ?? '-';
+            return $act;
+        });
+
+        if ($groupBy) {
+            $data = $data->groupBy('type');
+        }
+
+        $kelasName = null;
+        if ($kelasId) {
+            $k = Kelas::find($kelasId);
+            if ($k) $kelasName = $k->nama_kelas;
+        }
+
+        $viewData = [
+            'data' => $data,
+            'groupBy' => $groupBy,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'typeFilter' => $typeFilter,
+            'kelasName' => $kelasName,
+        ];
+
+        if ($format === 'excel') {
+            $filename = 'laporan-aktivitas-' . date('YmdHis') . '.xlsx';
+            return Excel::download(new \App\Exports\AktivitasExport($viewData), $filename);
+        }
+
+        // Default PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.aktivitas', $viewData);
+        return $pdf->download('laporan-aktivitas-' . date('YmdHis') . '.pdf');
     }
 }

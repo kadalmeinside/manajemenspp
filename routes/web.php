@@ -159,7 +159,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');
             Route::resource('promos', PromoController::class)->except(['show']);
             Route::get('laporan/pembayaran-bulanan', [LaporanController::class, 'pembayaranBulanan'])->name('laporan.pembayaran_bulanan');
-            Route::get('laporan/riwayat-pembayaran', [LaporanController::class, 'riwayatPembayaran'])->name('laporan.riwayat_pembayaran');
+            Route::get('laporan/aktivitas', [LaporanController::class, 'aktivitas'])->name('laporan.aktivitas');
+            Route::get('laporan/aktivitas/export', [LaporanController::class, 'exportAktivitas'])->name('laporan.aktivitas.export');
             Route::get('laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
             Route::get('jobs', [\App\Http\Controllers\Admin\JobBatchController::class, 'index'])->name('jobs.index');
 

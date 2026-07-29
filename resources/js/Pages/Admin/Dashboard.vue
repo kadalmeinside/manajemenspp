@@ -357,15 +357,16 @@ const getJobStatusClass = (status) => {
                 <div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3 px-2 sm:px-0">
                     <!-- Kartu Aktivitas dengan Tab -->
                     <div class="lg:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow-sm rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <div class="px-6 pt-6">
+                        <div class="px-6 pt-6 flex justify-between items-center">
                             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Aktivitas Terbaru</h3>
-                            <div class="mt-4 border-b border-gray-100 dark:border-gray-700">
+                            <Link :href="route('admin.laporan.aktivitas')" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">Lihat Semua</Link>
+                        </div>
+                        <div class="px-6 mt-4 border-b border-gray-100 dark:border-gray-700">
                                 <nav class="-mb-px flex space-x-6" aria-label="Tabs">
                                     <button @click="activeTab = 'aktivitas'" :class="[activeTab === 'aktivitas' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Aktivitas Publik</button>
                                     <button @click="activeTab = 'jobs'" :class="[activeTab === 'jobs' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300', 'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition']">Proses Latar</button>
                                 </nav>
                             </div>
-                        </div>
                         
                         <div class="p-6 max-h-[400px] overflow-y-auto">
                             <div v-if="activeTab === 'aktivitas'">
