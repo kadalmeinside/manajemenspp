@@ -64,7 +64,9 @@ class CekSppController extends Controller
 
         // Jika hanya ditemukan satu siswa, langsung arahkan ke halaman tagihan
         if ($foundSiswa->count() === 1) {
-            return Redirect::route('tagihan.spp.show', $foundSiswa->first()->id_siswa);
+            $siswa = $foundSiswa->first();
+            session(['verified_spp_siswa_id' => $siswa->id_siswa]);
+            return Redirect::route('tagihan.spp.show', $siswa->id_siswa);
         }
 
         // Jika lebih dari satu, tampilkan halaman pilihan
@@ -80,10 +82,27 @@ class CekSppController extends Controller
     }
 
     /**
+     * Memproses pemilihan siswa jika ada lebih dari satu siswa dengan nomor yang sama.
+     */
+    public function selectSiswa(Request $request)
+    {
+        $validated = $request->validate([
+            'id_siswa' => 'required|uuid|exists:siswa,id_siswa'
+        ]);
+
+        session(['verified_spp_siswa_id' => $validated['id_siswa']]);
+        return Redirect::route('tagihan.spp.show', $validated['id_siswa']);
+    }
+
+    /**
      * Menampilkan halaman tagihan lengkap untuk siswa yang dipilih.
      */
     public function showTagihan(Request $request, Siswa $siswa): Response
     {
+        if (session('verified_spp_siswa_id') !== $siswa->id_siswa) {
+            return Redirect::route('tagihan.spp.form')->withErrors(['error' => 'Sesi Anda tidak valid atau telah berakhir. Silakan cari kembali data siswa.']);
+        }
+
         $siswa->load('user');
 
         $pendingSppInvoices = $siswa->invoices()
@@ -202,6 +221,10 @@ class CekSppController extends Controller
      */
     public function createUserAndLink(Request $request, Siswa $siswa)
     {
+        if (session('verified_spp_siswa_id') !== $siswa->id_siswa) {
+            return Redirect::route('tagihan.spp.form')->withErrors(['error' => 'Sesi tidak valid.']);
+        }
+
         if ($siswa->user()->exists()) {
             return Redirect::back()->withErrors(['form' => 'Siswa ini sudah memiliki akun.']);
         }
@@ -246,6 +269,10 @@ class CekSppController extends Controller
      */
     public function createSppPayment(Request $request, Siswa $siswa, XenditService $xenditService)
     {
+        if (session('verified_spp_siswa_id') !== $siswa->id_siswa) {
+            return Redirect::route('tagihan.spp.form')->withErrors(['error' => 'Sesi tidak valid.']);
+        }
+
         $validated = $request->validate([
             'periods' => 'required|array|min:1',
             'periods.*' => 'required|date_format:Y-m-d',

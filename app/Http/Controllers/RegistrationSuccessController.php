@@ -13,8 +13,7 @@ class RegistrationSuccessController extends Controller
      */
     public function show(Request $request, Siswa $siswa)
     {
-        // Tidak perlu lagi memeriksa session, karena data siswa sudah dijamin ada
-        // berkat Route Model Binding.
+        // URL is now signed via middleware
 
         $siswa->load('kelas');
 

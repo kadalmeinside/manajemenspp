@@ -32,6 +32,21 @@ class StudentLeaveController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
+        if (!auth()->check()) {
+            $validSessionSiswaId = session('verified_spp_siswa_id') ?? session('checked_siswa_id');
+            if ($validSessionSiswaId !== $validated['id_siswa']) {
+                abort(403, 'Akses ditolak: Sesi tidak valid untuk pengajuan cuti ini.');
+            }
+        } else {
+            // Jika sudah login (siswa dashboard), pastikan dia adalah pemilik anak
+            if (auth()->user()->hasRole('siswa')) {
+                $isOwnChild = auth()->user()->siswas()->where('id_siswa', $validated['id_siswa'])->exists();
+                if (!$isOwnChild) {
+                    abort(403, 'Akses ditolak: Anda tidak berhak mengajukan cuti untuk siswa ini.');
+                }
+            }
+        }
+
         $existsMonths = [];
         foreach ($validated['months'] as $month) {
             $exists = StudentLeave::where('id_siswa', $validated['id_siswa'])

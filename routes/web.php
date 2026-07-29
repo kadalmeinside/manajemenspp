@@ -81,7 +81,7 @@ Route::get('/daftar-academy', [RegistrationController::class, 'createAcademy'])-
 Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('register-ss.create');
 Route::post('/pendaftaran', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('pendaftaran.store');
 Route::post('/pendaftaran/check-email', [RegistrationController::class, 'checkEmail'])->middleware('throttle:30,1')->name('pendaftaran.check-email');
-Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');
+Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success')->middleware('signed');
 Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->middleware('throttle:30,1')->name('promo.validate');
 
 Route::get('/dashboard', function () {
@@ -202,6 +202,7 @@ Route::post('/student-leaves', [\App\Http\Controllers\StudentLeaveController::cl
 Route::controller(CekSppController::class)->group(function () {
     Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');
     Route::post('/cek-spp', 'findSiswaByPhone')->middleware('throttle:10,1')->name('tagihan.spp.find');
+    Route::post('/cek-spp/select', 'selectSiswa')->name('tagihan.spp.select');
     Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');
     Route::post('/cek-spp/{siswa}/create-user', 'createUserAndLink')->middleware('throttle:10,1')->name('tagihan.spp.create_user');
     Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->middleware('throttle:20,1')->name('tagihan.spp.pay');

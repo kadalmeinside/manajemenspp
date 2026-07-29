@@ -42,10 +42,16 @@ class UserAgreementController extends Controller
             'id_siswa.*' => 'exists:siswa,id_siswa',
         ]);
 
+        $validSessionSiswaId = session('verified_spp_siswa_id') ?? session('checked_siswa_id');
+
         $ipAddress = $request->ip();
         $userAgent = $request->userAgent();
 
         foreach ($validated['id_siswa'] as $idSiswa) {
+            if ($validSessionSiswaId !== $idSiswa) {
+                abort(403, 'Akses ditolak: Sesi tidak valid untuk siswa ini.');
+            }
+
             UserAgreement::create([
                 'user_id' => null, // Boleh null untuk jalur publik Cek SPP
                 'id_siswa' => $idSiswa,

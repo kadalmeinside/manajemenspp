@@ -92,7 +92,7 @@ const submitAgreement = () => {
 
 const selectSiswa = (siswa) => {
     isRedirecting.value = true;
-    router.get(route('tagihan.spp.show', siswa.id_siswa), {}, {
+    router.post(route('tagihan.spp.select'), { id_siswa: siswa.id_siswa }, {
         onFinish: () => isRedirecting.value = false
     });
 };
@@ -337,7 +337,7 @@ const formatPeriod = (dateStr) => {
                                     <p class="truncate text-sm font-medium text-gray-500 dark:text-gray-400">{{ siswa.kelas_nama }}</p>
                                 </div>
                             </div>
-                            <Link :href="route('tagihan.spp.show', siswa.id_siswa)" class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 transition-colors">Pilih</Link>
+                            <button @click="selectSiswa(siswa)" class="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 transition-colors">Pilih</button>
                         </div>
                     </div>
                      <div class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-6 max-w-md mx-auto">

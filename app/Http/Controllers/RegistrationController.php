@@ -258,7 +258,7 @@ class RegistrationController extends Controller
                     'external_id_xendit' => 'REG-'.$siswa->id_siswa.'-'.strtoupper(Str::random(6)),
                 ]);
 
-                $successUrl = route('registration.success', ['siswa' => $siswa->id_siswa]);
+                $successUrl = \Illuminate\Support\Facades\URL::signedRoute('registration.success', ['siswa' => $siswa->id_siswa]);
 
                 $payerInfo = ['email' => $user->email, 'name' => $user->name, 'phone' => $siswa->nomor_telepon_wali];
                 $xenditInvoiceData = $xenditService->createInvoice($biayaFinal, $adminFee, $deskripsi, $payerInfo, $invoice->external_id_xendit, $successUrl, route('payment.failure'), now()->addMinutes(30), ['email', 'whatsapp']);
