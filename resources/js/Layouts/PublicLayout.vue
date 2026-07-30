@@ -99,7 +99,7 @@ onUnmounted(() => {
                     <Link @click="mobileMenuOpen = false" :href="route('welcome')" :class="['block w-full text-left py-2 px-3 text-base font-medium rounded-md', page.component === 'Welcome' ? 'bg-red-600 text-white' : 'text-white/80 hover:bg-zinc-700']">Beranda</Link>
                     
                     <div class="border-t border-zinc-700 pt-4 mt-4 flex flex-col space-y-3">
-                         <Link @click="mobileMenuOpen = false" :href="route('tagihan.check_form')" class="w-full text-center bg-white text-gray-900 font-bold py-2 px-5 rounded-md hover:bg-gray-200 transition-colors">Bayar SPP</Link>
+                         <Link @click="mobileMenuOpen = false" :href="route('tagihan.spp.form')" class="w-full text-center bg-white text-gray-900 font-bold py-2 px-5 rounded-md hover:bg-gray-200 transition-colors">Bayar SPP</Link>
                     </div>
                 </nav>
             </transition>

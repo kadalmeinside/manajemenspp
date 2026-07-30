@@ -20,7 +20,8 @@ const backUrl = computed(() => {
             return route('admin.dashboard');
         }
     }
-    return route('tagihan.check_form');
+    // Default untuk guest, arahkan ke form cek tagihan
+    return route('tagihan.spp.form');
 });
 </script>
 

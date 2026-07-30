@@ -6,6 +6,7 @@ import { CheckCircleIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
 const props = defineProps({
     pageTitle: String,
     siswaName: String,
+    siswaNis: String,
     invoice: Object,
 });
 
@@ -52,7 +53,7 @@ onMounted(() => {
                 
                 <p class="text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
                     Terima kasih. Pembayaran SPP untuk <br class="hidden sm:block">
-                    <strong class="text-gray-900 dark:text-white font-semibold">{{ siswaName }}</strong> telah kami terima dan tercatat di sistem.
+                    <strong class="text-gray-900 dark:text-white font-semibold">{{ siswaName }} (NIS: {{ siswaNis }})</strong> telah kami terima dan tercatat di sistem.
                 </p>
 
                 <!-- Receipt Details (If Invoice Exists) -->

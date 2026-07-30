@@ -20,11 +20,11 @@ const backUrl = computed(() => {
         }
         // Jika admin, arahkan ke dashboard admin
         if (user.value.roles.includes('admin')) {
-            return route('tagihan.check_form');
+            return route('tagihan.spp.form');
         }
     }
     // Default untuk guest, arahkan ke form cek tagihan
-    return route('tagihan.check_form');
+    return route('tagihan.spp.form');
 });
 
 const showContent = ref(false);

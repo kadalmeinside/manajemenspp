@@ -188,13 +188,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
         Route::post('/tagihan/pay', [SiswaTagihanController::class, 'createUnifiedPayment'])->name('invoices.unified_pay');
 });
 
-Route::controller(CheckTagihanController::class)->group(function () {
-    Route::get('/cek-tagihan', 'showCheckForm')->name('tagihan.check_form');
-    Route::post('/cek-tagihan', 'findSiswa')->middleware('throttle:10,1')->name('tagihan.check_status');
-    Route::get('/cek-tagihan/hasil', 'showResult')->name('tagihan.check_result');
-    Route::post('/cek-tagihan/create-user', 'createUserAndLink')->middleware('throttle:10,1')->name('tagihan.create_user');
-    Route::post('/cek-tagihan/pay', 'createPublicPayment')->middleware('throttle:20,1')->name('tagihan.check_pay'); // Route pembayaran baru
-});
+
 
 // Route untuk Cuti Siswa (Public/Student)
 Route::post('/student-leaves', [\App\Http\Controllers\StudentLeaveController::class, 'store'])->name('student-leaves.store');

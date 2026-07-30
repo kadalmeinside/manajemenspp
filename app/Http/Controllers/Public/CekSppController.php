@@ -364,6 +364,7 @@ class CekSppController extends Controller
         return Inertia::render('Public/SppSuccess', [
             'pageTitle' => 'Pembayaran Berhasil',
             'siswaName' => $siswa->nama_siswa,
+            'siswaNis'  => $siswa->nis,
             'invoice' => $invoice,
         ]);
     }

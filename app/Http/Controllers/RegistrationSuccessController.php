@@ -20,6 +20,7 @@ class RegistrationSuccessController extends Controller
         return Inertia::render('Public/RegistrationSuccess', [
             'pageTitle' => 'Pendaftaran Berhasil',
             'siswaName' => $siswa->nama_siswa,
+            'siswaNis'  => $siswa->nis,
             'cabangName' => $siswa->kelas ? $siswa->kelas->nama_kelas : 'Persija',
             'adminContact' => '0811-2626-323',
             'instagramUrl' => 'https://www.instagram.com/persija.ac/',

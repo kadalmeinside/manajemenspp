@@ -7,6 +7,7 @@ import AnimatedBackground from '@/Components/AnimatedBackground.vue';
 const props = defineProps({
     pageTitle: String,
     siswaName: String,
+    siswaNis: String,
     cabangName: String,
     adminContact: String,
     instagramUrl: String,
@@ -56,7 +57,7 @@ onMounted(() => {
                 </h1>
                 
                 <p class="text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-                    Selamat, <strong class="text-gray-900 dark:text-white font-semibold">{{ siswaName }}</strong>!<br class="hidden sm:block">
+                    Selamat, <strong class="text-gray-900 dark:text-white font-semibold">{{ siswaName }} (NIS: {{ siswaNis }})</strong>!<br class="hidden sm:block">
                     Pembayaran Anda telah kami terima dan pendaftaran untuk cabang <strong class="text-gray-900 dark:text-white font-semibold">{{ cabangName }}</strong> berhasil tercatat di sistem.
                 </p>
 
