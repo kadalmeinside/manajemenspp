@@ -774,6 +774,18 @@ class InvoiceController extends Controller
             'bukti_pembayaran' => $buktiPath,
         ]);
 
+        // Jika tagihan pendaftaran, ubah status siswa menjadi Aktif
+        if ($invoice->type === 'pendaftaran') {
+            $siswa = $invoice->siswa;
+            if ($siswa && strtolower($siswa->status_siswa) !== 'aktif') {
+                $siswa->update(['status_siswa' => 'Aktif']);
+                Log::info('[Manual Pay] Siswa berhasil diaktifkan setelah bayar pendaftaran secara manual.', [
+                    'id_siswa' => $siswa->id_siswa,
+                    'invoice_id' => $invoice->id
+                ]);
+            }
+        }
+
         // Kirim notifikasi sukses
         return Redirect::back()->with([
             'type' => 'success',

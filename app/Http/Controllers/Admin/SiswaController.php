@@ -213,7 +213,10 @@ class SiswaController extends Controller
 
         $invoicesQuery = $siswa->invoices()
             ->whereIn('type', $finalInvoiceTypes)
-            ->whereYear('periode_tagihan', $selectedTahun)
+            ->where(function ($query) use ($selectedTahun) {
+                $query->whereYear('periode_tagihan', $selectedTahun)
+                      ->orWhere('type', 'pendaftaran');
+            })
             ->with('paymentParent') // Eager load relasi ke induk pembayaran
             ->orderBy('periode_tagihan', 'asc');
 
