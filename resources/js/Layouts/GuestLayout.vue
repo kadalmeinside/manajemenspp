@@ -1,5 +1,6 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import GlobalLoader from '@/Components/GlobalLoader.vue';
 </script>
 
 <template>
@@ -32,6 +33,8 @@ import { Link } from '@inertiajs/vue3';
         <div class="relative z-10 w-full min-h-screen sm:min-h-0 flex flex-col justify-center sm:max-w-md px-6 py-8 sm:px-10 sm:py-10 mx-0 backdrop-blur-xl bg-white/70 sm:bg-white/80 border-0 sm:border border-white/50 shadow-2xl rounded-none sm:rounded-3xl">
             <slot />
         </div>
+        
+        <GlobalLoader />
     </div>
 </template>
 

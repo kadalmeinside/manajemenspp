@@ -249,9 +249,9 @@ class LaporanController extends Controller
 
         $activities = $query->paginate(20)->withQueryString()->through(function($act) {
             $desc = $act->description;
-            if ($act->original_type === 'spp' && $act->periode_tagihan) {
-                $bulan = \Carbon\Carbon::parse($act->periode_tagihan)->isoFormat('MMMM YYYY');
-                $desc .= ' bulan ' . $bulan;
+            if (in_array($act->original_type, ['spp', 'pembayaran_spp_gabungan']) && $act->periode_tagihan) {
+                $bulan = \Carbon\Carbon::parse($act->periode_tagihan)->translatedFormat('F Y');
+                $desc .= ' untuk SPP bulan ' . $bulan;
             }
             
             return [

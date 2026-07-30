@@ -371,7 +371,7 @@ class StudentLeaveController extends Controller
                 }
 
                 $studentLeave->update([
-                    'status' => 'cancelled',
+                    'status' => 'rejected',
                     'approved_by' => $request->user()->id,
                 ]);
             });

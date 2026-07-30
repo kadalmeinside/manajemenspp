@@ -104,7 +104,6 @@ class SiswaController extends Controller
 
     private function getSiswaDataForEdit(Siswa $siswa)
     {
-        $siswa->load('user');
         return [
             'id_siswa' => $siswa->id_siswa,
             'nama_siswa' => $siswa->nama_siswa,
@@ -216,7 +215,7 @@ class SiswaController extends Controller
             ->whereIn('type', $finalInvoiceTypes)
             ->whereYear('periode_tagihan', $selectedTahun)
             ->with('paymentParent') // Eager load relasi ke induk pembayaran
-            ->orderBy('periode_tagihan', 'desc');
+            ->orderBy('periode_tagihan', 'asc');
 
         $pendingInvoices = (clone $invoicesQuery)->where('status', 'PENDING')->get();
         $paidInvoices = (clone $invoicesQuery)->where('status', 'PAID')->get();

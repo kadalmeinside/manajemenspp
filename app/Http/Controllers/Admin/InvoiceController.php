@@ -74,7 +74,9 @@ class InvoiceController extends Controller
         $statusPembayaranOptions = ['PENDING', 'PAID', 'EXPIRED', 'FAILED', 'REFUNDED'];
 
         $allKelasQuery = Kelas::orderBy('nama_kelas');
-        $allSiswaQuery = Siswa::with(['user:id,email', 'kelas:id_kelas,nama_kelas'])->orderBy('nama_siswa');
+        $allSiswaQuery = Siswa::with(['user:id,email', 'kelas:id_kelas,nama_kelas'])
+            ->select('id_siswa', 'nama_siswa', 'id_kelas', 'id_user', 'jumlah_spp_custom', 'admin_fee_custom')
+            ->orderBy('nama_siswa', 'asc');
         if ($user->hasRole('admin_kelas')) {
             $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
             $allKelasQuery->whereIn('id_kelas', $managedKelasIds);
@@ -477,9 +479,9 @@ class InvoiceController extends Controller
         $successCount = 0;
         $failCount = 0;
 
-        foreach ($siswaDiKelas as $siswa) {
-            try {
-                DB::transaction(function () use ($siswa, $validated, $kelas, $periodeTagihan, $tanggalJatuhTempo, $request, &$successCount) {
+        DB::transaction(function () use ($siswaDiKelas, $validated, $kelas, $periodeTagihan, $tanggalJatuhTempo, $request, &$successCount, &$failCount) {
+            foreach ($siswaDiKelas as $siswa) {
+                try {
                     $jumlahSPP = ($validated['jenis_jumlah_spp'] === 'manual') ? $validated['jumlah_spp_manual'] : ($siswa->jumlah_spp_custom ?? $kelas->biaya_spp_default ?? 0);
                     
                     // Cek Cuti
@@ -493,7 +495,7 @@ class InvoiceController extends Controller
                     $sppAmount = $approvedLeave ? $cutiAmount : (float) $jumlahSPP;
 
                     if ($sppAmount <= 0) {
-                        return;
+                        continue;
                     }
 
                     $deskripsi = "SPP {$periodeTagihan->isoFormat('MMMM Y')} - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
@@ -519,13 +521,13 @@ class InvoiceController extends Controller
                     }
                     
                     $successCount++;
-                });
-            } catch (Throwable $e) {
-                Log::error("[Bulk Store Sync] Gagal memproses invoice untuk siswa: {$siswa->id_siswa}. Error: " . $e->getMessage());
-                $failCount++;
-                continue; 
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("[Bulk Store Sync] Gagal memproses invoice untuk siswa: {$siswa->id_siswa}. Error: " . $e->getMessage());
+                    $failCount++;
+                    continue; 
+                }
             }
-        }
+        });
 
         $message = "Proses pembuatan tagihan massal selesai. Berhasil: {$successCount}, Gagal/Dilewati: {$failCount}.";
 

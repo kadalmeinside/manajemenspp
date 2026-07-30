@@ -346,7 +346,7 @@ const underDevelopmentAlert = () => {
                 <Link :href="route('admin.siswa.index')" class="text-gray-400 hover:text-gray-600">
                     <ArrowLeftIcon class="h-5 w-5" />
                 </Link>
-                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+                <h2 class="font-semibold text-base sm:text-xl text-gray-800 dark:text-gray-200 leading-tight">
                     {{ pageTitle }}: {{ siswa.nama_siswa }}
                 </h2>
             </div>
@@ -354,21 +354,21 @@ const underDevelopmentAlert = () => {
 
          <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="pb-12 pt-4 max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
+        <div class="pb-12 pt-4 max-w-7xl mx-auto space-y-6 px-3 sm:px-6 lg:px-8">
             
             <!-- Modern Header Profile -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-visible border border-gray-100 dark:border-gray-700">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm rounded-2xl overflow-visible border border-gray-200/50 dark:border-gray-700/50">
                 <div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div class="flex items-center gap-6">
-                        <div class="h-20 w-20 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0 border-4 border-white dark:border-gray-800 shadow-sm">
-                            <span class="text-3xl font-bold text-indigo-700 dark:text-indigo-300">{{ siswa.nama_siswa.charAt(0) }}</span>
+                    <div class="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 sm:gap-6 w-full">
+                        <div class="h-24 w-24 sm:h-20 sm:w-20 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0 border-4 border-white dark:border-gray-800 shadow-sm mx-auto sm:mx-0">
+                            <span class="text-4xl sm:text-3xl font-bold text-indigo-700 dark:text-indigo-300">{{ siswa.nama_siswa.charAt(0) }}</span>
                         </div>
-                        <div>
-                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                        <div class="flex flex-col items-center sm:items-start w-full">
+                            <h3 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
                                 {{ siswa.nama_siswa }}
                                 <span class="px-3 py-1 rounded-full text-xs font-semibold shadow-sm" :class="getStatusClass(siswa.status_siswa)">{{ siswa.status_siswa }}</span>
                             </h3>
-                            <div class="mt-2 text-sm text-gray-500 dark:text-gray-400 flex flex-wrap gap-4">
+                            <div class="mt-3 sm:mt-2 text-sm text-gray-500 dark:text-gray-400 flex flex-col sm:flex-row sm:flex-wrap items-center sm:items-start gap-2 sm:gap-4">
                                 <span class="flex items-center gap-1"><UserIcon class="w-4 h-4 text-gray-400" /> NIS: {{ siswa.nis ?? 'Dalam Proses' }}</span>
                                 <span class="flex items-center gap-1"><BookOpenIcon class="w-4 h-4 text-gray-400" /> Kelas: {{ siswa.kelas_nama ?? 'Belum ada kelas' }}</span>
                                 <span class="flex items-center gap-1"><CalendarDaysIcon class="w-4 h-4 text-gray-400" /> Bergabung: {{ siswa.tanggal_bergabung_formatted ?? '-' }}</span>
@@ -422,13 +422,13 @@ const underDevelopmentAlert = () => {
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Kolom Kiri: Biodata -->
                 <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
-                        <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm rounded-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
+                        <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                                 <UserIcon class="w-5 h-5 mr-2 text-indigo-500" /> Informasi Detail
                             </h3>
                         </div>
-                        <div class="p-6">
+                        <div class="p-4 sm:p-6">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
                                 <div class="col-span-2 sm:col-span-1">
                                     <div class="flex justify-between items-center mb-3">
@@ -497,16 +497,16 @@ const underDevelopmentAlert = () => {
                     </div>
 
                     <!-- Card Pengaturan Keuangan -->
-                    <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
-                        <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm rounded-2xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50">
+                        <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center">
-                                <BanknotesIcon class="w-5 h-5 mr-2 text-green-500" /> Pengaturan Keuangan (Custom)
+                                <BanknotesIcon class="w-5 h-5 mr-2 text-green-500" /> Pengaturan Spp
                             </h3>
                              <button @click="openEditKeuangan" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition shadow-sm">
-                                <PencilIcon class="w-3.5 h-3.5 mr-1.5 text-gray-400" /> Edit Setelan
+                                <PencilIcon class="w-3.5 h-3.5 mr-1.5 text-gray-400" /> Edit
                             </button>
                         </div>
-                        <div class="p-6">
+                        <div class="p-4 sm:p-6">
                             <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Pengaturan ini akan menimpa standar tarif bulanan pada kelas/program siswa. Kosongkan (atau set ke 0) jika siswa ini mengikuti tarif standar.</p>
                             <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                                 <div>
@@ -601,12 +601,12 @@ const underDevelopmentAlert = () => {
                     </div>
 
                     <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
-                        <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                        <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                                 <DocumentArrowDownIcon class="w-5 h-5 mr-2 text-indigo-500" /> Legalitas & Persetujuan
                             </h3>
                         </div>
-                        <div class="p-6">
+                        <div class="p-4 sm:p-6">
                             <div v-if="legalAgreements.length > 0" class="space-y-4">
                                 <div v-for="agreement in legalAgreements" :key="agreement.id" class="rounded-md bg-green-50 dark:bg-green-900/30 p-4 border border-green-200 dark:border-green-800/50">
                                     <div class="flex">
@@ -651,7 +651,7 @@ const underDevelopmentAlert = () => {
 
             <!-- Riwayat Invoice -->
             <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
-                 <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                 <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                         <BanknotesIcon class="w-5 h-5 mr-2 text-indigo-500" /> Riwayat Keuangan
                     </h3>
@@ -661,7 +661,7 @@ const underDevelopmentAlert = () => {
                 </div>
                 
                 <div class="border-b border-gray-200 dark:border-gray-700">
-                    <nav class="-mb-px flex space-x-6 px-6 overflow-x-auto scrollbar-hide" aria-label="Tabs">
+                    <nav class="-mb-px flex space-x-6 px-4 sm:px-6 overflow-x-auto scrollbar-hide" aria-label="Tabs">
                         <button @click="activeTab = 'pending'" :class="[activeTab === 'pending' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700', 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center']">
                             Tertunda <span class="ml-2 inline-flex items-center justify-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">{{ pendingInvoices.length }}</span>
                         </button>
@@ -755,7 +755,7 @@ const underDevelopmentAlert = () => {
 
         <!-- Modal Edit Info Pribadi -->
         <Modal :show="isEditPribadiOpen" @close="closeModal" :maxWidth="'md'">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6 border-b pb-3 dark:border-gray-700">Edit Info Pribadi</h2>
                 <form @submit.prevent="submitUpdate" class="space-y-6" novalidate>
                     <div>
@@ -778,7 +778,7 @@ const underDevelopmentAlert = () => {
 
         <!-- Modal Edit Info Wali -->
         <Modal :show="isEditWaliOpen" @close="closeModal" :maxWidth="'md'">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6 border-b pb-3 dark:border-gray-700">Edit Info Wali & Akun Login</h2>
                 <form @submit.prevent="submitUpdate" class="space-y-6" novalidate>
                     <div>
@@ -816,7 +816,7 @@ const underDevelopmentAlert = () => {
 
         <!-- Modal Edit Akademik -->
         <Modal :show="isEditAkademikOpen" @close="closeModal" :maxWidth="'md'">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6 border-b pb-3 dark:border-gray-700">Edit Data Akademik</h2>
                 <form @submit.prevent="submitUpdate" class="space-y-6" novalidate>
                     <div>
@@ -853,7 +853,7 @@ const underDevelopmentAlert = () => {
 
         <!-- Modal Edit Keuangan -->
         <Modal :show="isEditKeuanganOpen" @close="closeModal" :maxWidth="'md'">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6 border-b pb-3 dark:border-gray-700">Edit Pengaturan Keuangan</h2>
                 <form @submit.prevent="submitUpdate" class="space-y-6" novalidate>
                     <div>
@@ -886,7 +886,7 @@ const underDevelopmentAlert = () => {
 
         <!-- Modal Konfirmasi Pembayaran Manual -->
         <Modal :show="showManualPayConfirmModal" @close="showManualPayConfirmModal = false" maxWidth="md">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                  <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                     Konfirmasi Pembayaran Manual
                 </h2>
@@ -918,7 +918,7 @@ const underDevelopmentAlert = () => {
         </Modal>
         <!-- Modal Konfirmasi Resign -->
         <Modal :show="showResignConfirmModal" @close="showResignConfirmModal = false" maxWidth="md">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                  <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                     Konfirmasi Nonaktifkan / Resign Siswa
                 </h2>
@@ -938,7 +938,7 @@ const underDevelopmentAlert = () => {
 
         <!-- Modal Proses Keluar (Resign) -->
         <Modal :show="showProsesKeluarModal" @close="showProsesKeluarModal = false" maxWidth="md">
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                  <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                     <ArrowRightOnRectangleIcon class="h-6 w-6 mr-2 text-red-500" />
                     Proses Keluar (Resign)

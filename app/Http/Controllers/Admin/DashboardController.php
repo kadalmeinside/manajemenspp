@@ -162,10 +162,21 @@ class DashboardController extends Controller
                     'amount' => $inv->total_amount
                 ]);
             } elseif ($inv->status === 'PAID') {
+                $desc = ($inv->siswa?->nama_siswa ?? 'Siswa') . ' telah membayar tagihan';
+                if (in_array($inv->type, ['spp', 'pembayaran_spp_gabungan']) && $inv->periode_tagihan) {
+                    $bulan = \Carbon\Carbon::parse($inv->periode_tagihan)->translatedFormat('F Y');
+                    $desc .= ' untuk SPP bulan ' . $bulan;
+                }
+                
+                $title = 'Pembayaran ' . strtoupper(str_replace('_', ' ', $inv->type));
+                if (in_array($inv->type, ['spp', 'pembayaran_spp_gabungan'])) {
+                    $title = 'Pembayaran SPP';
+                }
+
                 $activities->push([
                     'type' => 'pembayaran_lunas',
-                    'title' => 'Pembayaran ' . strtoupper(str_replace('_', ' ', $inv->type)),
-                    'description' => ($inv->siswa?->nama_siswa ?? 'Siswa') . ' telah membayar tagihan',
+                    'title' => $title,
+                    'description' => $desc,
                     'date' => $inv->paid_at ?? $inv->updated_at,
                     'id_siswa' => $inv->id_siswa,
                     'amount' => $inv->total_amount

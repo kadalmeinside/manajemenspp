@@ -8,6 +8,7 @@ import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Link, usePage, router, Head } from '@inertiajs/vue3';
 import JobStatusToast from '@/Components/JobStatusToast.vue';
+import GlobalLoader from '@/Components/GlobalLoader.vue';
 import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
@@ -173,7 +174,7 @@ const activeMenuName = computed(() => {
         <div v-if="mobileSidebarOpen" @click="mobileSidebarOpen = false" class="fixed inset-0 bg-black bg-opacity-50 z-20 transition-opacity md:hidden" aria-hidden="true"></div>
 
         <aside :class="[
-                    'fixed inset-y-0 left-0 z-30 bg-[--color-primary-800] text-gray-300 transform transition-transform duration-300 ease-in-out md:sticky md:translate-x-0 md:flex md:flex-col',
+                    'fixed inset-y-0 left-0 z-30 bg-gray-900 text-gray-300 transform transition-transform duration-300 ease-in-out md:sticky md:translate-x-0 md:flex md:flex-col',
                     mobileSidebarOpen ? 'translate-x-0 w-64 sm:w-72' : '-translate-x-full w-64 sm:w-72',
                     desktopSidebarOpen ? 'md:w-64' : 'md:w-20'
                 ]">
@@ -196,7 +197,7 @@ const activeMenuName = computed(() => {
                     <div v-if="!item.requiredRole || hasRole(item.requiredRole)">
                         <Link :href="item.route ? route(item.route) : '#'"
                               @click="mobileSidebarOpen = false"
-                              :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
+                              :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white']">
                             <component :is="item.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
                             <span v-show="desktopSidebarOpen || mobileSidebarOpen">{{ item.name }}</span>
                         </Link>
@@ -209,7 +210,7 @@ const activeMenuName = computed(() => {
                          <Link v-if="hasPermission(item.requiredPermission)"
                                :href="item.route ? route(item.route) : '#'"
                                @click="mobileSidebarOpen = false"
-                               :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
+                               :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white']">
                             <component :is="item.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
                             <span v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-1">{{ item.name }}</span>
                             <!-- Badge notifikasi untuk cuti pending -->
@@ -225,17 +226,17 @@ const activeMenuName = computed(() => {
                 <template v-if="canViewSystemMenu">
                     <h3 v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 pt-4 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sistem</h3>
                      <div>
-                        <button @click="toggleMenu('system')" :class="['w-full flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(systemMenu) ? 'bg-[--color-primary-600] text-white' : 'text-gray-300 hover:bg-[--color-primary-700] hover:text-white']">
+                        <button @click="toggleMenu('system')" :class="['w-full flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(systemMenu) ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white']">
                             <component :is="systemMenu.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
                             <span class="flex-1 text-left" v-show="desktopSidebarOpen || mobileSidebarOpen">{{ systemMenu.name }}</span>
                             <component :is="openMenus['system'] ? ChevronDownIcon : ChevronRightIcon" v-show="desktopSidebarOpen || mobileSidebarOpen" class="ml-1 flex-shrink-0 h-4 w-4 transform transition-transform duration-150" />
                         </button>
-                        <div v-show="openMenus['system']" class="mt-1 ml-4 pl-1 space-y-1 border-l border-[--color-primary-700]">
+                        <div v-show="openMenus['system']" class="mt-1 ml-4 pl-1 space-y-1 border-l border-gray-800">
                              <template v-for="child in systemMenu.children" :key="child.name">
                                 <Link v-if="hasPermission(child.requiredPermission)"
                                       :href="child.route ? route(child.route) : '#'"
                                       @click="mobileSidebarOpen = false"
-                                      :class="['block px-2 py-1.5 text-sm font-medium rounded-md', isLinkActive(child.current) ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-[--color-primary-700]']">
+                                      :class="['block px-2 py-1.5 text-sm font-medium rounded-md', isLinkActive(child.current) ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:bg-gray-800']">
                                     <span v-show="desktopSidebarOpen || mobileSidebarOpen">{{ child.name }}</span>
                                 </Link>
                              </template>
@@ -243,7 +244,7 @@ const activeMenuName = computed(() => {
                     </div>
                 </template>
             </nav>
-            <div v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-shrink-0 p-4 bg-black/10 border-t border-[--color-primary-700] text-center text-xs text-gray-400">
+            <div v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-shrink-0 p-4 bg-black/10 border-t border-gray-800 text-center text-xs text-gray-400">
                 <span v-if="appSettings.app_version || appSettings.app_build">
                     {{ appSettings.app_version ? `v${appSettings.app_version}` : '' }} 
                     {{ appSettings.app_build ? `(${appSettings.app_build})` : '' }}
@@ -359,6 +360,8 @@ const activeMenuName = computed(() => {
                 </div>
             </div>
         </Modal>
+        
+        <GlobalLoader />
     </div>
 </template>
 
