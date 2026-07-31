@@ -90,8 +90,11 @@ class XenditService
 
         $response = Http::withHeaders([
             'Authorization' => 'Basic ' . $encodedApiKey,
-            'Content-Type' => 'application/json',
-        ])->post("{$this->baseUrl}/v2/invoices", $payload);
+            'Content-Type'  => 'application/json',
+        ])
+        ->connectTimeout(10)   // 10 detik untuk koneksi
+        ->timeout(30)          // 30 detik maksimal menunggu respons Xendit
+        ->post("{$this->baseUrl}/v2/invoices", $payload);
 
         if ($response->successful()) {
             Log::info('[XenditService] Invoice created successfully.', ['external_id' => $externalId]);
