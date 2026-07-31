@@ -36,7 +36,7 @@ class RegistrationSuccess extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Pendaftaran Ulang Berhasil!',
+            subject: 'Pendaftaran Berhasil!',
         );
     }
 

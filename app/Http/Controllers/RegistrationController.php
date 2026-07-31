@@ -4,21 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Kelas;
 use App\Models\LegalDocument;
-use App\Models\Siswa;
+use App\Models\PendingRegistration;
 use App\Models\User;
-use App\Models\UserAgreement;
-use App\Models\Invoice;
-use App\Mail\RegistrationSuccess;
 use App\Services\XenditService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Throwable;
 
@@ -144,14 +138,8 @@ class RegistrationController extends Controller
     }
 
     /**
-     * Menyimpan data pendaftaran, membuat user & siswa pending, dan membuat invoice.
-     *
-     * ALUR 3 FASE (Production-safe):
-     *   Fase 1 — Transaksi DB: Simpan User, Siswa, Agreement, Invoice (TANPA panggil Xendit).
-     *             Status siswa = 'pending_payment'. Cepat & atomic.
-     *   Fase 2 — Xendit API: Panggil Xendit SETELAH DB commit. Jika gagal, cleanup data DB.
-     *             Siswa TIDAK pernah tersimpan permanen jika Xendit gagal.
-     *   Fase 3 — Email Queue: Kirim email async (tidak memblokir redirect ke Xendit).
+     * Menyimpan aplikasi pendaftaran sementara dan memanggil Xendit.
+     * Tidak membuat User/Siswa/Invoice.
      */
     public function store(Request $request, XenditService $xenditService)
     {
@@ -169,7 +157,6 @@ class RegistrationController extends Controller
             'email_wali.required'         => 'Alamat email wali wajib diisi.',
             'email_wali.email'            => 'Format alamat email tidak valid.',
             'nomor_telepon_wali.required' => 'Nomor WhatsApp wali wajib diisi.',
-            'user_password.required'      => 'Password wajib diisi.',
             'terms.accepted'              => 'Anda harus menyetujui syarat dan ketentuan yang berlaku.',
             'legal_document_id.required'  => 'Dokumen persetujuan wajib diisi.',
             'kode_promo.exists'           => 'Kode promo tidak ditemukan atau tidak valid.',
@@ -182,7 +169,6 @@ class RegistrationController extends Controller
             'user_name'            => 'required|string|max:255',
             'email_wali'           => 'required|string|email|max:255',
             'nomor_telepon_wali'   => 'required|string|max:20',
-            'user_password'        => ['required', Rules\Password::defaults()],
             'terms'                => 'accepted',
             'legal_document_id'    => 'required|exists:legal_documents,id',
             'kode_promo'           => 'nullable|string|exists:promos,kode_promo',
@@ -192,116 +178,99 @@ class RegistrationController extends Controller
         $validated['nama_siswa'] = Str::title(strtolower(trim($validated['nama_siswa'])));
         $validated['user_name']  = Str::title(strtolower(trim($validated['user_name'])));
 
-        $kelas        = Kelas::findOrFail($validated['id_kelas']);
+        $kelas = Kelas::findOrFail($validated['id_kelas']);
+        
+        // Deteksi existing user (Anak sudah ada dan aktif)
         $existingUser = User::where('email', $validated['email_wali'])->with('siswas')->first();
-
         if ($existingUser) {
-            if (!Hash::check($validated['user_password'], $existingUser->password)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'user_password' => ['Email ini sudah terdaftar. Silakan masukkan password yang benar untuk menambah anak.'],
-                ]);
-            }
-
             $existingChildren = $existingUser->siswas
                 ->pluck('nama_siswa')
                 ->map(fn($name) => strtolower(trim($name)))
                 ->toArray();
 
             if (in_array(strtolower(trim($validated['nama_siswa'])), $existingChildren)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'nama_siswa' => ['Anak dengan nama ini sudah terdaftar di akun Anda.'],
+                return back()->withErrors([
+                    'nama_siswa' => 'Anak dengan nama ini sudah terdaftar di akun Anda. Jika sudah terdaftar, silakan login.',
                 ]);
             }
         }
 
-        // =============================================================
-        // FASE 1: Simpan semua data ke DB. XENDIT TIDAK DIPANGGIL SINI.
-        // =============================================================
-        $siswa     = null;
-        $user      = null;
-        $invoice   = null;
-        $isNewUser = false;
+        // Cek existing pending registration
+        $pendingReg = PendingRegistration::where('email_wali', $validated['email_wali'])
+            ->whereRaw('LOWER(nama_siswa) = ?', [strtolower(trim($validated['nama_siswa']))])
+            ->where('status', '!=', 'paid')
+            ->first();
 
-        try {
-            DB::transaction(function () use (
-                $validated, $kelas, $request, $existingUser,
-                &$siswa, &$user, &$invoice, &$isNewUser
-            ) {
-                $biayaFinal  = $kelas->getBiayaPendaftaranSaatIni($validated['kode_promo']);
-                $adminFee    = (float)($kelas->admin_fee_custom ?? 0);
-                $totalAmount = $biayaFinal + $adminFee;
+        $biayaFinal  = $kelas->getBiayaPendaftaranSaatIni($validated['kode_promo']);
+        $adminFee    = (float)($kelas->admin_fee_custom ?? 0);
+        $totalAmount = $biayaFinal + $adminFee;
+        $externalId  = 'PREG-' . strtoupper(Str::random(10));
 
-                if ($existingUser) {
-                    $user = $existingUser;
-                } else {
-                    $user = User::create([
-                        'name'     => $validated['user_name'],
-                        'email'    => $validated['email_wali'],
-                        'password' => Hash::make($validated['user_password']),
-                    ]);
-                    $user->assignRole('siswa');
-                    $isNewUser = true;
+        if ($pendingReg) {
+            // Update existing pending registration
+            // Jika ada invoice xendit lama yang pending, expire dulu
+            if ($pendingReg->xendit_invoice_id && $pendingReg->status === 'pending') {
+                try {
+                    $xenditService->expireInvoice($pendingReg->xendit_invoice_id);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to expire old xendit invoice: ' . $e->getMessage());
                 }
-
-                $siswa = Siswa::create([
-                    'nama_siswa'         => $validated['nama_siswa'],
-                    'tanggal_lahir'      => $validated['tanggal_lahir'],
-                    'id_kelas'           => $kelas->id_kelas,
-                    'id_user'            => $user->id,
-                    'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
-                    'status_siswa'       => 'pending_payment',   // ← SELALU pending_payment
-                    'tanggal_bergabung'  => now(),
-                    'jumlah_spp_custom'  => $kelas->biaya_spp_default,
-                    'admin_fee_custom'   => $adminFee,
-                ]);
-                $siswa->generateNis();
-
-                UserAgreement::create([
-                    'user_id'           => $user->id,
-                    'id_siswa'          => $siswa->id_siswa,
-                    'legal_document_id' => $validated['legal_document_id'],
-                    'agreed_at'         => now(),
-                    'ip_address'        => $request->ip(),
-                ]);
-
-                $deskripsi = "Biaya Pendaftaran - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
-                $invoice = Invoice::create([
-                    'id_siswa'           => $siswa->id_siswa,
-                    'user_id'            => $user->id,
-                    'type'               => 'pendaftaran',
-                    'description'        => $deskripsi,
-                    'amount'             => $biayaFinal,
-                    'admin_fee'          => $adminFee,
-                    'total_amount'       => $totalAmount,
-                    'due_date'           => now()->addMinutes(30),
-                    'status'             => 'PENDING',
-                    'external_id_xendit' => 'REG-' . $siswa->id_siswa . '-' . strtoupper(Str::random(6)),
-                ]);
-            });
-        } catch (Throwable $e) {
-            Log::error('[Pendaftaran] Gagal Fase 1 (DB): ' . $e->getMessage());
-            return back()->withErrors(['general' => 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.']);
+            }
+            
+            $pendingReg->update([
+                'nama_wali'          => $validated['user_name'],
+                'tanggal_lahir'      => $validated['tanggal_lahir'],
+                'id_kelas'           => $kelas->id_kelas,
+                'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
+                'kode_promo'         => $validated['kode_promo'],
+                'legal_document_id'  => $validated['legal_document_id'],
+                'ip_address'         => $request->ip(),
+                'amount'             => $biayaFinal,
+                'admin_fee'          => $adminFee,
+                'total_amount'       => $totalAmount,
+                'xendit_external_id' => $externalId,
+                'status'             => 'pending',
+                'expires_at'         => now()->addMinutes(30),
+            ]);
+        } else {
+            // Create new pending registration
+            $pendingReg = PendingRegistration::create([
+                'email_wali'         => $validated['email_wali'],
+                'nama_wali'          => $validated['user_name'],
+                'nama_siswa'         => $validated['nama_siswa'],
+                'tanggal_lahir'      => $validated['tanggal_lahir'],
+                'id_kelas'           => $kelas->id_kelas,
+                'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
+                'kode_promo'         => $validated['kode_promo'],
+                'legal_document_id'  => $validated['legal_document_id'],
+                'ip_address'         => $request->ip(),
+                'amount'             => $biayaFinal,
+                'admin_fee'          => $adminFee,
+                'total_amount'       => $totalAmount,
+                'xendit_external_id' => $externalId,
+                'status'             => 'pending',
+                'expires_at'         => now()->addMinutes(30),
+            ]);
         }
 
         // =============================================================
-        // FASE 2: Panggil Xendit. Jika gagal, cleanup data DB.
-        // Tidak ada data siswa tersimpan jika Xendit tidak bisa diakses.
+        // Panggil Xendit
         // =============================================================
-        $xenditInvoiceData = null;
         try {
-            $successUrl = route('registration.success', ['siswa' => $siswa->id_siswa]);
+            $successUrl = route('registration.success.pending', ['pending' => $pendingReg->id]);
             $payerInfo  = [
-                'email' => $user->email,
-                'name'  => $user->name,
-                'phone' => $siswa->nomor_telepon_wali,
+                'email' => $pendingReg->email_wali,
+                'name'  => $pendingReg->nama_wali,
+                'phone' => $pendingReg->nomor_telepon_wali,
             ];
+            $deskripsi = "Biaya Pendaftaran - {$pendingReg->nama_siswa}";
 
             $xenditInvoiceData = $xenditService->createInvoice(
-                $invoice->amount,
-                $invoice->admin_fee,
-                $invoice->description,
+                $pendingReg->amount,
+                $pendingReg->admin_fee,
+                $deskripsi,
                 $payerInfo,
-                $invoice->external_id_xendit,
+                $pendingReg->xendit_external_id,
                 $successUrl,
                 route('payment.failure'),
                 now()->addMinutes(30),
@@ -312,53 +281,22 @@ class RegistrationController extends Controller
                 throw new \Exception('Xendit tidak mengembalikan invoice_url yang valid.');
             }
 
-            $invoice->update([
+            $pendingReg->update([
                 'xendit_invoice_id'  => $xenditInvoiceData['id'],
                 'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
             ]);
 
-        } catch (Throwable $e) {
-            Log::error('[Pendaftaran] Gagal Fase 2 (Xendit). Membersihkan data DB.', [
-                'siswa_id' => $siswa->id_siswa ?? null,
-                'error'    => $e->getMessage(),
-            ]);
+            return Inertia::location($xenditInvoiceData['invoice_url']);
 
-            // Cleanup — hapus semua data yang baru saja dibuat
-            try {
-                DB::transaction(function () use ($siswa, $invoice, $user, $isNewUser) {
-                    $invoice?->forceDelete();
-                    $siswa?->agreements()->delete();
-                    $siswa?->forceDelete();
-                    if ($isNewUser) {
-                        $user?->delete();
-                    }
-                });
-            } catch (Throwable $cleanupEx) {
-                Log::critical('[Pendaftaran] Cleanup gagal! Data mungkin tertinggal di DB.', [
-                    'siswa_id' => $siswa->id_siswa ?? null,
-                    'error'    => $cleanupEx->getMessage(),
-                ]);
-            }
+        } catch (Throwable $e) {
+            Log::error('[Pendaftaran] Gagal panggil Xendit.', [
+                'pending_id' => $pendingReg->id,
+                'error'      => $e->getMessage(),
+            ]);
 
             return back()->withErrors([
                 'general' => 'Gagal membuat link pembayaran. Silakan coba beberapa saat lagi.',
             ]);
         }
-
-        // =============================================================
-        // FASE 3: Kirim email via queue (async) — tidak memblokir
-        // =============================================================
-        try {
-            Mail::to($user->email)->queue(new RegistrationSuccess([
-                'nama_wali'  => $user->name,
-                'nama_siswa' => $siswa->nama_siswa,
-                'nis'        => $siswa->nis,
-                'email_wali' => $user->email,
-            ]));
-        } catch (\Exception $mailEx) {
-            Log::warning('[Pendaftaran] Gagal mengantri email: ' . $mailEx->getMessage());
-        }
-
-        return Inertia::location($xenditInvoiceData['invoice_url']);
     }
 }

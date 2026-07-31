@@ -25,8 +25,6 @@ const form = useForm({
     user_name: '', 
     email_wali: '',
     nomor_telepon_wali: '',
-    user_password: '',
-    user_password_confirmation: '',
     terms: false,
 });
 
@@ -64,7 +62,6 @@ const checkEmail = async () => {
             emailExists.value = true;
             registeredChildren.value = response.data.children;
             // Kosongkan konfirmasi password karena tidak diperlukan lagi
-            form.user_password_confirmation = '';
         } else {
             emailExists.value = false;
             registeredChildren.value = [];
@@ -78,7 +75,7 @@ const checkEmail = async () => {
 
 const steps = [
     { number: 1, title: 'Data Siswa' },
-    { number: 2, title: 'Data Wali & Akun' },
+    { number: 2, title: 'Data Ortu/Wali' },
     { number: 3, title: 'Konfirmasi' }
 ];
 
@@ -96,11 +93,6 @@ const nextStep = () => {
         if (!form.user_name) { form.setError('user_name', 'Nama Lengkap Wali wajib diisi.'); hasError = true; }
         if (!form.nomor_telepon_wali) { form.setError('nomor_telepon_wali', 'Nomor WhatsApp Wali wajib diisi.'); hasError = true; }
         if (!form.email_wali) { form.setError('email_wali', 'Alamat Email Wali wajib diisi.'); hasError = true; }
-        if (!form.user_password) { form.setError('user_password', 'Password wajib diisi.'); hasError = true; }
-        if (!emailExists.value && form.user_password && form.user_password !== form.user_password_confirmation) {
-            form.setError('user_password_confirmation', 'Konfirmasi password tidak cocok.');
-            hasError = true;
-        }
     }
 
     if (!hasError) {
@@ -125,7 +117,7 @@ const submit = () => {
 
     form.post(route('pendaftaran.store'), {
         onError: () => {
-            form.reset('user_password', 'user_password_confirmation');
+            // form reset
         },
     });
 };
@@ -191,9 +183,9 @@ const formattedFee = computed(() => {
                     </div>
                 </div>
 
-                <!-- Data Wali & Akun -->
+                <!-- Data Ortu/Wali -->
                 <div v-show="currentStep === 2" class="pt-2">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Data Wali & Akun Login</h3>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Data Ortu/Wali</h3>
                     <div class="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
                         <div>
                             <InputLabel for="user_name" value="Nama Lengkap Wali" required/>
@@ -221,18 +213,8 @@ const formattedFee = computed(() => {
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
                                     Email Ditemukan
                                 </span>
-                                <p class="mt-1">Anda sudah terdaftar sebagai orang tua dari <strong>{{ registeredChildren.join(', ') }}</strong>. Silakan masukkan password akun Anda untuk melanjutkan pendaftaran anak ini.</p>
+                                <p class="mt-1">Anda sudah terdaftar sebagai orang tua dari <strong>{{ registeredChildren.join(', ') }}</strong>. Sistem mendeteksi Anda sudah terdaftar. Anda dapat langsung melanjutkan pendaftaran untuk anak ini.</p>
                             </div>
-                        </div>
-                        <div :class="{'sm:col-span-2': emailExists}">
-                            <InputLabel for="user_password" :value="emailExists ? 'Masukkan Password Akun Anda' : 'Buat Password'" required/>
-                            <TextInput id="user_password" v-model="form.user_password" @input="form.clearErrors('user_password')" type="password" class="mt-1 block w-full" placeholder="••••••••" required />
-                            <InputError :message="form.errors.user_password" class="mt-2" />
-                        </div>
-                        <div v-if="!emailExists">
-                            <InputLabel for="user_password_confirmation" value="Konfirmasi Password" required/>
-                            <TextInput id="user_password_confirmation" v-model="form.user_password_confirmation" @input="form.clearErrors('user_password_confirmation')" type="password" class="mt-1 block w-full" placeholder="••••••••" required />
-                            <InputError :message="form.errors.user_password_confirmation" class="mt-2" />
                         </div>
                     </div>
                     <div class="mt-12 mb-8 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">

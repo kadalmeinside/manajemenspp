@@ -139,7 +139,7 @@ const submit = () => {
             </fieldset>
 
             <fieldset class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <legend class="text-lg font-medium text-gray-900 dark:text-white">2. Data Wali & Akun Login</legend>
+                <legend class="text-lg font-medium text-gray-900 dark:text-white">2. Data Ortu/Wali</legend>
                 <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
                      <div>
                         <InputLabel for="user_name" value="Nama Lengkap Wali" required/>

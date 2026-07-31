@@ -26,4 +26,19 @@ class RegistrationSuccessController extends Controller
             'instagramUrl' => 'https://www.instagram.com/persija.ac/',
         ]);
     }
+
+    /**
+     * Menampilkan halaman pending payment.
+     */
+    public function showPending(Request $request, \App\Models\PendingRegistration $pending)
+    {
+        $kelas = \App\Models\Kelas::find($pending->id_kelas);
+        return Inertia::render('Public/RegistrationPending', [
+            'pageTitle'  => 'Menunggu Pembayaran',
+            'siswaName'  => $pending->nama_siswa,
+            'cabangName' => $kelas ? $kelas->nama_kelas : 'Persija',
+            'paymentUrl' => $pending->xendit_payment_url,
+            'expiresAt'  => $pending->expires_at,
+        ]);
+    }
 }

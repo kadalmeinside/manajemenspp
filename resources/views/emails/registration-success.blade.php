@@ -37,7 +37,7 @@
             Halo, <strong>{{ $registrationData['nama_wali'] }}</strong>,
         </p>
         <p>
-            Terima kasih telah melakukan pendaftaran ulang untuk ananda kami. Data telah berhasil kami simpan dengan detail sebagai berikut:
+            Terima kasih telah mendaftar. Data pendaftaran telah berhasil kami simpan dan pembayaran Anda telah kami terima. Berikut adalah detail siswa:
         </p>
         <table class="details-table">
             <tr>
@@ -52,17 +52,29 @@
                 <td>Email Wali</td>
                 <td>{{ $registrationData['email_wali'] }}</td>
             </tr>
+            @if(isset($registrationData['password']) && $registrationData['password'])
+            <tr>
+                <td>Password Login</td>
+                <td><strong>{{ $registrationData['password'] }}</strong></td>
+            </tr>
+            @endif
         </table>
 
+        @if(isset($registrationData['password']) && $registrationData['password'])
+        <p style="margin-top: 15px; font-size: 14px; color: #555;">
+            <em>Harap simpan email dan password di atas untuk login ke Dashboard Wali. Anda dapat mengubah password ini nanti setelah login.</em>
+        </p>
+        @endif
+
         <div class="button-container">
-            <a href="{{ url('/cek-spp') }}" class="login-button">Cek Tagihan SPP</a>
+            <a href="{{ url('/login') }}" class="login-button">Login Dashboard</a>
         </div>
         <p class="footer">
-            Untuk memantau tagihan dan riwayat pembayaran, Anda dapat selalu mengakses portal Cek SPP menggunakan nomor handphone wali terdaftar.
+            Gunakan email wali dan password untuk login ke portal dan memantau perkembangan serta tagihan SPP bulanan siswa.
             <br><br>
             Jika tombol di atas tidak berfungsi, silakan salin dan tempel URL berikut di browser Anda:
             <br>
-            <a href="{{ url('/cek-spp') }}">{{ url('/cek-spp') }}</a>
+            <a href="{{ url('/login') }}">{{ url('/login') }}</a>
         </p>
     </div>
 </body>

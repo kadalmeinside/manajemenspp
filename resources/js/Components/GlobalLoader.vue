@@ -14,9 +14,19 @@ const startLoader = () => {
     }, 200);
 };
 
+let isUnloading = false;
+window.addEventListener('beforeunload', () => {
+    isUnloading = true;
+});
+
 const stopLoader = () => {
-    if (timeout) clearTimeout(timeout);
-    isLoading.value = false;
+    // Beri sedikit jeda. Jika halaman sedang dialihkan (redirect) ke eksternal, 
+    // beforeunload akan terpanggil sehingga loader tidak menghilang (mencegah glitch).
+    setTimeout(() => {
+        if (isUnloading) return; 
+        if (timeout) clearTimeout(timeout);
+        isLoading.value = false;
+    }, 50);
 };
 
 onMounted(() => {

@@ -82,6 +82,7 @@ Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('reg
 Route::post('/pendaftaran', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('pendaftaran.store');
 Route::post('/pendaftaran/check-email', [RegistrationController::class, 'checkEmail'])->middleware('throttle:30,1')->name('pendaftaran.check-email');
 Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');
+Route::get('/pendaftaran/pending/{pending}', [RegistrationSuccessController::class, 'showPending'])->name('registration.success.pending');
 Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->middleware('throttle:30,1')->name('promo.validate');
 
 Route::get('/dashboard', function () {
