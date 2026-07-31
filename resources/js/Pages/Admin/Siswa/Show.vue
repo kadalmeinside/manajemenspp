@@ -354,7 +354,7 @@ const underDevelopmentAlert = () => {
 
          <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="pb-12 pt-4 max-w-7xl mx-auto space-y-6 px-3 sm:px-6 lg:px-8">
+        <div class="pt-4 space-y-6">
             
             <!-- Modern Header Profile -->
             <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm rounded-2xl overflow-visible border border-gray-200/50 dark:border-gray-700/50">
