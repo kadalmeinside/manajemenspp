@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 import { ClockIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
 import AnimatedBackground from '@/Components/AnimatedBackground.vue';
@@ -16,6 +16,10 @@ const page = usePage();
 const appLogo = computed(() => page.props.app_settings?.app_logo ? `/storage/${page.props.app_settings.app_logo}` : null);
 
 const showContent = ref(false);
+
+const checkStatus = () => {
+    router.reload();
+};
 
 onMounted(() => {
     setTimeout(() => {
@@ -78,6 +82,10 @@ onMounted(() => {
                 </div>
                 
                 <div class="mt-4 space-y-4">
+                    <button @click="checkStatus" class="group relative flex w-full justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-md hover:shadow-lg">
+                        Cek Status Pembayaran
+                    </button>
+                    
                     <a :href="paymentUrl" class="group relative flex w-full justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:focus:ring-white transition-all shadow-md hover:shadow-lg">
                         Lanjut ke Halaman Pembayaran
                     </a>

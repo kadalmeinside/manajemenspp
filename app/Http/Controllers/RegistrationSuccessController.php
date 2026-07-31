@@ -32,6 +32,17 @@ class RegistrationSuccessController extends Controller
      */
     public function showPending(Request $request, \App\Models\PendingRegistration $pending)
     {
+        if ($pending->status === 'paid') {
+            $siswa = \App\Models\Siswa::where('nama_siswa', $pending->nama_siswa)
+                        ->where('id_kelas', $pending->id_kelas)
+                        ->latest('created_at')
+                        ->first();
+                        
+            if ($siswa) {
+                return redirect(\Illuminate\Support\Facades\URL::signedRoute('registration.success', ['siswa' => $siswa->id_siswa]));
+            }
+        }
+
         $kelas = \App\Models\Kelas::find($pending->id_kelas);
         return Inertia::render('Public/RegistrationPending', [
             'pageTitle'  => 'Menunggu Pembayaran',
