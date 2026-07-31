@@ -41,13 +41,14 @@ class Invoice extends Model
     ];
 
     protected $casts = [
-        'periode_tagihan'  => 'date:Y-m-d',
-        'due_date'         => 'date:Y-m-d',
-        'paid_at'          => 'datetime',
-        'amount'           => 'decimal:2',
-        'admin_fee'        => 'decimal:2',
-        'total_amount'     => 'decimal:2',
-        'selected_periods' => 'array',  // Auto serialize/deserialize JSON
+        'periode_tagihan'         => 'date:Y-m-d',
+        'due_date'                => 'date:Y-m-d',
+        'paid_at'                 => 'datetime',
+        'amount'                  => 'decimal:2',
+        'admin_fee'               => 'decimal:2',
+        'total_amount'            => 'decimal:2',
+        'selected_periods'        => 'array',  // Auto serialize/deserialize JSON
+        'xendit_callback_payload' => 'array',
     ];
 
     public function childInvoices()
