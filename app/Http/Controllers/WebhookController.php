@@ -103,7 +103,7 @@ class WebhookController extends Controller
             }
 
             // === 5. PROSES PEMBAYARAN PAID ===
-            $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now());
+            $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now())->setTimezone(config('app.timezone'));
             $paymentMethod = $payload['payment_channel'] ?? $payload['payment_method'] ?? null;
 
             // Update invoice utama terlebih dahulu
@@ -397,7 +397,7 @@ class WebhookController extends Controller
             }
 
             // === PROSES PEMBUATAN AKUN & SISWA ===
-            $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now());
+            $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now())->setTimezone(config('app.timezone'));
             $passwordPlain = Str::random(10); // Generate acak
 
             // Cek apakah user sudah ada (berdasarkan email)
