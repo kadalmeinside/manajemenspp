@@ -267,7 +267,8 @@ class LaporanController extends Controller
                 'date_full' => \Carbon\Carbon::parse($act->date)->isoFormat('D MMM YYYY, HH:mm'),
                 'id_siswa' => $act->id_siswa,
                 'nama_siswa' => $act->nama_siswa,
-                'nama_kelas' => $act->nama_kelas ?? '-'
+                'nama_kelas' => $act->nama_kelas ?? '-',
+                'payment_method' => $act->payment_method ?? null
             ];
         });
 
