@@ -16,7 +16,13 @@ class PromoController extends Controller
      */
     public function index(Request $request)
     {
+        $search = $request->query('search');
+
         $promos = Promo::with('kelas:id_kelas,nama_kelas')
+            ->when($search, function($query, $search) {
+                $query->where('nama_promo', 'like', "%{$search}%")
+                      ->orWhere('kode_promo', 'like', "%{$search}%");
+            })
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
@@ -24,7 +30,8 @@ class PromoController extends Controller
         return Inertia::render('Admin/Promos/Index', [
             'pageTitle' => 'Manajemen Promo Pendaftaran',
             'promoList' => $promos,
-            'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']),
+            'filters'   => ['search' => $search],
+            'allKelas'  => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']),
         ]);
     }
 
