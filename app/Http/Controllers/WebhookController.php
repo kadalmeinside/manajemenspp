@@ -46,10 +46,10 @@ class WebhookController extends Controller
         $externalId = $payload['external_id'] ?? null;
         $payloadStatus = strtoupper($payload['status'] ?? '');
 
-        Log::info('[Xendit Webhook] Payload diterima.', [
-            'external_id' => $externalId,
-            'status'      => $payloadStatus,
-        ]);
+        // Log::info('[Xendit Webhook] Payload diterima.', [
+        //     'external_id' => $externalId,
+        //     'status'      => $payloadStatus,
+        // ]);
 
         // === 2. DETEKSI DUAL-MODE (PREG- vs REG-/SPP-) ===
         if (!$externalId) {
@@ -78,7 +78,7 @@ class WebhookController extends Controller
             // === 3. IDEMPOTENCY CHECK — Jangan proses dua kali! ===
             if ($invoice->status === 'PAID') {
                 DB::rollBack();
-                Log::info('[Xendit Webhook] Invoice sudah PAID sebelumnya, abaikan.', [
+                Log::warning('[Xendit Webhook] Invoice sudah PAID sebelumnya, abaikan.', [
                     'invoice_id'  => $invoice->id,
                     'external_id' => $externalId,
                 ]);
@@ -87,10 +87,10 @@ class WebhookController extends Controller
 
             // === 4. HANYA PROSES EVENT PAID ===
             if ($payloadStatus !== 'PAID') {
-                Log::info('[Xendit Webhook] Status bukan PAID, abaikan.', [
-                    'external_id' => $externalId,
-                    'status'      => $payloadStatus,
-                ]);
+                // Log::info('[Xendit Webhook] Status bukan PAID, abaikan.', [
+                //     'external_id' => $externalId,
+                //     'status'      => $payloadStatus,
+                // ]);
                 // Update status ke EXPIRED/FAILED jika relevan
                 if (in_array($payloadStatus, ['EXPIRED', 'FAILED'])) {
                     $invoice->update([
@@ -127,11 +127,11 @@ class WebhookController extends Controller
 
             DB::commit();
 
-            Log::info('[Xendit Webhook] Berhasil diproses.', [
-                'invoice_id'   => $invoice->id,
-                'type'         => $invoice->type,
-                'paid_at'      => $paidTimestamp,
-            ]);
+            // Log::info('[Xendit Webhook] Berhasil diproses.', [
+            //     'invoice_id'   => $invoice->id,
+            //     'type'         => $invoice->type,
+            //     'paid_at'      => $paidTimestamp,
+            // ]);
 
         } catch (Throwable $e) {
             DB::rollBack();
@@ -231,11 +231,11 @@ class WebhookController extends Controller
             $processedCount++;
         }
 
-        Log::info('[Webhook] Berhasil proses pembayaran_spp_gabungan.', [
-            'parent_invoice_id' => $parentInvoice->id,
-            'total_periods'     => count($selectedPeriods),
-            'processed'         => $processedCount,
-        ]);
+        // Log::info('[Webhook] Berhasil proses pembayaran_spp_gabungan.', [
+        //     'parent_invoice_id' => $parentInvoice->id,
+        //     'total_periods'     => count($selectedPeriods),
+        //     'processed'         => $processedCount,
+        // ]);
     }
 
     /**
@@ -297,9 +297,9 @@ class WebhookController extends Controller
             }
         }
 
-        Log::info('[Webhook Fallback] Selesai proses ' . $numMonths . ' bulan.', [
-            'parent_invoice_id' => $parentInvoice->id,
-        ]);
+        // Log::info('[Webhook Fallback] Selesai proses ' . $numMonths . ' bulan.', [
+        //     'parent_invoice_id' => $parentInvoice->id,
+        // ]);
     }
 
     /**
@@ -317,15 +317,15 @@ class WebhookController extends Controller
 
         if ($siswa->status_siswa === 'pending_payment') {
             $siswa->update(['status_siswa' => 'Aktif']);
-            Log::info('[Webhook] Siswa berhasil diaktifkan setelah bayar pendaftaran.', [
-                'siswa_id'   => $siswa->id_siswa,
-                'nama_siswa' => $siswa->nama_siswa,
-            ]);
+            // Log::info('[Webhook] Siswa berhasil diaktifkan setelah bayar pendaftaran.', [
+            //     'siswa_id'   => $siswa->id_siswa,
+            //     'nama_siswa' => $siswa->nama_siswa,
+            // ]);
         } else {
-            Log::info('[Webhook] Siswa sudah aktif, tidak perlu update status.', [
-                'siswa_id'      => $siswa->id_siswa,
-                'status_siswa'  => $siswa->status_siswa,
-            ]);
+            // Log::info('[Webhook] Siswa sudah aktif, tidak perlu update status.', [
+            //     'siswa_id'      => $siswa->id_siswa,
+            //     'status_siswa'  => $siswa->status_siswa,
+            // ]);
         }
     }
 
@@ -356,11 +356,11 @@ class WebhookController extends Controller
             }
         }
 
-        Log::info('[Webhook] Berhasil update child invoice (bulk).', [
-            'parent_invoice_id' => $parentInvoice->id,
-            'total_children'    => $childInvoices->count(),
-            'updated'           => $updatedCount,
-        ]);
+        // Log::info('[Webhook] Berhasil update child invoice (bulk).', [
+        //     'parent_invoice_id' => $parentInvoice->id,
+        //     'total_children'    => $childInvoices->count(),
+        //     'updated'           => $updatedCount,
+        // ]);
     }
 
     /**
@@ -383,7 +383,7 @@ class WebhookController extends Controller
 
             if ($pending->status === 'paid') {
                 DB::rollBack();
-                Log::info('[Webhook PendingReg] Sudah paid sebelumnya, abaikan.', ['external_id' => $externalId]);
+                Log::warning('[Webhook PendingReg] Sudah paid sebelumnya, abaikan.', ['external_id' => $externalId]);
                 return response()->json(['message' => 'Already processed, skipping']);
             }
 
@@ -392,7 +392,7 @@ class WebhookController extends Controller
                     $pending->update(['status' => 'expired']);
                 }
                 DB::rollBack();
-                Log::info('[Webhook PendingReg] Status bukan PAID.', ['status' => $payloadStatus]);
+                // Log::info('[Webhook PendingReg] Status bukan PAID.', ['status' => $payloadStatus]);
                 return response()->json(['message' => 'Non-PAID event recorded']);
             }
 
@@ -473,7 +473,7 @@ class WebhookController extends Controller
             }
 
             DB::commit();
-            Log::info('[Webhook PendingReg] Berhasil membuat akun dan siswa.', ['siswa_id' => $siswa->id_siswa]);
+            // Log::info('[Webhook PendingReg] Berhasil membuat akun dan siswa.', ['siswa_id' => $siswa->id_siswa]);
             return response()->json(['message' => 'Pending registration processed successfully']);
 
         } catch (Throwable $e) {

@@ -86,7 +86,7 @@ class XenditService
             ];
         }
 
-        Log::info('[XenditService] Creating invoice with final payload:', $payload);
+        // Log::info('[XenditService] Creating invoice with final payload:', $payload);
 
         $response = Http::withHeaders([
             'Authorization' => 'Basic ' . $encodedApiKey,
@@ -97,7 +97,7 @@ class XenditService
         ->post("{$this->baseUrl}/v2/invoices", $payload);
 
         if ($response->successful()) {
-            Log::info('[XenditService] Invoice created successfully.', ['external_id' => $externalId]);
+            // Log::info('[XenditService] Invoice created successfully.', ['external_id' => $externalId]);
             return $response->json();
         }
 
@@ -176,7 +176,7 @@ class XenditService
         ])->post("{$this->baseUrl}/invoices/{$invoiceId}/expire!");
 
         if ($response->successful()) {
-            Log::info('[Xendit Service] Invoice expired successfully.', ['xendit_invoice_id' => $invoiceId]);
+            // Log::info('[Xendit Service] Invoice expired successfully.', ['xendit_invoice_id' => $invoiceId]);
             return $response->json();
         }
 
