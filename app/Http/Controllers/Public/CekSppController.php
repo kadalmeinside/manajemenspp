@@ -97,7 +97,7 @@ class CekSppController extends Controller
     /**
      * Menampilkan halaman tagihan lengkap untuk siswa yang dipilih.
      */
-    public function showTagihan(Request $request, Siswa $siswa): Response
+    public function showTagihan(Request $request, Siswa $siswa)
     {
         if (session('verified_spp_siswa_id') !== $siswa->id_siswa) {
             return Redirect::route('tagihan.spp.form')->withErrors(['error' => 'Sesi Anda tidak valid atau telah berakhir. Silakan cari kembali data siswa.']);
