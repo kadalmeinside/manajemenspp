@@ -235,6 +235,7 @@ const getTypeIcon = (type) => {
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktivitas</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Siswa / Kelas</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nominal Tagihan</th>
+                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Metode</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white/30 dark:bg-gray-900/30 divide-y divide-gray-200 dark:divide-gray-700">
@@ -275,10 +276,18 @@ const getTypeIcon = (type) => {
                                             </span>
                                             <span v-else class="text-sm text-gray-400">-</span>
                                         </td>
+                                        
+                                        <!-- Payment Method -->
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span v-if="act.payment_method" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 uppercase">
+                                                {{ act.payment_method }}
+                                            </span>
+                                            <span v-else class="text-sm text-gray-400">-</span>
+                                        </td>
                                     </tr>
                                     
                                     <tr v-if="activities.data.length === 0">
-                                        <td colspan="4" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                        <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                             <div class="flex flex-col items-center gap-3">
                                                 <QueueListIcon class="w-12 h-12 text-gray-300 dark:text-gray-600" />
                                                 <p>Belum ada aktivitas publik yang ditemukan.</p>
@@ -310,6 +319,9 @@ const getTypeIcon = (type) => {
                                         <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] leading-tight font-semibold border', getTypeBadgeColor(act.type)]">
                                             <component :is="getTypeIcon(act.type)" class="w-3 h-3" />
                                             {{ act.title }}
+                                        </span>
+                                        <span v-if="act.payment_method" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 uppercase">
+                                            {{ act.payment_method }}
                                         </span>
                                     </div>
                                     <p class="text-xs text-gray-600 dark:text-gray-300">{{ act.description }}</p>

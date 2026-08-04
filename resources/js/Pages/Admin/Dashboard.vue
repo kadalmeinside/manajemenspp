@@ -385,13 +385,18 @@ const getJobStatusClass = (status) => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-3 ml-4">
-                                            <p v-if="aktivitas.amount_formatted" class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                {{ aktivitas.amount_formatted }}
-                                            </p>
-                                            <Link v-if="aktivitas.id_siswa" :href="route('admin.siswa.show', aktivitas.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                                            </Link>
+                                        <div class="flex flex-col items-end gap-1.5 ml-4">
+                                            <div class="flex items-center gap-3">
+                                                <p v-if="aktivitas.amount_formatted" class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                    {{ aktivitas.amount_formatted }}
+                                                </p>
+                                                <Link v-if="aktivitas.id_siswa" :href="route('admin.siswa.show', aktivitas.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                                                </Link>
+                                            </div>
+                                            <span v-if="aktivitas.payment_method" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 uppercase">
+                                                {{ aktivitas.payment_method }}
+                                            </span>
                                         </div>
                                     </li>
                                     <li v-if="aktivitasPublik.length === 0" class="py-3 text-center text-sm text-gray-500">Belum ada aktivitas.</li>

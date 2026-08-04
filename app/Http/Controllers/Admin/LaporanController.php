@@ -157,7 +157,8 @@ class LaporanController extends Controller
                 'siswa.id_kelas',
                 'kelas.nama_kelas',
                 'invoices.periode_tagihan',
-                'invoices.type as original_type'
+                'invoices.type as original_type',
+                'invoices.payment_method'
             )
             ->where(function($query) {
                 $query->whereIn('invoices.status', ['PAID', 'SETTLED'])
@@ -183,7 +184,8 @@ class LaporanController extends Controller
                 'siswa.id_kelas',
                 'kelas.nama_kelas',
                 DB::raw("NULL as periode_tagihan"),
-                DB::raw("NULL as original_type")
+                DB::raw("NULL as original_type"),
+                DB::raw("NULL as payment_method")
             )
             ->where('student_leaves.status', 'approved');
 
@@ -201,7 +203,8 @@ class LaporanController extends Controller
                 'siswa.id_kelas',
                 'kelas.nama_kelas',
                 DB::raw("NULL as periode_tagihan"),
-                DB::raw("NULL as original_type")
+                DB::raw("NULL as original_type"),
+                DB::raw("NULL as payment_method")
             )
             ->where('siswa.status_siswa', 'Resign');
 

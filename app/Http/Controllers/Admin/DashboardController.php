@@ -151,7 +151,8 @@ class DashboardController extends Controller
                     'description' => ($inv->siswa?->nama_siswa ?? 'Siswa') . ' mendaftar (menunggu pembayaran)',
                     'date' => $inv->created_at,
                     'id_siswa' => $inv->id_siswa,
-                    'amount' => $inv->total_amount
+                    'amount' => $inv->total_amount,
+                    'payment_method' => $inv->payment_method
                 ]);
             } elseif ($inv->type === 'pendaftaran' && $inv->status === 'PAID') {
                 $activities->push([
@@ -160,7 +161,8 @@ class DashboardController extends Controller
                     'description' => ($inv->siswa?->nama_siswa ?? 'Siswa') . ' melunasi pendaftaran',
                     'date' => $inv->paid_at ?? $inv->updated_at,
                     'id_siswa' => $inv->id_siswa,
-                    'amount' => $inv->total_amount
+                    'amount' => $inv->total_amount,
+                    'payment_method' => $inv->payment_method
                 ]);
             } elseif ($inv->status === 'PAID') {
                 $desc = ($inv->siswa?->nama_siswa ?? 'Siswa') . ' telah membayar tagihan';
@@ -180,7 +182,8 @@ class DashboardController extends Controller
                     'description' => $desc,
                     'date' => $inv->paid_at ?? $inv->updated_at,
                     'id_siswa' => $inv->id_siswa,
-                    'amount' => $inv->total_amount
+                    'amount' => $inv->total_amount,
+                    'payment_method' => $inv->payment_method
                 ]);
             }
         }
@@ -192,7 +195,8 @@ class DashboardController extends Controller
                 'description' => ($leave->siswa?->nama_siswa ?? 'Siswa') . ' disetujui untuk cuti',
                 'date' => $leave->updated_at,
                 'id_siswa' => $leave->id_siswa,
-                'amount' => null
+                'amount' => null,
+                'payment_method' => null
             ]);
         }
         
@@ -203,7 +207,8 @@ class DashboardController extends Controller
                 'description' => $resign->nama_siswa . ' telah resign',
                 'date' => $resign->updated_at,
                 'id_siswa' => $resign->id_siswa,
-                'amount' => null
+                'amount' => null,
+                'payment_method' => null
             ]);
         }
         
