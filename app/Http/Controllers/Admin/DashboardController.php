@@ -118,6 +118,7 @@ class DashboardController extends Controller
         // 1. Aktivitas Invoice (Pending & Lunas)
         $invoiceActivityQuery = Invoice::with('siswa')
             ->whereIn('status', ['PAID', 'PENDING'])
+            ->whereNull('parent_payment_id')
             ->latest('updated_at');
             
         // 2. Aktivitas Cuti (Disetujui)
