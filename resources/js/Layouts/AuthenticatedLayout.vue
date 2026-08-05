@@ -262,6 +262,22 @@ const activeMenuName = computed(() => {
                     </div>
                 </template>
             </nav>
+
+            <!-- Bagian Akun (Hanya Mobile) -->
+            <div class="md:hidden border-t border-gray-800 pt-4 pb-2">
+                <h3 v-show="mobileSidebarOpen" class="px-2 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Akun ({{ userName }})</h3>
+                <div class="space-y-1">
+                    <Link :href="route('profile.edit')" @click="mobileSidebarOpen = false" class="flex items-center px-2 py-2 text-sm font-medium rounded-md group text-gray-300 hover:bg-gray-800 hover:text-white">
+                        <Cog6ToothIcon class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
+                        <span v-show="mobileSidebarOpen">Profil</span>
+                    </Link>
+                    <button @click="confirmLogout" class="w-full flex items-center px-2 py-2 text-sm font-medium rounded-md group text-gray-300 hover:bg-gray-800 hover:text-white text-left">
+                        <ArrowLeftStartOnRectangleIcon class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
+                        <span v-show="mobileSidebarOpen">Keluar</span>
+                    </button>
+                </div>
+            </div>
+
             <div v-if="deferredPrompt" v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 mt-auto pb-4">
                 <button @click="installPWA" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                     <ArrowDownTrayIcon class="mr-2 h-4 w-4" />
@@ -308,7 +324,7 @@ const activeMenuName = computed(() => {
                                 <BellIcon class="h-6 w-6" aria-hidden="true" />
                             </button>
 
-                            <div class="relative">
+                            <div class="relative hidden md:block">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
                                         <button class="flex items-center text-sm font-medium text-gray-300 hover:text-white focus:outline-none transition duration-150 ease-in-out">
