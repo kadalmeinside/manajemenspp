@@ -101,4 +101,41 @@ class Kelas extends Model
 
         return max(0, $harga); // Pastikan harga tidak minus
     }
+
+    /**
+     * Mendapatkan daftar model Promo yang sah dan diterapkan (otomatis maupun kode).
+     * Digunakan untuk mencatat relasi di tabel pivot saat invoice dibuat.
+     */
+    public function getAppliedPromos(string $kodePromo = null)
+    {
+        $promos = collect();
+
+        // 1. Promo Otomatis
+        $promoOtomatis = $this->promos()
+            ->where('is_active', true)
+            ->whereNull('kode_promo')
+            ->where('tanggal_mulai', '<=', now())
+            ->where(fn($q) => $q->where('tanggal_berakhir', '>=', now())->orWhereNull('tanggal_berakhir'))
+            ->first();
+
+        if ($promoOtomatis) {
+            $promos->push($promoOtomatis);
+        }
+
+        // 2. Promo Kode
+        if ($kodePromo) {
+            $promoKode = $this->promos()
+                ->where('is_active', true)
+                ->where('kode_promo', $kodePromo)
+                ->where('tanggal_mulai', '<=', now())
+                ->where(fn($q) => $q->where('tanggal_berakhir', '>=', now())->orWhereNull('tanggal_berakhir'))
+                ->first();
+
+            if ($promoKode) {
+                $promos->push($promoKode);
+            }
+        }
+
+        return $promos;
+    }
 }

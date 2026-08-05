@@ -457,6 +457,14 @@ class WebhookController extends Controller
                 'xendit_callback_payload' => $payload,
             ]);
 
+            // Terapkan relasi promo ke invoice yang baru dibuat
+            if ($kelas) {
+                $appliedPromos = $kelas->getAppliedPromos($pending->kode_promo);
+                if ($appliedPromos->isNotEmpty()) {
+                    $invoice->promos()->attach($appliedPromos->pluck('id')->toArray());
+                }
+            }
+
             $pending->update(['status' => 'paid']);
 
             // Kirim email

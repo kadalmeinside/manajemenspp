@@ -170,6 +170,7 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kode</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kelas</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Diskon</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Digunakan</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Periode Aktif</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
@@ -186,11 +187,14 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                                             <span v-else class="text-gray-400 italic">Otomatis</span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ promo.kelas.nama_kelas }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            <span v-if="promo.tipe_diskon === 'persen'">{{ promo.nilai_diskon }}%</span>
-                                            <span v-else>{{ formatCurrency(promo.nilai_diskon) }}</span>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span v-if="promo.tipe_diskon === 'persen'" class="font-medium text-gray-900 dark:text-gray-100">{{ promo.nilai_diskon }}%</span>
+                                            <span v-else class="font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(promo.nilai_diskon) }}</span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-medium">
+                                            {{ promo.invoices_count || 0 }}x
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                                             {{ formatDate(promo.tanggal_mulai) }} - {{ promo.tanggal_berakhir ? formatDate(promo.tanggal_berakhir) : 'Selamanya' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -242,6 +246,10 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                                     <div>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Kelas</p>
                                         <p class="font-medium text-gray-900 dark:text-gray-100">{{ promo.kelas.nama_kelas }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Digunakan</p>
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ promo.invoices_count || 0 }}x</p>
                                     </div>
                                     <div class="col-span-2 mt-1">
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Periode</p>

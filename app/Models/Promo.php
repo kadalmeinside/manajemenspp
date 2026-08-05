@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class Promo extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'id_kelas',
@@ -30,5 +32,10 @@ class Promo extends Model
     public function kelas()
     {
         return $this->belongsTo(Kelas::class, 'id_kelas', 'id_kelas');
+    }
+
+    public function invoices()
+    {
+        return $this->belongsToMany(Invoice::class, 'invoice_promo', 'promo_id', 'invoice_id');
     }
 }

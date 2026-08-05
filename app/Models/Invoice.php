@@ -89,6 +89,10 @@ class Invoice extends Model
         return $this->hasOne(Invoice::class, 'recreated_from_id');
     }
     
+    public function promos()
+    {
+        return $this->belongsToMany(Promo::class, 'invoice_promo', 'invoice_id', 'promo_id');
+    }
 
     public function siswa()
     {

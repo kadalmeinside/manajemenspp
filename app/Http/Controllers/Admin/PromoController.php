@@ -19,6 +19,7 @@ class PromoController extends Controller
         $search = $request->query('search');
 
         $promos = Promo::with('kelas:id_kelas,nama_kelas')
+            ->withCount('invoices')
             ->when($search, function($query, $search) {
                 $query->where('nama_promo', 'like', "%{$search}%")
                       ->orWhere('kode_promo', 'like', "%{$search}%");

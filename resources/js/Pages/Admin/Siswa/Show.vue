@@ -357,7 +357,7 @@ const underDevelopmentAlert = () => {
         <div class="pt-4 space-y-6">
             
             <!-- Modern Header Profile -->
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm rounded-2xl overflow-visible border border-gray-200/50 dark:border-gray-700/50">
+            <div class="relative z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm rounded-2xl overflow-visible border border-gray-200/50 dark:border-gray-700/50">
                 <div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 sm:gap-6 w-full">
                         <div class="h-24 w-24 sm:h-20 sm:w-20 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0 border-4 border-white dark:border-gray-800 shadow-sm mx-auto sm:mx-0">
