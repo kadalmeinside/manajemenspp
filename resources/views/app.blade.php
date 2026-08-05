@@ -10,7 +10,7 @@
         
         <!-- PWA Configuration -->
         <link rel="manifest" href="{{ asset('manifest.json') }}">
-        <meta name="theme-color" content="#4f46e5">
+        <meta name="theme-color" content="#1f2937">
         <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
         
         <!-- Fonts -->
