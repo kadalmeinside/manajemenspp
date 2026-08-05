@@ -12,13 +12,23 @@ import GlobalLoader from '@/Components/GlobalLoader.vue';
 import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
-    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon
+    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon, ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
 
 const showLogoutConfirmModal = ref(false);
+
+const deferredPrompt = ref(null);
+const installPWA = async () => {
+    if (!deferredPrompt.value) return;
+    deferredPrompt.value.prompt();
+    const { outcome } = await deferredPrompt.value.userChoice;
+    if (outcome === 'accepted') {
+        deferredPrompt.value = null;
+    }
+};
 
 const confirmLogout = () => {
     nextTick(() => {
@@ -40,6 +50,14 @@ const jobMessage = ref('');
 const jobProgress = ref(0);
 
 onMounted(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt.value = e;
+    });
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt.value = null;
+    });
+
     if (window.Echo && user.value) {
         window.Echo.private(`App.Models.User.${user.value.id}`)
             .listen('.mass-invoice.status', (e) => {
@@ -171,10 +189,10 @@ const activeMenuName = computed(() => {
     </Head>
 
     <div class="relative h-screen flex overflow-hidden bg-gray-100 dark:bg-gray-900">
-        <div v-if="mobileSidebarOpen" @click="mobileSidebarOpen = false" class="fixed inset-0 bg-black bg-opacity-50 z-20 transition-opacity md:hidden" aria-hidden="true"></div>
+        <div v-if="mobileSidebarOpen" @click="mobileSidebarOpen = false" class="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity md:hidden" aria-hidden="true"></div>
 
         <aside :class="[
-                    'fixed inset-y-0 left-0 z-30 bg-gray-900 text-gray-300 transform transition-transform duration-300 ease-in-out md:sticky md:translate-x-0 md:flex md:flex-col',
+                    'fixed inset-y-0 left-0 z-50 bg-gray-900 text-gray-300 transform transition-transform duration-300 ease-in-out md:sticky md:translate-x-0 md:flex md:flex-col',
                     mobileSidebarOpen ? 'translate-x-0 w-64 sm:w-72' : '-translate-x-full w-64 sm:w-72',
                     desktopSidebarOpen ? 'md:w-64' : 'md:w-20'
                 ]">
@@ -244,6 +262,12 @@ const activeMenuName = computed(() => {
                     </div>
                 </template>
             </nav>
+            <div v-if="deferredPrompt" v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 mt-auto pb-4">
+                <button @click="installPWA" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                    <ArrowDownTrayIcon class="mr-2 h-4 w-4" />
+                    Install Aplikasi
+                </button>
+            </div>
             <div v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-shrink-0 p-4 bg-black/10 border-t border-gray-800 text-center text-xs text-gray-400">
                 <span v-if="appSettings.app_version || appSettings.app_build">
                     {{ appSettings.app_version ? `v${appSettings.app_version}` : '' }} 
@@ -254,7 +278,7 @@ const activeMenuName = computed(() => {
         </aside>
 
         <div class="flex-1 flex flex-col overflow-hidden">
-            <header class="bg-gray-800 shadow-sm sticky top-0 z-10 flex-shrink-0 border-b border-gray-700">
+            <header class="bg-gray-800 shadow-sm sticky top-0 z-30 flex-shrink-0 border-b border-gray-700">
                 <div class="mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between items-center h-16 relative">
                         <div class="flex items-center z-10">
