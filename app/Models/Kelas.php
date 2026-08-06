@@ -65,37 +65,22 @@ class Kelas extends Model
         $harga = (float) $this->biaya_pendaftaran;
 
         // 1. Terapkan promo otomatis terlebih dahulu
-        $promoOtomatis = $this->promos()
-            ->where('is_active', true)
+        $promoOtomatis = Promo::validForKelas($this->id_kelas)
             ->whereNull('kode_promo')
-            ->where('tanggal_mulai', '<=', now())
-            ->where(fn($q) => $q->where('tanggal_berakhir', '>=', now())->orWhereNull('tanggal_berakhir'))
             ->first();
 
         if ($promoOtomatis) {
-            if ($promoOtomatis->tipe_diskon === 'persen') {
-                $harga -= $harga * ($promoOtomatis->nilai_diskon / 100);
-            } else {
-                $harga -= (float) $promoOtomatis->nilai_diskon;
-            }
+            $harga -= $promoOtomatis->calculateDiscount($harga);
         }
 
         // 2. Jika ada kode promo, terapkan di atas harga yang SUDAH terdiskon
         if ($kodePromo) {
-            $promoKode = $this->promos()
-                ->where('is_active', true)
+            $promoKode = Promo::validForKelas($this->id_kelas)
                 ->where('kode_promo', $kodePromo)
-                ->where('tanggal_mulai', '<=', now())
-                ->where(fn($q) => $q->where('tanggal_berakhir', '>=', now())->orWhereNull('tanggal_berakhir'))
                 ->first();
 
             if ($promoKode) {
-                if ($promoKode->tipe_diskon === 'persen') {
-                    // Diskon persen dihitung dari harga setelah diskon otomatis
-                    $harga -= $harga * ($promoKode->nilai_diskon / 100);
-                } else {
-                    $harga -= (float) $promoKode->nilai_diskon;
-                }
+                $harga -= $promoKode->calculateDiscount($harga);
             }
         }
 
@@ -111,11 +96,8 @@ class Kelas extends Model
         $promos = collect();
 
         // 1. Promo Otomatis
-        $promoOtomatis = $this->promos()
-            ->where('is_active', true)
+        $promoOtomatis = Promo::validForKelas($this->id_kelas)
             ->whereNull('kode_promo')
-            ->where('tanggal_mulai', '<=', now())
-            ->where(fn($q) => $q->where('tanggal_berakhir', '>=', now())->orWhereNull('tanggal_berakhir'))
             ->first();
 
         if ($promoOtomatis) {
@@ -124,11 +106,8 @@ class Kelas extends Model
 
         // 2. Promo Kode
         if ($kodePromo) {
-            $promoKode = $this->promos()
-                ->where('is_active', true)
+            $promoKode = Promo::validForKelas($this->id_kelas)
                 ->where('kode_promo', $kodePromo)
-                ->where('tanggal_mulai', '<=', now())
-                ->where(fn($q) => $q->where('tanggal_berakhir', '>=', now())->orWhereNull('tanggal_berakhir'))
                 ->first();
 
             if ($promoKode) {

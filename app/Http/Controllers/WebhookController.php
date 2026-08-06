@@ -389,6 +389,16 @@ class WebhookController extends Controller
 
             if ($payloadStatus !== 'PAID') {
                 if (in_array($payloadStatus, ['EXPIRED', 'FAILED'])) {
+                    // Release Quota Promo
+                    $kelas = \App\Models\Kelas::find($pending->id_kelas);
+                    if ($kelas) {
+                        $appliedPromos = $kelas->getAppliedPromos($pending->kode_promo);
+                        foreach ($appliedPromos as $promo) {
+                            if ($promo->current_uses > 0) {
+                                $promo->decrement('current_uses');
+                            }
+                        }
+                    }
                     $pending->update(['status' => 'expired']);
                 }
                 DB::rollBack();

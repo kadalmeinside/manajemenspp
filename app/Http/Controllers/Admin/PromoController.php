@@ -8,6 +8,7 @@ use App\Models\Kelas;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
 class PromoController extends Controller
 {
@@ -42,15 +43,23 @@ class PromoController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'id_kelas' => 'required|uuid|exists:kelas,id_kelas',
+            'id_kelas' => 'nullable|uuid|exists:kelas,id_kelas',
             'nama_promo' => 'required|string|max:255',
             'kode_promo' => ['nullable', 'string', 'max:50', Rule::unique('promos')],
             'tipe_diskon' => ['required', Rule::in(['persen', 'tetap'])],
             'nilai_diskon' => 'required|numeric|min:0',
+            'max_discount' => 'nullable|numeric|min:0',
+            'max_uses' => 'nullable|integer|min:1',
+            'max_uses_per_user' => 'nullable|integer|min:1',
             'tanggal_mulai' => 'required|date',
             'tanggal_berakhir' => 'nullable|date|after_or_equal:tanggal_mulai',
             'is_active' => 'required|boolean',
+            'bukti_sk' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048',
         ]);
+
+        if ($request->hasFile('bukti_sk')) {
+            $validated['bukti_sk'] = $request->file('bukti_sk')->store('promos', 'public');
+        }
 
         Promo::create($validated);
 
@@ -63,15 +72,27 @@ class PromoController extends Controller
     public function update(Request $request, Promo $promo)
     {
         $validated = $request->validate([
-            'id_kelas' => 'required|uuid|exists:kelas,id_kelas',
+            'id_kelas' => 'nullable|uuid|exists:kelas,id_kelas',
             'nama_promo' => 'required|string|max:255',
             'kode_promo' => ['nullable', 'string', 'max:50', Rule::unique('promos')->ignore($promo->id)],
             'tipe_diskon' => ['required', Rule::in(['persen', 'tetap'])],
             'nilai_diskon' => 'required|numeric|min:0',
+            'max_discount' => 'nullable|numeric|min:0',
+            'max_uses' => 'nullable|integer|min:1',
+            'max_uses_per_user' => 'nullable|integer|min:1',
             'tanggal_mulai' => 'required|date',
             'tanggal_berakhir' => 'nullable|date|after_or_equal:tanggal_mulai',
             'is_active' => 'required|boolean',
+            'bukti_sk' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048',
         ]);
+
+        if ($request->hasFile('bukti_sk')) {
+            // Hapus file lama jika ada
+            if ($promo->bukti_sk) {
+                Storage::disk('public')->delete($promo->bukti_sk);
+            }
+            $validated['bukti_sk'] = $request->file('bukti_sk')->store('promos', 'public');
+        }
 
         $promo->update($validated);
 

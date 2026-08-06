@@ -286,6 +286,12 @@ class RegistrationController extends Controller
                 'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
             ]);
 
+            // Increment kuota promo yang dipakai (Hold Quota)
+            $appliedPromos = $kelas->getAppliedPromos($validated['kode_promo']);
+            foreach ($appliedPromos as $promo) {
+                $promo->increment('current_uses');
+            }
+
             return Inertia::location($xenditInvoiceData['invoice_url']);
 
         } catch (Throwable $e) {

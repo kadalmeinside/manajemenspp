@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { ref, computed, watch, onMounted } from 'vue';
 import debounce from 'lodash/debounce';
-import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import { PencilIcon, TrashIcon, PlusIcon, DocumentArrowDownIcon } from '@heroicons/vue/24/outline';
 import Modal from '@/Components/Modal.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -43,33 +43,46 @@ const form = useForm({
     kode_promo: '',
     tipe_diskon: 'tetap',
     nilai_diskon: 0,
+    max_discount: null,
+    max_uses: null,
+    max_uses_per_user: null,
     tanggal_mulai: '',
     tanggal_berakhir: null,
     berlaku_selamanya: false,
     is_active: true,
+    bukti_sk: null,
 });
 
 // --- Logika Modal ---
 const openCreateModal = () => {
     isEditMode.value = false;
     form.reset();
+    form.id_kelas = '';
     form.is_active = true;
     form.tipe_diskon = 'tetap';
+    form.max_discount = null;
+    form.max_uses = null;
+    form.max_uses_per_user = null;
+    form.bukti_sk = null;
     showPromoModal.value = true;
 };
 
 const openEditModal = (promo) => {
     isEditMode.value = true;
     selectedPromo.value = promo;
-    form.id_kelas = promo.id_kelas;
+    form.id_kelas = promo.id_kelas || '';
     form.nama_promo = promo.nama_promo;
     form.kode_promo = promo.kode_promo;
     form.tipe_diskon = promo.tipe_diskon;
     form.nilai_diskon = promo.nilai_diskon;
+    form.max_discount = promo.max_discount;
+    form.max_uses = promo.max_uses;
+    form.max_uses_per_user = promo.max_uses_per_user;
     form.tanggal_mulai = promo.tanggal_mulai;
     form.tanggal_berakhir = promo.tanggal_berakhir;
     form.berlaku_selamanya = promo.tanggal_berakhir === null;
     form.is_active = promo.is_active;
+    form.bukti_sk = null; // Don't bind the old file, let them upload a new one if they want
     showPromoModal.value = true;
 };
 
@@ -83,8 +96,13 @@ const submitForm = () => {
     if (form.berlaku_selamanya) {
         form.tanggal_berakhir = null;
     }
+    
+    // Inertia requires 'post' for file uploads, even when updating. Use _method: 'put' trick.
     if (isEditMode.value) {
-        form.put(route('admin.promos.update', selectedPromo.value.id), {
+        form.transform((data) => ({
+            ...data,
+            _method: 'put',
+        })).post(route('admin.promos.update', selectedPromo.value.id), {
             onSuccess: () => closeModal(),
         });
     } else {
@@ -186,13 +204,15 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                                             <span v-if="promo.kode_promo" class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ promo.kode_promo }}</span>
                                             <span v-else class="text-gray-400 italic">Otomatis</span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ promo.kelas.nama_kelas }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {{ promo.kelas ? promo.kelas.nama_kelas : 'Semua Kelas (Global)' }}
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span v-if="promo.tipe_diskon === 'persen'" class="font-medium text-gray-900 dark:text-gray-100">{{ promo.nilai_diskon }}%</span>
                                             <span v-else class="font-medium text-gray-900 dark:text-gray-100">{{ formatCurrency(promo.nilai_diskon) }}</span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-medium">
-                                            {{ promo.invoices_count || 0 }}x
+                                            {{ promo.invoices_count || 0 }}x <span v-if="promo.max_uses" class="text-gray-500 text-xs">/ {{ promo.max_uses }}</span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                                             {{ formatDate(promo.tanggal_mulai) }} - {{ promo.tanggal_berakhir ? formatDate(promo.tanggal_berakhir) : 'Selamanya' }}
@@ -201,6 +221,9 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                                             <span class="px-2 py-1 text-xs font-semibold rounded-full" :class="promo.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
                                                 {{ promo.is_active ? 'Aktif' : 'Tidak Aktif' }}
                                             </span>
+                                            <a v-if="promo.bukti_sk" :href="`/storage/${promo.bukti_sk}`" target="_blank" class="ml-2 inline-flex items-center justify-center text-blue-600 hover:text-blue-800" title="Lihat Bukti SK">
+                                                <DocumentArrowDownIcon class="h-4 w-4" />
+                                            </a>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                             <div class="flex justify-end gap-3">
@@ -245,11 +268,11 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                                     </div>
                                     <div>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Kelas</p>
-                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ promo.kelas.nama_kelas }}</p>
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ promo.kelas ? promo.kelas.nama_kelas : 'Semua Kelas (Global)' }}</p>
                                     </div>
                                     <div>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Digunakan</p>
-                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ promo.invoices_count || 0 }}x</p>
+                                        <p class="font-medium text-gray-900 dark:text-gray-100">{{ promo.invoices_count || 0 }}x <span v-if="promo.max_uses" class="text-gray-500 text-[10px]">/ {{ promo.max_uses }}</span></p>
                                     </div>
                                     <div class="col-span-2 mt-1">
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Periode</p>
@@ -303,9 +326,9 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                             <InputError :message="form.errors.kode_promo" class="mt-2" />
                         </div>
                         <div>
-                            <InputLabel for="id_kelas" value="Berlaku untuk Kelas" required />
+                            <InputLabel for="id_kelas" value="Berlaku untuk Kelas" />
                             <select id="id_kelas" v-model="form.id_kelas" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 rounded-md shadow-sm">
-                                <option value="" disabled>Pilih Kelas</option>
+                                <option value="">Semua Kelas (Global)</option>
                                 <option v-for="kelas in allKelas" :key="kelas.id_kelas" :value="kelas.id_kelas">{{ kelas.nama_kelas }}</option>
                             </select>
                             <InputError :message="form.errors.id_kelas" class="mt-2" />
@@ -322,6 +345,21 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                             <InputLabel for="nilai_diskon" value="Nilai Diskon" required />
                             <TextInput id="nilai_diskon" v-model.number="form.nilai_diskon" type="number" class="mt-1 block w-full" required />
                             <InputError :message="form.errors.nilai_diskon" class="mt-2" />
+                        </div>
+                        <div v-if="form.tipe_diskon === 'persen'">
+                            <InputLabel for="max_discount" value="Maksimal Potongan (Rp) (Opsional)" />
+                            <TextInput id="max_discount" v-model.number="form.max_discount" type="number" class="mt-1 block w-full" placeholder="Kosongkan jika tanpa batas maksimal" />
+                            <InputError :message="form.errors.max_discount" class="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel for="max_uses" value="Total Kuota Promo (Opsional)" />
+                            <TextInput id="max_uses" v-model.number="form.max_uses" type="number" class="mt-1 block w-full" placeholder="Contoh: 100" />
+                            <InputError :message="form.errors.max_uses" class="mt-2" />
+                        </div>
+                        <div>
+                            <InputLabel for="max_uses_per_user" value="Batas Penggunaan Per Siswa (Opsional)" />
+                            <TextInput id="max_uses_per_user" v-model.number="form.max_uses_per_user" type="number" class="mt-1 block w-full" placeholder="Contoh: 1" />
+                            <InputError :message="form.errors.max_uses_per_user" class="mt-2" />
                         </div>
                         <div>
                             <InputLabel for="tanggal_mulai" value="Tanggal Mulai" required />
@@ -349,6 +387,16 @@ const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDat
                                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Tidak Aktif</span>
                                 </label>
                             </div>
+                        </div>
+                        <div class="col-span-1 md:col-span-2">
+                            <InputLabel for="bukti_sk" value="Unggah Bukti SK / Perintah (Gambar/PDF) (Opsional)" />
+                            <div class="mt-1">
+                                <input type="file" id="bukti_sk" @input="form.bukti_sk = $event.target.files[0]" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-400" accept=".jpg,.jpeg,.png,.pdf" />
+                            </div>
+                            <p v-if="isEditMode && selectedPromo?.bukti_sk" class="mt-2 text-xs text-gray-500">
+                                Sudah ada file SK terunggah. <a :href="`/storage/${selectedPromo.bukti_sk}`" target="_blank" class="text-indigo-600 underline">Lihat file saat ini</a>. Mengunggah file baru akan menggantikan yang lama.
+                            </p>
+                            <InputError :message="form.errors.bukti_sk" class="mt-2" />
                         </div>
                     </div>
                 </div>
