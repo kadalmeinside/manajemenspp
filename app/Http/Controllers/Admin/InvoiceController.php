@@ -793,4 +793,34 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /**
+     * Export paid invoices by date range.
+     */
+    public function exportPaid(Request $request)
+    {
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $start = Carbon::parse($request->input('start_date'));
+        $end = Carbon::parse($request->input('end_date'));
+        
+        if ($start->diffInDays($end) > 365) {
+            return Redirect::back()->with([
+                'message' => 'Rentang tanggal maksimal adalah 1 tahun.',
+                'type' => 'error'
+            ]);
+        }
+
+        $filename = 'rekap-invoice-lunas-' . date('YmdHis') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\PaidInvoicesExport($request->input('start_date'), $request->input('end_date')), 
+            $filename
+        );
+    }
 }

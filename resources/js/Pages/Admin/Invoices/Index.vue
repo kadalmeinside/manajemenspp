@@ -13,7 +13,7 @@ import SearchableSelect from '@/Components/SearchableSelect.vue';
 import Toast from '@/Components/Toast.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import Pagination from '@/Components/Pagination.vue';
-import { PlusIcon, EyeIcon, ChevronDownIcon, PencilIcon, TrashIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/vue/20/solid';
+import { PlusIcon, EyeIcon, ChevronDownIcon, PencilIcon, TrashIcon, XCircleIcon, ArrowPathIcon, ArrowDownTrayIcon } from '@heroicons/vue/20/solid';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 
@@ -38,6 +38,7 @@ const showCancelConfirmModal = ref(false);
 const invoiceToCancel = ref(null);
 const showRecreateConfirmModal = ref(false);
 const invoiceToRecreate = ref(null); 
+const showExportModal = ref(false);
 const showMobileFilters = ref(false);
 
 // Data untuk form periode
@@ -78,6 +79,39 @@ const formBulkAll = useForm({
 
 const cancelActionForm = useForm({});
 const recreateActionForm = useForm({});
+
+const todayString = new Date().toISOString().slice(0,10);
+
+const formExport = useForm({
+    range_type: 'today',
+    start_date: todayString,
+    end_date: todayString,
+});
+
+watch(() => formExport.range_type, (newType) => {
+    const end = new Date();
+    let start = new Date();
+    
+    if (newType === 'today') {
+        // start is already today
+    } else if (newType === '7_days') {
+        start.setDate(end.getDate() - 6);
+    } else if (newType === '14_days') {
+        start.setDate(end.getDate() - 13);
+    } else if (newType === '30_days') {
+        start.setDate(end.getDate() - 29);
+    }
+    
+    if (newType !== 'custom') {
+        formExport.start_date = start.toISOString().slice(0,10);
+        formExport.end_date = end.toISOString().slice(0,10);
+    }
+});
+
+const submitExportForm = () => {
+    window.location.href = route('admin.invoices.export_paid') + '?start_date=' + formExport.start_date + '&end_date=' + formExport.end_date;
+    showExportModal.value = false;
+};
 
 const searchQuery = ref(filters.value.search || '');
 const selectedKelasId = ref(filters.value.kelas_id || '');
@@ -294,19 +328,24 @@ const formatDescription = (desc) => {
                             </span>
                             <span v-else>Tidak ada data yang cocok</span>
                         </p>
-                        <Dropdown align="right" width="56" v-if="can?.create_invoice">
-                            <template #trigger>
-                                <PrimaryButton class="inline-flex items-center justify-center">
-                                    <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" /> Buat Tagihan
-                                    <ChevronDownIcon class="ml-2 -mr-0.5 h-4 w-4" />
-                                </PrimaryButton>
-                            </template>
-                            <template #content>
-                                <button @click="openCreateIndividualModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Individual (SPP)</button>
-                                <button @click="openBulkByClassModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Per Kelas)</button>
-                                <button @click="openBulkAllModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Semua Siswa)</button>
-                            </template>
-                        </Dropdown>
+                        <div class="flex items-center space-x-2">
+                            <SecondaryButton @click="showExportModal = true" class="inline-flex items-center justify-center">
+                                <ArrowDownTrayIcon class="-ml-0.5 mr-1.5 h-5 w-5" /> Export Lunas
+                            </SecondaryButton>
+                            <Dropdown align="right" width="56" v-if="can?.create_invoice">
+                                <template #trigger>
+                                    <PrimaryButton class="inline-flex items-center justify-center">
+                                        <PlusIcon class="-ml-0.5 mr-1.5 h-5 w-5" /> Buat Tagihan
+                                        <ChevronDownIcon class="ml-2 -mr-0.5 h-4 w-4" />
+                                    </PrimaryButton>
+                                </template>
+                                <template #content>
+                                    <button @click="openCreateIndividualModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Individual (SPP)</button>
+                                    <button @click="openBulkByClassModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Per Kelas)</button>
+                                    <button @click="openBulkAllModal" class="block w-full px-4 py-2 text-start text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Tagihan Massal (Semua Siswa)</button>
+                                </template>
+                            </Dropdown>
+                        </div>
                     </div>
                 </div>
 
@@ -472,6 +511,38 @@ const formatDescription = (desc) => {
                         {{ recreateActionForm.processing ? 'Memproses...' : 'Ya, Buat Ulang' }}
                     </PrimaryButton>
                 </div>
+            </div>
+        </Modal>
+
+        <Modal :show="showExportModal" @close="showExportModal = false" :maxWidth="'md'">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6 border-b pb-3 dark:border-gray-700">
+                    Export Invoice Lunas (Excel)
+                </h2>
+                <form @submit.prevent="submitExportForm" class="space-y-4">
+                    <div>
+                        <InputLabel for="export_range_type" value="Pilih Rentang Waktu" />
+                        <select id="export_range_type" v-model="formExport.range_type" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                            <option value="today">Hari Ini</option>
+                            <option value="7_days">7 Hari Terakhir</option>
+                            <option value="14_days">14 Hari Terakhir</option>
+                            <option value="30_days">30 Hari Terakhir</option>
+                            <option value="custom">Kustom Range</option>
+                        </select>
+                    </div>
+                    <div>
+                        <InputLabel for="export_start_date" value="Tanggal Awal Lunas" :required="true"/>
+                        <TextInput id="export_start_date" type="date" class="mt-1 block w-full" v-model="formExport.start_date" :max="todayString" :disabled="formExport.range_type !== 'custom'" required />
+                    </div>
+                    <div>
+                        <InputLabel for="export_end_date" value="Tanggal Akhir Lunas" :required="true"/>
+                        <TextInput id="export_end_date" type="date" class="mt-1 block w-full" v-model="formExport.end_date" :max="todayString" :disabled="formExport.range_type !== 'custom'" required />
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3 pt-4 border-t dark:border-gray-700">
+                        <SecondaryButton @click="showExportModal = false" type="button">Batal</SecondaryButton>
+                        <PrimaryButton>Export Excel</PrimaryButton>
+                    </div>
+                </form>
             </div>
         </Modal>
 

@@ -153,6 +153,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('siswa/{siswa}/generate-resignation-url', [SiswaController::class, 'generateResignationUrl'])->name('siswa.generate_resignation_url');
             // Remove the delete route manually or let except(['destroy']) handle it
             Route::resource('siswa', SiswaController::class)->except(['destroy']);
+            Route::get('invoices/export-paid', [InvoiceController::class, 'exportPaid'])->name('invoices.export_paid');
             Route::resource('invoices', InvoiceController::class);
             Route::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');
             Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');
