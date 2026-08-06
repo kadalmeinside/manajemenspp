@@ -9,9 +9,11 @@
         <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
         
         <!-- PWA Configuration -->
-        <link rel="manifest" href="{{ asset('manifest.json') }}">
-        <meta name="theme-color" content="#1f2937">
-        <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
+        @if (request()->is('admin*'))
+            <link rel="manifest" href="{{ asset('manifest.json') }}">
+            <meta name="theme-color" content="#1f2937">
+            <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
+        @endif
         
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -42,16 +44,18 @@
         @inertia
         
         <!-- PWA Service Worker Registration -->
-        <script>
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js').then(registration => {
-                        console.log('SW registered: ', registration);
-                    }).catch(registrationError => {
-                        console.log('SW registration failed: ', registrationError);
+        @if (request()->is('admin*'))
+            <script>
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('/sw.js').then(registration => {
+                            console.log('SW registered: ', registration);
+                        }).catch(registrationError => {
+                            console.log('SW registration failed: ', registrationError);
+                        });
                     });
-                });
-            }
-        </script>
+                }
+            </script>
+        @endif
     </body>
 </html>
