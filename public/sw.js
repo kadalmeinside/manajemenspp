@@ -1,7 +1,7 @@
-const CACHE_NAME = 'spp-pjh-cache-v1';
+const CACHE_NAME = 'spp-pjh-cache-v2';
 const urlsToCache = [
     '/',
-    '/login',
+    '/admin/login',
     '/manifest.json',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
