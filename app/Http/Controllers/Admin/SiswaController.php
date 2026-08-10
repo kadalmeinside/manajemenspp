@@ -513,12 +513,18 @@ class SiswaController extends Controller
             abort(403);
         }
 
+        $tab = $request->input('tab', 'menunggu');
+
         $query = Siswa::with(['kelas', 'user'])
-            ->whereNull('mulai_spp_date')
             ->whereHas('invoices', function ($q) {
                 $q->where('type', 'pendaftaran')->where('status', 'PAID');
-            })
-            ->orderBy('created_at', 'asc');
+            });
+
+        if ($tab === 'riwayat') {
+            $query->whereNotNull('mulai_spp_date')->orderBy('updated_at', 'desc');
+        } else {
+            $query->whereNull('mulai_spp_date')->orderBy('created_at', 'asc');
+        }
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -539,9 +545,13 @@ class SiswaController extends Controller
                 'email_wali' => $siswa->user?->email,
                 'kelas_nama' => $siswa->kelas?->nama_kelas,
                 'tanggal_bergabung_formatted' => $siswa->tanggal_bergabung ? $siswa->tanggal_bergabung->isoFormat('D MMM YYYY') : null,
+                'mulai_spp_date_formatted' => $siswa->mulai_spp_date ? \Carbon\Carbon::parse($siswa->mulai_spp_date)->translatedFormat('F Y') : null,
                 'status_siswa' => $siswa->status_siswa,
             ]),
-            'filters' => $request->only(['search']),
+            'filters' => [
+                'search' => $request->input('search'),
+                'tab' => $tab,
+            ],
             'can' => [
                 'edit_siswa' => $request->user()->can('edit_siswa'),
             ]

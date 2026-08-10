@@ -21,6 +21,7 @@ const can = computed(() => page.props.can || {});
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
 
+const activeTab = ref(filters.value.tab || 'menunggu');
 const searchQuery = ref(filters.value.search || '');
 const isLoading = ref(false);
 const viewMode = ref('grid');
@@ -37,6 +38,7 @@ const submitFilters = () => {
     isLoading.value = true;
     router.get(route('admin.siswa.pendaftar_lunas'), {
         search: searchQuery.value,
+        tab: activeTab.value,
         page: 1,
     }, {
         preserveState: true, preserveScroll: true, replace: true,
@@ -44,7 +46,7 @@ const submitFilters = () => {
         onFinish: () => { isLoading.value = false; }
     });
 };
-watch([searchQuery], debounce(submitFilters, 300));
+watch([searchQuery, activeTab], debounce(submitFilters, 300));
 
 // State untuk Modal Mulai SPP
 const showMulaiSppModal = ref(false);
@@ -76,6 +78,7 @@ const submitMulaiSpp = () => {
 onMounted(() => {
     const urlParams = new URLSearchParams(window.location.search);
     searchQuery.value = urlParams.get('search') || (filters.value ? filters.value.search : '') || '';
+    activeTab.value = urlParams.get('tab') || (filters.value ? filters.value.tab : 'menunggu') || 'menunggu';
 });
 </script>
 
@@ -96,6 +99,14 @@ onMounted(() => {
                     <div class="flex gap-2">
                         <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari Siswa"/>
                     </div>
+                    <div class="flex mt-3 border-b border-gray-200 dark:border-gray-700">
+                        <button @click="activeTab = 'menunggu'" :class="['w-1/2 py-2 text-sm font-medium border-b-2', activeTab === 'menunggu' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700']">
+                            Menunggu
+                        </button>
+                        <button @click="activeTab = 'riwayat'" :class="['w-1/2 py-2 text-sm font-medium border-b-2', activeTab === 'riwayat' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700']">
+                            Riwayat
+                        </button>
+                    </div>
                     <div class="mt-3 text-center">
                         <p class="text-[11px] text-gray-500 dark:text-gray-400">
                             <span v-if="siswaList.total > 0">
@@ -112,9 +123,17 @@ onMounted(() => {
                     <div class="space-y-4">
                         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                             <div class="w-full sm:w-1/2 md:w-1/3">
-                                <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, email wali..." class="w-full" aria-label="Cari Siswa"/>
+                                <TextInput type="text" v-model="searchQuery" placeholder="Cari pendaftar..." class="w-full md:w-64 bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari Siswa"/>
                             </div>
                             <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                <div class="flex border-b border-gray-200 dark:border-gray-700 ml-4 hidden lg:flex">
+                                    <button @click="activeTab = 'menunggu'" :class="['px-4 py-4 text-sm font-medium border-b-2', activeTab === 'menunggu' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700']">
+                                        Menunggu Aktivasi
+                                    </button>
+                                    <button @click="activeTab = 'riwayat'" :class="['px-4 py-4 text-sm font-medium border-b-2', activeTab === 'riwayat' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-700']">
+                                        Riwayat Aktivasi
+                                    </button>
+                                </div>
                                 <!-- Toggle View -->
                                 <div class="hidden sm:flex items-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 p-1">
                                     <button @click="viewMode = 'grid'" :class="{'bg-gray-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-400': viewMode === 'grid', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300': viewMode !== 'grid'}" class="p-1.5 rounded" title="Tampilan Grid">
@@ -155,19 +174,38 @@ onMounted(() => {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Siswa</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kelas</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email Wali</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Tgl Pendaftaran
+                                    </th>
+                                    <th v-if="activeTab === 'riwayat'" scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Mulai SPP
+                                    </th>
+                                    <th scope="col" class="relative px-6 py-3">
+                                        <span class="sr-only">Aksi</span>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 <tr v-if="!siswaList || !siswaList.data || siswaList.data.length === 0">
-                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada pendaftar baru yang menunggu jadwal SPP.</td>
+                                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada pendaftar baru yang menunggu jadwal SPP.</td>
                                 </tr>
-                                <tr v-else v-for="item in siswaList.data" :key="item.id_siswa">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ item.nama_siswa }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ item.kelas_nama }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ item.email_wali }}</td>
+                                <tr v-else v-for="siswa in siswaList.data" :key="siswa.id_siswa">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ siswa.nama_siswa }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ siswa.kelas_nama }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{{ siswa.email_wali }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                        {{ siswa.tanggal_bergabung_formatted || '-' }}
+                                    </td>
+                                    <td v-if="activeTab === 'riwayat'" class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-medium">
+                                        {{ siswa.mulai_spp_date_formatted || '-' }}
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button @click="openMulaiSppModal(item)" v-if="can?.edit_siswa" class="px-3 py-1.5 text-xs bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded font-medium shadow-sm transition">Tentukan Jadwal</button>
+                                        <PrimaryButton v-if="activeTab === 'menunggu'" @click="openMulaiSppModal(siswa)" class="bg-indigo-600 hover:bg-indigo-700 py-1.5 px-3">
+                                            Set Jadwal SPP
+                                        </PrimaryButton>
+                                        <span v-else class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                            Sudah Diaktifkan
+                                        </span>
                                     </td>
                                 </tr>
                             </tbody>
