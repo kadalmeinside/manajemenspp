@@ -32,12 +32,14 @@ class Siswa extends Model
         'xendit_fixed_va_id',
         'nomor_va_fixed',
         'tanggal_bergabung',
+        'mulai_spp_date',
         'id_kelas',
         'id_user',
     ];
 
     protected $casts = [
         'tanggal_bergabung' => 'date:Y-m-d',
+        'mulai_spp_date' => 'date:Y-m-d',
         'jumlah_spp_custom' => 'decimal:2',
         'admin_fee_custom' => 'decimal:2',
         'tanggal_lahir' => 'date:Y-m-d',
@@ -135,5 +137,10 @@ class Siswa extends Model
     public function agreements()
     {
         return $this->hasMany(UserAgreement::class, 'id_siswa', 'id_siswa');
+    }
+
+    public function scopeMenungguSpp($query)
+    {
+        return $query->whereNull('mulai_spp_date')->where('status_siswa', 'Aktif');
     }
 }

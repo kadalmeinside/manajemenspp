@@ -297,6 +297,14 @@ class InvoiceController extends Controller
                     throw new \Exception('Tagihan SPP untuk siswa ini pada periode tersebut sudah ada.');
                 }
 
+                if (!$siswa->mulai_spp_date) {
+                    throw new \Exception('Siswa ini belum memiliki jadwal mulai SPP (Tentukan terlebih dahulu di menu Siswa).');
+                }
+
+                if ($periodeTagihan->startOfMonth()->lt($siswa->mulai_spp_date->startOfMonth())) {
+                    throw new \Exception('Gagal membuat tagihan. Jadwal mulai SPP siswa ini ('.$siswa->mulai_spp_date->isoFormat('MMM Y').') lebih lambat dari bulan tagihan yang Anda buat.');
+                }
+
                 // ### PERBAIKAN: Admin fee tidak lagi menjadi bagian dari total tagihan bulanan ###
                 
                 // Cek Cuti

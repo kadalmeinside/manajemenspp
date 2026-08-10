@@ -43,6 +43,8 @@ class GenerateMassInvoices implements ShouldQueue
         $tanggalJatuhTempo = Carbon::parse($params['jatuh_tempo'])->endOfDay();
         
         $siswasToBillQuery = Siswa::where('status_siswa', 'Aktif')
+            ->whereNotNull('mulai_spp_date')
+            ->whereDate('mulai_spp_date', '<=', $periodeTagihan->toDateString())
             ->whereDoesntHave('invoices', fn($q) => $q->where('type', 'spp')->whereDate('periode_tagihan', $periodeTagihan->toDateString()))
             ->with(['user', 'kelas']);
 

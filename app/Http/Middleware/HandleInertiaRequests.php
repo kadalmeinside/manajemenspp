@@ -175,6 +175,22 @@ class HandleInertiaRequests extends Middleware
                 }
                 return 0;
             },
+            'pending_aktivasi_spp_count' => function () use ($request) {
+                if ($request->user() && $request->user()->can('view_siswa')) {
+                    $query = \App\Models\Siswa::whereNull('mulai_spp_date')
+                        ->whereHas('invoices', function ($q) {
+                            $q->where('type', 'pendaftaran')->where('status', 'PAID');
+                        });
+                    
+                    if ($request->user()->hasRole('admin_kelas')) {
+                        $managedKelasIds = \App\Models\Kelas::where('admin_id', $request->user()->id)->pluck('id');
+                        $query->whereIn('id_kelas', $managedKelasIds);
+                    }
+                    
+                    return $query->count();
+                }
+                return 0;
+            },
         ]);
     }
 }

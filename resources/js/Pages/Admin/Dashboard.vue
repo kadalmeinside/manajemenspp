@@ -267,8 +267,8 @@ const getJobStatusClass = (status) => {
                         </h3>
                     </div>
 
-                    <!-- Alert Cards -->
-                    <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 px-1 sm:px-0">
+                    <!-- Peringatan & Perhatian -->
+                    <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0 || alerts.pendaftar_menunggu_spp > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 px-1 sm:px-0">
                         <Link v-if="alerts.cuti_pending > 0" :href="route('admin.leaves.index', { status: 'pending' })" class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl hover:bg-yellow-100 transition-colors">
                             <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-400 dark:bg-yellow-600 flex items-center justify-center">
                                 <span class="text-white font-bold text-sm">{{ alerts.cuti_pending }}</span>
@@ -285,6 +285,17 @@ const getJobStatusClass = (status) => {
                                 <p class="text-sm font-semibold text-red-800 dark:text-red-300">Invoice Expired</p>
                             </div>
                         </Link>
+                        
+                        <Link v-if="alerts.pendaftar_menunggu_spp > 0" :href="route('admin.siswa.pendaftar_lunas')" class="flex items-center gap-3 p-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 rounded-xl hover:bg-teal-100 transition-colors">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ alerts.pendaftar_menunggu_spp }}</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-teal-800 dark:text-teal-400">Aktivasi SPP Pendaftar</h4>
+                                <p class="text-xs text-teal-600 dark:text-teal-500">Tentukan jadwal SPP.</p>
+                            </div>
+                        </Link>
+
                         <div v-if="alerts.siswa_tanpa_tagihan > 0" class="flex items-center gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl">
                             <div class="flex-shrink-0 h-10 w-10 rounded-full bg-orange-400 dark:bg-orange-600 flex items-center justify-center">
                                 <span class="text-white font-bold text-sm">{{ alerts.siswa_tanpa_tagihan }}</span>

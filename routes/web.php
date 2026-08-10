@@ -149,6 +149,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('siswa/export', [SiswaController::class, 'export'])->name('siswa.export');
             Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
             Route::get('siswa/generate-nis/{kelas}', [SiswaController::class, 'generateNis'])->name('siswa.generate_nis');
+            Route::get('siswa/pendaftar-lunas', [SiswaController::class, 'pendaftarLunas'])->name('siswa.pendaftar_lunas');
+            Route::post('siswa/{siswa}/mulai-spp', [SiswaController::class, 'setMulaiSpp'])->name('siswa.set_mulai_spp');
             Route::get('siswa/{siswa}/legal-pdf/{agreement}', [SiswaController::class, 'downloadLegalPdf'])->name('siswa.legal_pdf');
             Route::post('siswa/{siswa}/generate-resignation-url', [SiswaController::class, 'generateResignationUrl'])->name('siswa.generate_resignation_url');
             // Remove the delete route manually or let except(['destroy']) handle it

@@ -87,6 +87,8 @@ class SiswaController extends Controller
                 'email_wali' => $siswa->user?->email,
                 'kelas_nama' => $siswa->kelas?->nama_kelas,
                 'tanggal_bergabung_formatted' => $siswa->tanggal_bergabung->isoFormat('D MMM YYYY'),
+                'mulai_spp_date' => $siswa->mulai_spp_date ? $siswa->mulai_spp_date->format('Y-m') : null,
+                'mulai_spp_date_formatted' => $siswa->mulai_spp_date ? $siswa->mulai_spp_date->isoFormat('MMMM YYYY') : null,
                 'full_data_for_edit' => $this->getSiswaDataForEdit($siswa),
             ]),
             'filters' => $request->only(['search', 'kelas_id', 'status_siswa', 'spp_belum_diset']),
@@ -114,6 +116,7 @@ class SiswaController extends Controller
             'tanggal_bergabung' => $siswa->tanggal_bergabung->format('Y-m-d'),
             'jumlah_spp_custom' => $siswa->jumlah_spp_custom,
             'admin_fee_custom' => $siswa->admin_fee_custom,
+            'mulai_spp_date' => $siswa->mulai_spp_date ? $siswa->mulai_spp_date->format('Y-m') : null,
             'user' => [
                 'id' => $siswa->user?->id,
                 'name' => $siswa->user?->name,
@@ -460,23 +463,88 @@ class SiswaController extends Controller
 
     public function generateResignationUrl(Request $request, Siswa $siswa)
     {
-        if (!auth()->user()->can('edit_siswa')) {
+        if (!$request->user()->can('edit_siswa')) {
             abort(403);
         }
 
-        $request->validate([
-            'tanggal_resign' => 'required|date',
+        $token = Str::random(60);
+        
+        DB::table('resignation_tokens')->insert([
+            'siswa_id' => $siswa->id_siswa,
+            'token' => $token,
+            'created_at' => now(),
+            'expires_at' => now()->addDays(7)
         ]);
 
-        $resignationUrl = \Illuminate\Support\Facades\URL::signedRoute(
-            'public.resignation.form',
-            [
-                'siswa' => $siswa->id_siswa,
-                'tanggal_resign' => $request->tanggal_resign
-            ],
-            now()->addDays(7)
-        );
+        $url = route('resignation.form', ['token' => $token]);
 
-        return response()->json(['url' => $resignationUrl]);
+        return back()->with([
+            'type' => 'success',
+            'message' => 'Link pengajuan berhenti berhasil dibuat.',
+            'resignation_url' => $url
+        ]);
+    }
+
+    public function setMulaiSpp(Request $request, Siswa $siswa)
+    {
+        if (!$request->user()->can('edit_siswa')) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'mulai_spp_date' => 'required|date_format:Y-m',
+        ]);
+
+        $date = Carbon::createFromFormat('Y-m', $validated['mulai_spp_date'])->startOfMonth();
+        
+        $siswa->update([
+            'mulai_spp_date' => $date
+        ]);
+
+        return back()->with([
+            'type' => 'success',
+            'message' => 'Jadwal mulai SPP berhasil ditetapkan.'
+        ]);
+    }
+
+    public function pendaftarLunas(Request $request)
+    {
+        if (!$request->user()->can('view_siswa')) {
+            abort(403);
+        }
+
+        $query = Siswa::with(['kelas', 'user'])
+            ->whereNull('mulai_spp_date')
+            ->whereHas('invoices', function ($q) {
+                $q->where('type', 'pendaftaran')->where('status', 'PAID');
+            })
+            ->orderBy('created_at', 'asc');
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_siswa', 'LIKE', "%{$search}%")
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
+                      $userQuery->where('email', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        $siswaList = $query->paginate(15)->withQueryString();
+
+        return Inertia::render('Admin/Siswa/PendaftarLunas', [
+            'siswaList' => $siswaList->through(fn($siswa) => [
+                'id_siswa' => $siswa->id_siswa,
+                'nama_siswa' => $siswa->nama_siswa,
+                'email_wali' => $siswa->user?->email,
+                'kelas_nama' => $siswa->kelas?->nama_kelas,
+                'tanggal_bergabung_formatted' => $siswa->tanggal_bergabung ? $siswa->tanggal_bergabung->isoFormat('D MMM YYYY') : null,
+                'status_siswa' => $siswa->status_siswa,
+            ]),
+            'filters' => $request->only(['search']),
+            'can' => [
+                'edit_siswa' => $request->user()->can('edit_siswa'),
+            ]
+        ]);
     }
 }

@@ -358,6 +358,7 @@ class DashboardController extends Controller
                 'expired_invoices'     => $expiredInvoicesCount,
                 'siswa_tanpa_tagihan'  => $siswaTanpaTagihanCount,
                 'siswa_tanpa_spp_config' => $siswaTanpaSppConfigCount,
+                'pendaftar_menunggu_spp' => $pendaftarMenungguSppCount,
             ],
         ]);
     }

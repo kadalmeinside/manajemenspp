@@ -12,7 +12,7 @@ import GlobalLoader from '@/Components/GlobalLoader.vue';
 import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
-    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon, ArrowDownTrayIcon
+    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon, ArrowDownTrayIcon, CheckBadgeIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
@@ -82,6 +82,13 @@ const appSettings = computed(() => page.props.app_settings || {});
 const appName = computed(() => appSettings.value.app_name || 'Manajemen SPP');
 const appLogo = computed(() => appSettings.value.app_logo || null);
 const pendingLeavesCount = computed(() => page.props.pending_leaves_count || 0);
+const pendingAktivasiSppCount = computed(() => page.props.pending_aktivasi_spp_count || 0);
+
+const getBadgeCount = (item) => {
+    if (item.badgeType === 'cuti') return pendingLeavesCount.value;
+    if (item.badgeType === 'aktivasi_spp') return pendingAktivasiSppCount.value;
+    return 0;
+};
 
 const openMenus = ref({});
 function toggleMenu(menuKey) {
@@ -146,10 +153,11 @@ const adminMenu = [
     { name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: ChartBarIcon, current: 'admin.laporan.pembayaran_bulanan', requiredPermission: 'manage_all_tagihan' },
     { name: 'Riwayat Aktivitas', route: 'admin.laporan.aktivitas', icon: QueueListIcon, current: 'admin.laporan.aktivitas', requiredPermission: 'manage_all_tagihan' },
     { name: 'Manajemen Invoice', route: 'admin.invoices.index', icon: DocumentChartBarIcon, current: 'admin.invoices.*', requiredPermission: 'manage_all_tagihan' },
-    { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.*', requiredPermission: 'view_siswa' },
+    { name: 'Aktivasi SPP', route: 'admin.siswa.pendaftar_lunas', icon: CheckBadgeIcon, current: 'admin.siswa.pendaftar_lunas', requiredPermission: 'view_siswa', badgeType: 'aktivasi_spp' },
+    { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.index', requiredPermission: 'view_siswa' },
     { name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', requiredPermission: 'manage_kelas' },
     { name: 'Manajemen Promo', route: 'admin.promos.index', icon: CurrencyDollarIcon, current: 'admin.promos.*', requiredPermission: 'manage_kelas' },
-    { name: 'Pengajuan Cuti', route: 'admin.leaves.index', icon: CalendarDaysIcon, current: 'admin.leaves.*', requiredPermission: 'manage_all_tagihan', badge: true },
+    { name: 'Pengajuan Cuti', route: 'admin.leaves.index', icon: CalendarDaysIcon, current: 'admin.leaves.*', requiredPermission: 'manage_all_tagihan', badgeType: 'cuti' },
 ];
 
 const systemMenu = {
@@ -231,11 +239,11 @@ const activeMenuName = computed(() => {
                                :class="['flex items-center px-2 py-2 text-sm font-medium rounded-md group', isMenuActive(item) ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white']">
                             <component :is="item.icon" class="mr-3 flex-shrink-0 h-5 w-5" aria-hidden="true" />
                             <span v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-1">{{ item.name }}</span>
-                            <!-- Badge notifikasi untuk cuti pending -->
+                            <!-- Badge notifikasi -->
                             <span
-                                v-if="item.badge && pendingLeavesCount > 0 && (desktopSidebarOpen || mobileSidebarOpen)"
+                                v-if="item.badgeType && getBadgeCount(item) > 0 && (desktopSidebarOpen || mobileSidebarOpen)"
                                 class="ml-auto inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 text-xs font-bold rounded-full bg-red-500 text-white"
-                            >{{ pendingLeavesCount > 99 ? '99+' : pendingLeavesCount }}</span>
+                            >{{ getBadgeCount(item) > 99 ? '99+' : getBadgeCount(item) }}</span>
                         </Link>
                     </template>
                 </template>

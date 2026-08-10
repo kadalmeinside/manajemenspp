@@ -40,6 +40,7 @@ const form = useForm({
     email_wali: '',
     nomor_telepon_wali: '',
     tanggal_bergabung: new Date().toISOString().slice(0,10),
+    mulai_spp_date: '',
     jumlah_spp_custom: null,
     admin_fee_custom: null,
     user_name: '',
@@ -128,6 +129,7 @@ const openEditModal = (siswaItem) => {
     form.email_wali = data.user.email;
     form.nomor_telepon_wali = data.nomor_telepon_wali;
     form.tanggal_bergabung = data.tanggal_bergabung;
+    form.mulai_spp_date = data.mulai_spp_date || '';
     form.jumlah_spp_custom = parseFloat(data.jumlah_spp_custom) || null;
     form.admin_fee_custom = parseFloat(data.admin_fee_custom) || null;
     form.user_name = data.user.name;
@@ -374,7 +376,7 @@ onMounted(() => {
                         </div>
 
                         <!-- Tampilan Grid (Card) -->
-                        <div :class="{'hidden sm:grid': viewMode === 'list', 'grid': true}" class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4 px-1 sm:px-0">
+                        <div :class="{'sm:hidden': viewMode === 'list', 'grid': true}" class="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4 px-1 sm:px-0">
                             <div v-if="!siswaList || !siswaList.data || siswaList.data.length === 0" class="text-center text-sm text-gray-500 py-4 col-span-full">
                                 Tidak ada data siswa.
                             </div>
@@ -535,6 +537,11 @@ onMounted(() => {
                             <InputLabel for="tanggal_bergabung_modal" value="Tanggal Bergabung" required />
                             <TextInput id="tanggal_bergabung_modal" type="date" class="mt-1 block w-full" v-model="form.tanggal_bergabung" @input="form.clearErrors('tanggal_bergabung')" required />
                             <InputError class="mt-2" :message="form.errors.tanggal_bergabung" />
+                        </div>
+                        <div>
+                            <InputLabel for="mulai_spp_date_edit_modal" value="Bulan Mulai SPP (Opsional)" />
+                            <TextInput id="mulai_spp_date_edit_modal" type="month" class="mt-1 block w-full" v-model="form.mulai_spp_date" @input="form.clearErrors('mulai_spp_date')" placeholder="Kosongkan jika belum ada" />
+                            <InputError class="mt-2" :message="form.errors.mulai_spp_date" />
                         </div>
                         <div>
                             <InputLabel for="jumlah_spp_custom_modal" value="SPP Custom (Wajib)" required />
