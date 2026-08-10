@@ -183,7 +183,7 @@ class HandleInertiaRequests extends Middleware
                         });
                     
                     if ($request->user()->hasRole('admin_kelas')) {
-                        $managedKelasIds = \App\Models\Kelas::where('admin_id', $request->user()->id)->pluck('id');
+                        $managedKelasIds = \App\Models\Kelas::where('admin_id', $request->user()->id)->pluck('id_kelas');
                         $query->whereIn('id_kelas', $managedKelasIds);
                     }
                     
