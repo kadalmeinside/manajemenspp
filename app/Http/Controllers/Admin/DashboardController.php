@@ -262,15 +262,7 @@ class DashboardController extends Controller
         
         $siswaTanpaTagihanCount = $siswaAktifIds->diff($siswaYangSudahTagihanIds)->count();
 
-        // 4. Siswa aktif tanpa konfigurasi nominal SPP (jumlah_spp_custom 0 atau null)
-        $siswaTanpaSppConfigQuery = Siswa::where('status_siswa', 'Aktif')
-            ->where(function($q) {
-                $q->whereNull('jumlah_spp_custom')->orWhere('jumlah_spp_custom', '<=', 0);
-            });
-        if ($managedKelasIds) {
-            $siswaTanpaSppConfigQuery->whereIn('id_kelas', $managedKelasIds);
-        }
-        $siswaTanpaSppConfigCount = $siswaTanpaSppConfigQuery->count();
+
 
         // 5. Pendaftar lunas yang menunggu SPP
         $pendaftarMenungguSppCountQuery = Siswa::whereNull('mulai_spp_date')
@@ -376,7 +368,7 @@ class DashboardController extends Controller
                 'cuti_pending'         => $cutiPendingCount,
                 'expired_invoices'     => $expiredInvoicesCount,
                 'siswa_tanpa_tagihan'  => $siswaTanpaTagihanCount,
-                'siswa_tanpa_spp_config' => $siswaTanpaSppConfigCount,
+
                 'pendaftar_menunggu_spp' => $pendaftarMenungguSppCount,
             ],
         ]);
