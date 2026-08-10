@@ -263,7 +263,17 @@ class DashboardController extends Controller
         }
         $siswaTanpaSppConfigCount = $siswaTanpaSppConfigQuery->count();
 
-        // 5. Total Tunggakan Keseluruhan (Semua Waktu)
+        // 5. Pendaftar lunas yang menunggu SPP
+        $pendaftarMenungguSppCountQuery = Siswa::whereNull('mulai_spp_date')
+            ->whereHas('invoices', function ($q) {
+                $q->where('type', 'pendaftaran')->where('status', 'PAID');
+            });
+        if ($managedKelasIds) {
+            $pendaftarMenungguSppCountQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+        $pendaftarMenungguSppCount = $pendaftarMenungguSppCountQuery->count();
+
+        // 6. Total Tunggakan Keseluruhan (Semua Waktu)
         $totalTunggakanKeseluruhanQuery = Invoice::where('status', 'PENDING')->where('type', 'spp');
         if ($managedKelasIds) {
             $totalTunggakanKeseluruhanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
