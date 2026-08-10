@@ -226,12 +226,16 @@ onMounted(() => {
                                 </div>
                                 <div class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                     <p><span class="font-medium">Wali:</span> {{ item.email_wali }}</p>
-                                    <p><span class="font-medium">Bergabung:</span> {{ item.tanggal_bergabung_formatted }}</p>
+                                    <p><span class="font-medium">Bergabung:</span> {{ item.tanggal_bergabung_formatted || '-' }}</p>
+                                    <p v-if="activeTab === 'riwayat'"><span class="font-medium">Mulai SPP:</span> {{ item.mulai_spp_date_formatted || '-' }}</p>
                                 </div>
                                 <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 sm:dark:border-gray-600 flex justify-end gap-2">
-                                    <button @click="openMulaiSppModal(item)" v-if="can?.edit_siswa" class="w-full justify-center flex items-center px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium shadow-sm transition">
+                                    <button v-if="activeTab === 'menunggu' && can?.edit_siswa" @click="openMulaiSppModal(item)" class="w-full justify-center flex items-center px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium shadow-sm transition">
                                         Tentukan Jadwal SPP
                                     </button>
+                                    <span v-else-if="activeTab === 'riwayat'" class="w-full justify-center flex items-center px-3 py-2 text-sm bg-green-50 text-green-700 rounded font-medium shadow-sm border border-green-200">
+                                        Sudah Diaktifkan
+                                    </span>
                                 </div>
                             </div>
                         </div>
