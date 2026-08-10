@@ -170,7 +170,11 @@ class DashboardController extends Controller
                     $periods = collect($inv->selected_periods)->map(fn($p) => \Carbon\Carbon::parse($p));
                     $start = $periods->min()->translatedFormat('F Y');
                     $end = $periods->max()->translatedFormat('F Y');
-                    $desc .= " untuk SPP bulan $start sampai $end";
+                    if ($start === $end) {
+                        $desc .= " untuk SPP bulan $start";
+                    } else {
+                        $desc .= " untuk SPP bulan $start sampai $end";
+                    }
                 } elseif (in_array($inv->type, ['spp', 'pembayaran_spp_gabungan']) && $inv->periode_tagihan) {
                     $bulan = \Carbon\Carbon::parse($inv->periode_tagihan)->translatedFormat('F Y');
                     $desc .= ' untuk SPP bulan ' . $bulan;

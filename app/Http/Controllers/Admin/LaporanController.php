@@ -261,7 +261,11 @@ class LaporanController extends Controller
                     $periods = collect($periods)->map(fn($p) => \Carbon\Carbon::parse($p));
                     $start = $periods->min()->translatedFormat('F Y');
                     $end = $periods->max()->translatedFormat('F Y');
-                    $desc .= " untuk SPP bulan $start sampai $end";
+                    if ($start === $end) {
+                        $desc .= " untuk SPP bulan $start";
+                    } else {
+                        $desc .= " untuk SPP bulan $start sampai $end";
+                    }
                 }
             } elseif (in_array($act->original_type, ['spp', 'pembayaran_spp_gabungan']) && $act->periode_tagihan) {
                 $bulan = \Carbon\Carbon::parse($act->periode_tagihan)->translatedFormat('F Y');
