@@ -21,7 +21,7 @@ const page = usePage();
 
 // Computed props
 const invoiceList = computed(() => page.props.invoiceList || { data: [], links: [], current_page: 1, total: 0, per_page: 10, from: 0, to: 0 });
-const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status: '', periode_bulan: '', periode_tahun: '' });
+const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status: '', type: '', periode_bulan: '', periode_tahun: '' });
 const allSiswa = computed(() => page.props.allSiswa || []);
 const allKelas = computed(() => page.props.allKelas || []);
 const allStatus = computed(() => page.props.allStatus || []);
@@ -116,6 +116,7 @@ const submitExportForm = () => {
 const searchQuery = ref(filters.value.search || '');
 const selectedKelasId = ref(filters.value.kelas_id || '');
 const selectedStatus = ref(filters.value.status || '');
+const selectedType = ref(filters.value.type || '');
 const selectedPeriodeBulan = ref(filters.value.periode_bulan || '');
 const selectedPeriodeTahun = ref(filters.value.periode_tahun || '');
 
@@ -124,6 +125,7 @@ const submitFilters = () => {
         search: searchQuery.value,
         kelas_id: selectedKelasId.value,
         status: selectedStatus.value,
+        type: selectedType.value,
         periode_bulan: selectedPeriodeBulan.value,
         periode_tahun: selectedPeriodeTahun.value,
         page: 1,
@@ -132,7 +134,7 @@ const submitFilters = () => {
         only: ['invoiceList', 'filters'],
     });
 };
-watch([searchQuery, selectedKelasId, selectedStatus, selectedPeriodeBulan, selectedPeriodeTahun], debounce(submitFilters, 300));
+watch([searchQuery, selectedKelasId, selectedStatus, selectedType, selectedPeriodeBulan, selectedPeriodeTahun], debounce(submitFilters, 300));
 
 
 const openCreateIndividualModal = () => { formIndividual.reset(); showIndividualModal.value = true; };

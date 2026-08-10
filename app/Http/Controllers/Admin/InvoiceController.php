@@ -58,8 +58,18 @@ class InvoiceController extends Controller
             });
         }
 
+        if ($request->filled('type') && $request->input('type') !== '') {
+            $query->where('type', $request->input('type'));
+        }
+
         if ($request->filled('status') && $request->input('status') !== '') {
-            $query->where('status', $request->input('status'));
+            $status = $request->input('status');
+            if ($status === 'TUNGGAKAN') {
+                $query->whereIn('status', ['PENDING', 'EXPIRED'])
+                      ->where('due_date', '<', now()->format('Y-m-d'));
+            } else {
+                $query->where('status', $status);
+            }
         }
 
         // Filter periode bulan & tahun
@@ -71,7 +81,7 @@ class InvoiceController extends Controller
         }
 
         $invoiceList = $query->paginate(15)->withQueryString();
-        $statusPembayaranOptions = ['PENDING', 'PAID', 'EXPIRED', 'FAILED', 'REFUNDED'];
+        $statusPembayaranOptions = ['PENDING', 'PAID', 'EXPIRED', 'FAILED', 'REFUNDED', 'TUNGGAKAN'];
 
         $allKelasQuery = Kelas::orderBy('nama_kelas');
         $allSiswaQuery = Siswa::with(['user:id,email', 'kelas:id_kelas,nama_kelas'])

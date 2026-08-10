@@ -268,7 +268,7 @@ const getJobStatusClass = (status) => {
                     </div>
 
                     <!-- Peringatan & Perhatian -->
-                    <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0 || alerts.pendaftar_menunggu_spp > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 px-1 sm:px-0">
+                    <div v-if="alerts && (alerts.cuti_pending > 0 || alerts.expired_invoices > 0 || alerts.siswa_tanpa_tagihan > 0 || alerts.pendaftar_menunggu_spp > 0 || alerts.tunggakan_spp > 0 || alerts.pendaftar_belum_bayar > 0)" class="mb-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 px-1 sm:px-0">
                         <Link v-if="alerts.cuti_pending > 0" :href="route('admin.leaves.index', { status: 'pending' })" class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl hover:bg-yellow-100 transition-colors">
                             <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-400 dark:bg-yellow-600 flex items-center justify-center">
                                 <span class="text-white font-bold text-sm">{{ alerts.cuti_pending }}</span>
@@ -304,6 +304,26 @@ const getJobStatusClass = (status) => {
                                 <p class="text-sm font-semibold text-orange-800 dark:text-orange-300">Siswa Belum Ditagih SPP</p>
                             </div>
                         </div>
+
+                        <Link v-if="alerts.tunggakan_spp > 0" :href="route('admin.invoices.index', { status: 'TUNGGAKAN' })" class="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-700 rounded-xl hover:bg-rose-100 transition-colors">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-rose-500 flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ alerts.tunggakan_spp }}</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-rose-800 dark:text-rose-400">Tunggakan SPP</h4>
+                                <p class="text-xs text-rose-600 dark:text-rose-500">Siswa melewati jatuh tempo.</p>
+                            </div>
+                        </Link>
+
+                        <Link v-if="alerts.pendaftar_belum_bayar > 0" :href="route('admin.invoices.index', { type: 'pendaftaran', status: 'PENDING' })" class="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl hover:bg-purple-100 transition-colors">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">{{ alerts.pendaftar_belum_bayar }}</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-purple-800 dark:text-purple-400">Pendaftar Belum Bayar</h4>
+                                <p class="text-xs text-purple-600 dark:text-purple-500">Menunggu pembayaran awal.</p>
+                            </div>
+                        </Link>
                     </div>
 
                     <!-- Monthly Stats Cards -->

@@ -269,10 +269,34 @@ class DashboardController extends Controller
             ->whereHas('invoices', function ($q) {
                 $q->where('type', 'pendaftaran')->where('status', 'PAID');
             });
-        if ($managedKelasIds) {
+        if (!empty($managedKelasIds)) {
             $pendaftarMenungguSppCountQuery->whereIn('id_kelas', $managedKelasIds);
         }
         $pendaftarMenungguSppCount = $pendaftarMenungguSppCountQuery->count();
+
+        // 6. Tunggakan SPP (Lewat jatuh tempo)
+        $tunggakanSppQuery = Invoice::whereIn('status', ['PENDING', 'EXPIRED'])
+            ->where('due_date', '<', now()->format('Y-m-d'))
+            ->whereIn('type', ['spp', 'pembayaran_spp_gabungan'])
+            ->whereHas('siswa', function($q) {
+                $q->where('status_siswa', 'Aktif');
+            });
+        if (!empty($managedKelasIds)) {
+            $tunggakanSppQuery->whereHas('siswa', function($q) use ($managedKelasIds) {
+                $q->whereIn('id_kelas', $managedKelasIds);
+            });
+        }
+        $tunggakanSppCount = $tunggakanSppQuery->count();
+
+        // 7. Pendaftar Belum Bayar
+        $pendaftarBelumBayarQuery = Invoice::whereIn('status', ['PENDING', 'EXPIRED'])
+            ->where('type', 'pendaftaran');
+        if (!empty($managedKelasIds)) {
+            $pendaftarBelumBayarQuery->whereHas('siswa', function($q) use ($managedKelasIds) {
+                $q->whereIn('id_kelas', $managedKelasIds);
+            });
+        }
+        $pendaftarBelumBayarCount = $pendaftarBelumBayarQuery->count();
 
         // 6. Total Tunggakan Keseluruhan (Semua Waktu)
         $totalTunggakanKeseluruhanQuery = Invoice::where('status', 'PENDING')->where('type', 'spp');
@@ -370,6 +394,8 @@ class DashboardController extends Controller
                 'siswa_tanpa_tagihan'  => $siswaTanpaTagihanCount,
 
                 'pendaftar_menunggu_spp' => $pendaftarMenungguSppCount,
+                'tunggakan_spp'        => $tunggakanSppCount,
+                'pendaftar_belum_bayar'=> $pendaftarBelumBayarCount,
             ],
         ]);
     }
