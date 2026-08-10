@@ -157,6 +157,7 @@ class LaporanController extends Controller
                 'siswa.id_kelas',
                 'kelas.nama_kelas',
                 'invoices.periode_tagihan',
+                'invoices.selected_periods',
                 'invoices.type as original_type',
                 'invoices.payment_method'
             )
@@ -184,6 +185,7 @@ class LaporanController extends Controller
                 'siswa.id_kelas',
                 'kelas.nama_kelas',
                 DB::raw("NULL as periode_tagihan"),
+                DB::raw("NULL as selected_periods"),
                 DB::raw("NULL as original_type"),
                 DB::raw("NULL as payment_method")
             )
@@ -203,6 +205,7 @@ class LaporanController extends Controller
                 'siswa.id_kelas',
                 'kelas.nama_kelas',
                 DB::raw("NULL as periode_tagihan"),
+                DB::raw("NULL as selected_periods"),
                 DB::raw("NULL as original_type"),
                 DB::raw("NULL as payment_method")
             )
@@ -252,7 +255,15 @@ class LaporanController extends Controller
 
         $activities = $query->paginate(20)->withQueryString()->through(function($act) {
             $desc = $act->description;
-            if (in_array($act->original_type, ['spp', 'pembayaran_spp_gabungan']) && $act->periode_tagihan) {
+            if ($act->original_type === 'pembayaran_spp_gabungan' && !empty($act->selected_periods)) {
+                $periods = is_string($act->selected_periods) ? json_decode($act->selected_periods, true) : $act->selected_periods;
+                if (is_array($periods) && count($periods) > 0) {
+                    $periods = collect($periods)->map(fn($p) => \Carbon\Carbon::parse($p));
+                    $start = $periods->min()->translatedFormat('F Y');
+                    $end = $periods->max()->translatedFormat('F Y');
+                    $desc .= " untuk SPP bulan $start sampai $end";
+                }
+            } elseif (in_array($act->original_type, ['spp', 'pembayaran_spp_gabungan']) && $act->periode_tagihan) {
                 $bulan = \Carbon\Carbon::parse($act->periode_tagihan)->translatedFormat('F Y');
                 $desc .= ' untuk SPP bulan ' . $bulan;
             }

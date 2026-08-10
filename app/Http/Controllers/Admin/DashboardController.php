@@ -166,7 +166,12 @@ class DashboardController extends Controller
                 ]);
             } elseif ($inv->status === 'PAID') {
                 $desc = ($inv->siswa?->nama_siswa ?? 'Siswa') . ' telah membayar tagihan';
-                if (in_array($inv->type, ['spp', 'pembayaran_spp_gabungan']) && $inv->periode_tagihan) {
+                if ($inv->type === 'pembayaran_spp_gabungan' && !empty($inv->selected_periods)) {
+                    $periods = collect($inv->selected_periods)->map(fn($p) => \Carbon\Carbon::parse($p));
+                    $start = $periods->min()->translatedFormat('F Y');
+                    $end = $periods->max()->translatedFormat('F Y');
+                    $desc .= " untuk SPP bulan $start sampai $end";
+                } elseif (in_array($inv->type, ['spp', 'pembayaran_spp_gabungan']) && $inv->periode_tagihan) {
                     $bulan = \Carbon\Carbon::parse($inv->periode_tagihan)->translatedFormat('F Y');
                     $desc .= ' untuk SPP bulan ' . $bulan;
                 }
