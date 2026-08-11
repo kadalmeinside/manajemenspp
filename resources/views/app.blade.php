@@ -6,13 +6,13 @@
 
         {{-- <title inertia>{{ config('app.name', 'Laravel') }}</title> --}}
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
-        <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+        <link rel="icon" href="{{ asset('favicon.ico') }}?v=2" type="image/x-icon">
         
         <!-- PWA Configuration -->
         @if (request()->is('admin*'))
-            <link rel="manifest" href="{{ asset('manifest.json') }}">
+            <link rel="manifest" href="{{ asset('manifest.json') }}?v=2">
             <meta name="theme-color" content="#1f2937">
-            <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
+            <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}?v=2">
         @endif
         
         <!-- Fonts -->
