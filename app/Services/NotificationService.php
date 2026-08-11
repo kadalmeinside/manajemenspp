@@ -12,8 +12,8 @@ class NotificationService
      */
     public static function sendToAdmins(array $data, $kelasId = null)
     {
-        // 1. Dapatkan Super Admin (Role: super_admin)
-        $superAdmins = User::role('super_admin')->get();
+        // 1. Dapatkan Admin (Role: admin)
+        $superAdmins = User::role('admin')->get();
 
         // 2. Dapatkan Admin Kelas jika kelasId diberikan
         $adminKelas = collect();
