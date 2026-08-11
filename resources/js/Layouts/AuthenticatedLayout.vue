@@ -12,7 +12,8 @@ import GlobalLoader from '@/Components/GlobalLoader.vue';
 import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
-    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon, ArrowDownTrayIcon, CheckBadgeIcon
+    ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon, ArrowDownTrayIcon, CheckBadgeIcon,
+    BellSlashIcon, ClockIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
@@ -51,6 +52,7 @@ const jobProgress = ref(0);
 
 const unreadNotifications = ref([]);
 const unreadCount = computed(() => unreadNotifications.value.length);
+const showNotificationsModal = ref(false);
 
 const isWebPushEnabled = ref(false);
 
@@ -68,7 +70,14 @@ const markAsRead = async (notification) => {
     try {
         await axios.post(route('admin.notifications.read', notification.id));
         unreadNotifications.value = unreadNotifications.value.filter(n => n.id !== notification.id);
+        
+        // Cek apakah tidak ada lagi notifikasi yang belum dibaca
+        if (unreadNotifications.value.length === 0) {
+            showNotificationsModal.value = false;
+        }
+
         if (notification.data && notification.data.url) {
+            showNotificationsModal.value = false;
             router.visit(notification.data.url);
         }
     } catch (e) {
@@ -449,33 +458,11 @@ const activeMenuName = computed(() => {
                         </div>
 
                         <div class="flex items-center space-x-3 z-10">
-                            <Dropdown align="right" width="96" v-if="userRoles.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))">
-                                <template #trigger>
-                                    <button class="relative p-1 rounded-full text-gray-300 hover:text-white focus:outline-none">
-                                        <span class="sr-only">View notifications</span>
-                                        <BellIcon class="h-6 w-6" aria-hidden="true" />
-                                        <span v-if="unreadCount > 0" class="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-gray-800"></span>
-                                    </button>
-                                </template>
-                                <template #content>
-                                    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center bg-gray-50 dark:bg-gray-700">
-                                        <p class="text-sm font-bold text-gray-900 dark:text-white">Notifikasi</p>
-                                        <button v-if="unreadCount > 0" @click="markAllAsRead" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Tandai semua dibaca</button>
-                                    </div>
-                                    <div class="max-h-80 overflow-y-auto">
-                                        <div v-if="unreadCount === 0" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                                            Tidak ada notifikasi baru.
-                                        </div>
-                                        <div v-else>
-                                            <button v-for="notif in unreadNotifications" :key="notif.id" @click="markAsRead(notif)" class="w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition block">
-                                                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ notif.data.title || 'Notifikasi' }}</p>
-                                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{{ notif.data.message || '' }}</p>
-                                                <p class="text-[10px] text-gray-400 mt-1">{{ new Date(notif.created_at).toLocaleString('id-ID') }}</p>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </template>
-                            </Dropdown>
+                            <button v-if="userRoles.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))" @click="showNotificationsModal = true" class="relative p-1 rounded-full text-gray-300 hover:text-white focus:outline-none transition-colors">
+                                <span class="sr-only">Lihat Notifikasi</span>
+                                <BellIcon class="h-6 w-6" aria-hidden="true" />
+                                <span v-if="unreadCount > 0" class="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-gray-800"></span>
+                            </button>
 
                             <div class="relative hidden md:block">
                                 <Dropdown align="right" width="48">
@@ -554,6 +541,70 @@ const activeMenuName = computed(() => {
             </div>
         </Modal>
         
+        <!-- Glassmorphism Notification Modal -->
+        <Transition
+            enter-active-class="transition ease-out duration-300"
+            enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            enter-to-class="opacity-100 translate-y-0 sm:scale-100"
+            leave-active-class="transition ease-in duration-200"
+            leave-from-class="opacity-100 translate-y-0 sm:scale-100"
+            leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        >
+            <div v-if="showNotificationsModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6 pb-20 sm:pb-6">
+                <!-- Backdrop -->
+                <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showNotificationsModal = false"></div>
+
+                <!-- Modal Content -->
+                <div class="relative w-full sm:max-w-md bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-white/40 dark:border-gray-700/50 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] transform transition-all">
+                    <!-- Header -->
+                    <div class="px-6 py-5 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center bg-white/40 dark:bg-gray-800/40">
+                        <div class="flex items-center space-x-2">
+                            <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+                                <BellIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Notifikasi</h3>
+                            <span v-if="unreadCount > 0" class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">{{ unreadCount }}</span>
+                        </div>
+                        <button @click="showNotificationsModal = false" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition bg-gray-100/50 dark:bg-gray-700/50 hover:bg-gray-200/50 rounded-full p-2 shadow-sm">
+                            <XMarkIcon class="h-5 w-5" />
+                        </button>
+                    </div>
+                    
+                    <!-- Body -->
+                    <div class="overflow-y-auto flex-1 p-3 sm:p-4 bg-gray-50/30 dark:bg-gray-900/30">
+                        <div v-if="unreadCount === 0" class="px-4 py-16 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center h-full">
+                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+                                <BellSlashIcon class="h-10 w-10 text-gray-400 opacity-60" />
+                            </div>
+                            <p class="text-lg font-semibold text-gray-700 dark:text-gray-300">Tidak ada notifikasi</p>
+                            <p class="text-sm mt-1 text-gray-500">Anda sudah membaca semuanya!</p>
+                            <button @click="showNotificationsModal = false" class="mt-6 px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-full shadow hover:bg-indigo-700 transition">Tutup</button>
+                        </div>
+                        <div v-else class="space-y-3">
+                            <div class="flex justify-end px-1 pb-1">
+                                <button @click="markAllAsRead" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-medium transition flex items-center">
+                                    <CheckBadgeIcon class="h-4 w-4 mr-1" />
+                                    Tandai semua dibaca
+                                </button>
+                            </div>
+                            <button v-for="notif in unreadNotifications" :key="notif.id" @click="markAsRead(notif)" class="w-full text-left px-5 py-4 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-600/50 rounded-2xl transition shadow-sm hover:shadow-md block group relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                                <div class="flex items-start justify-between">
+                                    <p class="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition pr-2">{{ notif.data.title || 'Informasi' }}</p>
+                                    <span class="inline-block h-2 w-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0 animate-pulse"></span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-300 mt-1.5 leading-relaxed">{{ notif.data.message || '' }}</p>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-3 font-medium flex items-center">
+                                    <ClockIcon class="h-3 w-3 mr-1" />
+                                    {{ new Date(notif.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) }}
+                                </p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
         <GlobalLoader />
     </div>
 </template>
