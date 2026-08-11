@@ -13,7 +13,7 @@ class PushSubscriptionController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request, [
+        $request->validate([
             'endpoint' => 'required|string',
             'keys.auth' => 'required|string',
             'keys.p256dh' => 'required|string',
@@ -37,7 +37,7 @@ class PushSubscriptionController extends Controller
      */
     public function destroy(Request $request)
     {
-        $this->validate($request, ['endpoint' => 'required|string']);
+        $request->validate(['endpoint' => 'required|string']);
 
         $user = $request->user();
         if ($user) {
