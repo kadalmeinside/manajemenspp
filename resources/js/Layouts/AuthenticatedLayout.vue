@@ -179,10 +179,16 @@ onMounted(() => {
                     setTimeout(() => { showJobToast.value = false; }, 8000);
                 }
             })
-            .listen('SystemNotification', (notification) => {
-                // Notifikasi baru masuk!
+            .listen('.SystemNotification', (notification) => {
+                // Notifikasi baru masuk via Pusher!
                 console.log('🔔 [PUSHER] Notifikasi baru diterima:', notification);
-                unreadNotifications.value.unshift(notification);
+                // Pusher broadcast wraps data in 'data' key
+                const notifData = notification.data || notification;
+                unreadNotifications.value.unshift({
+                    id: notifData.id || Date.now(),
+                    data: notifData.data || notifData,
+                    created_at: notifData.created_at || new Date().toISOString(),
+                });
             });
             
         console.log(`✅ Pusher (Laravel Echo) berhasil terkoneksi! Mendengarkan channel: App.Models.User.${user.value.id}`);
