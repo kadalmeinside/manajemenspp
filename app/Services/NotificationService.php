@@ -19,7 +19,7 @@ class NotificationService
         $adminKelas = collect();
         if ($kelasId) {
             $adminKelas = User::whereHas('managedClasses', function ($q) use ($kelasId) {
-                $q->where('kelas_user.id_kelas', $kelasId);
+                $q->where('kelas_user.kelas_id', $kelasId);
             })->get();
         }
 
