@@ -195,6 +195,11 @@ onMounted(() => {
             
         fetchNotifications();
         
+        // Polling fallback: refresh notifikasi dari DB setiap 30 detik
+        const pollingInterval = setInterval(() => {
+            fetchNotifications();
+        }, 30000);
+        
         if (userRoles.value.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))) {
             setTimeout(() => {
                 askForNotificationPermission();

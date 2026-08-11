@@ -32,7 +32,14 @@ class SystemNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['database', 'broadcast', WebPushChannel::class];
+        $channels = ['database', 'broadcast'];
+        
+        // Hanya tambahkan WebPush jika VAPID key sudah dikonfigurasi
+        if (config('webpush.vapid.public_key')) {
+            $channels[] = WebPushChannel::class;
+        }
+        
+        return $channels;
     }
 
     /**
