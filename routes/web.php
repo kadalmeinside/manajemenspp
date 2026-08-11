@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LaporanController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\Auth\PasswordResetLinkController;
@@ -166,6 +167,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('laporan/aktivitas', [LaporanController::class, 'aktivitas'])->name('laporan.aktivitas');
             Route::get('laporan/aktivitas/export', [LaporanController::class, 'exportAktivitas'])->name('laporan.aktivitas.export');
             Route::get('laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
+
+            // Notifications
+            Route::get('notifications/unread', [NotificationController::class, 'getUnread'])->name('notifications.unread');
+            Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+            Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read_all');
             Route::get('jobs', [\App\Http\Controllers\Admin\JobBatchController::class, 'index'])->name('jobs.index');
 
             // Student Leaves Management

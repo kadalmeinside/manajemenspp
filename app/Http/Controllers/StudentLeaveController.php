@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use App\Services\XenditService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -75,6 +76,14 @@ class StudentLeaveController extends Controller
                 'status' => 'pending',
             ]);
         }
+
+        $siswa = Siswa::find($validated['id_siswa']);
+        NotificationService::sendToAdmins([
+            'title' => 'Pengajuan Cuti Baru',
+            'message' => "Siswa {$siswa->nama_siswa} mengajukan cuti untuk beberapa bulan.",
+            'type' => 'leave_request',
+            'url' => '/admin/leaves?status=pending'
+        ], $siswa->id_kelas ?? null);
 
         return Redirect::back()->with([
             'type' => 'success',

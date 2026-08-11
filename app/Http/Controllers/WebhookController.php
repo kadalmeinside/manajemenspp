@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use App\Services\NotificationService;
 use Throwable;
 
 class WebhookController extends Controller
@@ -126,6 +127,28 @@ class WebhookController extends Controller
             };
 
             DB::commit();
+
+            // Kirim notifikasi real-time ke admin
+            $siswa = clone $invoice->siswa;
+            $title = 'Pembayaran Berhasil';
+            $message = '';
+            $url = '/admin/invoices';
+            
+            if ($invoice->type === 'pendaftaran') {
+                $title = 'Pendaftaran & Pembayaran Berhasil';
+                $message = "Siswa baru {$siswa->nama_siswa} telah mendaftar dan membayar.";
+                $url = '/admin/siswa/pendaftar-lunas';
+            } elseif (in_array($invoice->type, ['spp', 'pembayaran_spp_gabungan'])) {
+                $title = 'Pembayaran SPP';
+                $message = "SPP untuk {$siswa->nama_siswa} telah dibayar (Xendit).";
+            }
+
+            NotificationService::sendToAdmins([
+                'title' => $title,
+                'message' => $message,
+                'type' => 'payment_success',
+                'url' => $url
+            ], $siswa->id_kelas ?? null);
 
             // Log::info('[Xendit Webhook] Berhasil diproses.', [
             //     'invoice_id'   => $invoice->id,

@@ -49,6 +49,40 @@ const jobStatus = ref('');
 const jobMessage = ref('');
 const jobProgress = ref(0);
 
+const unreadNotifications = ref([]);
+const unreadCount = computed(() => unreadNotifications.value.length);
+
+const fetchNotifications = async () => {
+    if (!user.value || !userRoles.value.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))) return;
+    try {
+        const response = await axios.get(route('notifications.unread'));
+        unreadNotifications.value = response.data.notifications;
+    } catch (e) {
+        console.error('Failed to fetch notifications', e);
+    }
+};
+
+const markAsRead = async (notification) => {
+    try {
+        await axios.post(route('notifications.read', notification.id));
+        unreadNotifications.value = unreadNotifications.value.filter(n => n.id !== notification.id);
+        if (notification.data && notification.data.url) {
+            router.visit(notification.data.url);
+        }
+    } catch (e) {
+        console.error('Failed to mark as read', e);
+    }
+};
+
+const markAllAsRead = async () => {
+    try {
+        await axios.post(route('notifications.read_all'));
+        unreadNotifications.value = [];
+    } catch (e) {
+        console.error(e);
+    }
+};
+
 onMounted(() => {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -68,7 +102,13 @@ onMounted(() => {
                 if (e.status === 'finished' || e.status === 'failed') {
                     setTimeout(() => { showJobToast.value = false; }, 8000);
                 }
+            })
+            .listen('SystemNotification', (notification) => {
+                // Notifikasi baru masuk!
+                unreadNotifications.value.unshift(notification);
             });
+            
+        fetchNotifications();
     }
 });
 
@@ -327,10 +367,36 @@ const activeMenuName = computed(() => {
                         </div>
 
                         <div class="flex items-center space-x-3 z-10">
-                            <button class="p-1 rounded-full text-gray-300 hover:text-white focus:outline-none">
-                                <span class="sr-only">View notifications</span>
-                                <BellIcon class="h-6 w-6" aria-hidden="true" />
-                            </button>
+                            <Dropdown align="right" width="80" v-if="userRoles.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))">
+                                <template #trigger>
+                                    <button class="relative p-1 rounded-full text-gray-300 hover:text-white focus:outline-none">
+                                        <span class="sr-only">View notifications</span>
+                                        <BellIcon class="h-6 w-6" aria-hidden="true" />
+                                        <span v-if="unreadCount > 0" class="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-gray-800"></span>
+                                    </button>
+                                </template>
+                                <template #content>
+                                    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center bg-gray-50 dark:bg-gray-700">
+                                        <p class="text-sm font-bold text-gray-900 dark:text-white">Notifikasi</p>
+                                        <button v-if="unreadCount > 0" @click="markAllAsRead" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Tandai semua dibaca</button>
+                                    </div>
+                                    <div class="max-h-80 overflow-y-auto">
+                                        <div v-if="unreadCount === 0" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            Tidak ada notifikasi baru.
+                                        </div>
+                                        <div v-else>
+                                            <button v-for="notif in unreadNotifications" :key="notif.id" @click="markAsRead(notif)" class="w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition block">
+                                                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ notif.data.title || 'Notifikasi' }}</p>
+                                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{{ notif.data.message || '' }}</p>
+                                                <p class="text-[10px] text-gray-400 mt-1">{{ new Date(notif.created_at).toLocaleString('id-ID') }}</p>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="border-t border-gray-200 dark:border-gray-600 px-4 py-2 text-center bg-gray-50 dark:bg-gray-700">
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">Menampilkan hingga 10 terbaru</span>
+                                    </div>
+                                </template>
+                            </Dropdown>
 
                             <div class="relative hidden md:block">
                                 <Dropdown align="right" width="48">

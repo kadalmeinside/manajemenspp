@@ -9,6 +9,7 @@ use App\Models\JobBatch;
 use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Notifications\InvoiceCreatedNotification;
+use App\Services\NotificationService;
 use App\Services\XenditService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -791,6 +792,15 @@ class InvoiceController extends Controller
             'payment_method' => 'manual', // Tandai sebagai pembayaran manual
             'bukti_pembayaran' => $buktiPath,
         ]);
+
+        $siswa = clone $invoice->siswa;
+        
+        NotificationService::sendToAdmins([
+            'title' => 'Pembayaran Manual',
+            'message' => "Pembayaran manual untuk {$siswa->nama_siswa} telah dikonfirmasi.",
+            'type' => 'payment_manual',
+            'url' => '/admin/invoices'
+        ], $siswa->id_kelas ?? null);
 
         // Jika tagihan pendaftaran, ubah status siswa menjadi Aktif
         if ($invoice->type === 'pendaftaran') {
