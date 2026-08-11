@@ -52,10 +52,12 @@ const jobProgress = ref(0);
 const unreadNotifications = ref([]);
 const unreadCount = computed(() => unreadNotifications.value.length);
 
+const isWebPushEnabled = ref(false);
+
 const fetchNotifications = async () => {
     if (!user.value || !userRoles.value.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))) return;
     try {
-        const response = await axios.get(route('notifications.unread'));
+        const response = await axios.get(route('admin.notifications.unread'));
         unreadNotifications.value = response.data.notifications;
     } catch (e) {
         console.error('Failed to fetch notifications', e);
@@ -64,7 +66,7 @@ const fetchNotifications = async () => {
 
 const markAsRead = async (notification) => {
     try {
-        await axios.post(route('notifications.read', notification.id));
+        await axios.post(route('admin.notifications.read', notification.id));
         unreadNotifications.value = unreadNotifications.value.filter(n => n.id !== notification.id);
         if (notification.data && notification.data.url) {
             router.visit(notification.data.url);
@@ -76,7 +78,7 @@ const markAsRead = async (notification) => {
 
 const markAllAsRead = async () => {
     try {
-        await axios.post(route('notifications.read_all'));
+        await axios.post(route('admin.notifications.read_all'));
         unreadNotifications.value = [];
     } catch (e) {
         console.error(e);
@@ -102,7 +104,10 @@ const subscribeToWebPush = async () => {
         const registration = await navigator.serviceWorker.ready;
         const vapidPublicKey = page.props.auth?.vapid_public_key;
         
-        if (!vapidPublicKey) return;
+        if (!vapidPublicKey) {
+            console.warn('⚠️ VAPID Public Key tidak ditemukan. Web Push tidak bisa diaktifkan.');
+            return;
+        }
 
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -112,7 +117,7 @@ const subscribeToWebPush = async () => {
         const key = subscription.getKey('p256dh');
         const token = subscription.getKey('auth');
 
-        await axios.post(route('push-subscriptions.store'), {
+        await axios.post(route('admin.push-subscriptions.store'), {
             endpoint: subscription.endpoint,
             keys: {
                 p256dh: key ? btoa(String.fromCharCode.apply(null, new Uint8Array(key))) : null,
@@ -120,8 +125,11 @@ const subscribeToWebPush = async () => {
             }
         });
         
+        isWebPushEnabled.value = true;
+        console.log('✅ Web Push (Native) berhasil diaktifkan dan didaftarkan di server!');
+        
     } catch (e) {
-        console.error('Failed to subscribe to web push', e);
+        console.error('❌ Gagal mengaktifkan Web Push:', e);
     }
 };
 
@@ -139,13 +147,17 @@ const askForNotificationPermission = async () => {
 };
 
 onMounted(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
+        window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt.value = e;
     });
     window.addEventListener('appinstalled', () => {
         deferredPrompt.value = null;
     });
+    
+    if ('Notification' in window) {
+        isWebPushEnabled.value = Notification.permission === 'granted';
+    }
 
     if (window.Echo && user.value) {
         window.Echo.private(`App.Models.User.${user.value.id}`)
@@ -160,8 +172,11 @@ onMounted(() => {
             })
             .listen('SystemNotification', (notification) => {
                 // Notifikasi baru masuk!
+                console.log('🔔 [PUSHER] Notifikasi baru diterima:', notification);
                 unreadNotifications.value.unshift(notification);
             });
+            
+        console.log(`✅ Pusher (Laravel Echo) berhasil terkoneksi! Mendengarkan channel: App.Models.User.${user.value.id}`);
             
         fetchNotifications();
         
@@ -393,6 +408,12 @@ const activeMenuName = computed(() => {
                     Install Aplikasi
                 </button>
             </div>
+            <div v-if="!isWebPushEnabled && userRoles.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))" v-show="desktopSidebarOpen || mobileSidebarOpen" class="px-2 mt-auto pb-4">
+                <button @click="askForNotificationPermission" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition">
+                    <BellIcon class="mr-2 h-4 w-4" />
+                    Aktifkan Notifikasi
+                </button>
+            </div>
             <div v-show="desktopSidebarOpen || mobileSidebarOpen" class="flex-shrink-0 p-4 bg-black/10 border-t border-gray-800 text-center text-xs text-gray-400">
                 <span v-if="appSettings.app_version || appSettings.app_build">
                     {{ appSettings.app_version ? `v${appSettings.app_version}` : '' }} 
@@ -428,7 +449,7 @@ const activeMenuName = computed(() => {
                         </div>
 
                         <div class="flex items-center space-x-3 z-10">
-                            <Dropdown align="right" width="80" v-if="userRoles.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))">
+                            <Dropdown align="right" width="96" v-if="userRoles.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))">
                                 <template #trigger>
                                     <button class="relative p-1 rounded-full text-gray-300 hover:text-white focus:outline-none">
                                         <span class="sr-only">View notifications</span>
@@ -452,9 +473,6 @@ const activeMenuName = computed(() => {
                                                 <p class="text-[10px] text-gray-400 mt-1">{{ new Date(notif.created_at).toLocaleString('id-ID') }}</p>
                                             </button>
                                         </div>
-                                    </div>
-                                    <div class="border-t border-gray-200 dark:border-gray-600 px-4 py-2 text-center bg-gray-50 dark:bg-gray-700">
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">Menampilkan hingga 10 terbaru</span>
                                     </div>
                                 </template>
                             </Dropdown>
