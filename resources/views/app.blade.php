@@ -12,7 +12,7 @@
         @if (request()->is('admin*'))
             <link rel="manifest" href="{{ asset('manifest.json') }}">
             <meta name="theme-color" content="#1f2937">
-            <link rel="apple-touch-icon" href="{{ asset('icons/icon-192.png') }}">
+            <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
         @endif
         
         <!-- Fonts -->
