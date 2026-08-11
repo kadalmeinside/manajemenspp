@@ -6,6 +6,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushMessage;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class SystemNotification extends Notification implements ShouldQueue
 {
@@ -30,7 +32,7 @@ class SystemNotification extends Notification implements ShouldQueue
      */
     public function via($notifiable)
     {
-        return ['database', 'broadcast'];
+        return ['database', 'broadcast', WebPushChannel::class];
     }
 
     /**
@@ -54,6 +56,20 @@ class SystemNotification extends Notification implements ShouldQueue
             'created_at' => now()->toIso8601String(),
             'id' => $this->id,
         ]);
+    }
+
+    /**
+     * Get the web push representation of the notification.
+     */
+    public function toWebPush($notifiable, $notification)
+    {
+        $url = $this->data['url'] ?? '/admin/dashboard';
+        return (new WebPushMessage)
+            ->title($this->data['title'] ?? 'Notifikasi Sistem')
+            ->icon('/icons/icon-192.png')
+            ->body($this->data['message'] ?? '')
+            ->action('Lihat Detail', 'view_action')
+            ->data(['url' => $url]);
     }
     
     /**

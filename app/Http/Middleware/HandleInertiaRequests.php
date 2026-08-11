@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'), // KIRIM PERMISSIONS
                     'siswas' => $request->user()->hasRole('siswa') ? $request->user()->siswas()->whereNotIn('status_siswa', ['Keluar', 'Non-Aktif'])->get(['id_siswa', 'nama_siswa'])->toArray() : [],
                     'active_siswa_id' => session('active_siswa_id') ?: ($request->user()->hasRole('siswa') ? optional($request->user()->siswas()->whereNotIn('status_siswa', ['Keluar', 'Non-Aktif'])->first())->id_siswa : null),
+                    'vapid_public_key' => config('webpush.vapid.public_key'),
                 ] : null,
             ],
             'missing_agreements' => function () use ($request) {

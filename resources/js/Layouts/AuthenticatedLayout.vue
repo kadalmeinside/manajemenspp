@@ -83,6 +83,61 @@ const markAllAsRead = async () => {
     }
 };
 
+// --- WEB PUSH NOTIFICATIONS ---
+const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+};
+
+const subscribeToWebPush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const vapidPublicKey = page.props.auth?.vapid_public_key;
+        
+        if (!vapidPublicKey) return;
+
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+        });
+
+        const key = subscription.getKey('p256dh');
+        const token = subscription.getKey('auth');
+
+        await axios.post(route('push-subscriptions.store'), {
+            endpoint: subscription.endpoint,
+            keys: {
+                p256dh: key ? btoa(String.fromCharCode.apply(null, new Uint8Array(key))) : null,
+                auth: token ? btoa(String.fromCharCode.apply(null, new Uint8Array(token))) : null
+            }
+        });
+        
+    } catch (e) {
+        console.error('Failed to subscribe to web push', e);
+    }
+};
+
+const askForNotificationPermission = async () => {
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            subscribeToWebPush();
+        }
+    } else if (Notification.permission === 'granted') {
+        subscribeToWebPush();
+    }
+};
+
 onMounted(() => {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -109,6 +164,12 @@ onMounted(() => {
             });
             
         fetchNotifications();
+        
+        if (userRoles.value.some(role => ['super_admin', 'admin', 'admin_kelas', 'staff_akademik'].includes(role))) {
+            setTimeout(() => {
+                askForNotificationPermission();
+            }, 3000);
+        }
     }
 });
 
