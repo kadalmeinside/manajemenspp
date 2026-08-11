@@ -179,11 +179,14 @@ onMounted(() => {
                     setTimeout(() => { showJobToast.value = false; }, 8000);
                 }
             })
-            .listen('.SystemNotification', (notification) => {
+            .notification((notification) => {
                 // Notifikasi baru masuk via Pusher!
                 console.log('🔔 [PUSHER] Notifikasi baru diterima:', notification);
-                // Pusher broadcast wraps data in 'data' key
-                const notifData = notification.data || notification;
+                
+                // Laravel Echo's .notification() automatically unwraps the event data.
+                // It gives us the exact payload we sent in toBroadcast().
+                const notifData = notification;
+                
                 unreadNotifications.value.unshift({
                     id: notifData.id || Date.now(),
                     data: notifData.data || notifData,
