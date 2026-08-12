@@ -190,6 +190,7 @@ class CekSppController extends Controller
                 'jumlah_spp_custom' => (float) $siswa->jumlah_spp_custom,
                 'admin_fee_custom'  => (float) $siswa->admin_fee_custom,
                 'has_user_account'  => $siswa->user()->exists(),
+                'mulai_spp_date'    => $siswa->mulai_spp_date ? $siswa->mulai_spp_date->format('Y-m-d') : null,
             ],
             'sppInvoices'  => $pendingSppInvoices->map(fn($invoice) => [
                 'id'                     => $invoice->id,

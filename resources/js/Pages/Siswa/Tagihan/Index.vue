@@ -29,6 +29,16 @@ const displayList = computed(() => {
     // ### LOGIKA BARU & LEBIH ROBUST UNTUK PROYEKSI ###
     let startProjectionDate;
     
+    // Absolute Lower Bound (Bulan Mulai SPP)
+    let absoluteStart = new Date();
+    const mulaiSppDateStr = props.siswa?.mulai_spp_date;
+    if (mulaiSppDateStr) {
+        const parts = mulaiSppDateStr.split('-').map(Number);
+        absoluteStart = new Date(Date.UTC(parts[0], parts[1] - 1, 1));
+    } else {
+        absoluteStart = new Date(Date.UTC(absoluteStart.getFullYear(), absoluteStart.getMonth(), 1)); // Fallback: bulan ini
+    }
+    
     if (existingInvoices.length > 0) {
         // Jika ADA invoice PENDING: Mulai proyeksi dari bulan SETELAH invoice PENDING terakhir
         const lastPeriod = new Date(existingInvoices[existingInvoices.length - 1].periode_tagihan);
@@ -38,9 +48,14 @@ const displayList = computed(() => {
         const lastPeriod = new Date(props.lastPaidPeriod);
         startProjectionDate = new Date(Date.UTC(lastPeriod.getUTCFullYear(), lastPeriod.getUTCMonth() + 1, 1));
     } else {
-        // Jika TIDAK ADA PENDING dan TIDAK ADA PAID (siswa baru): Mulai dari AWAL BULAN INI
-        const today = new Date();
-        startProjectionDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+        // Jika TIDAK ADA PENDING dan TIDAK ADA PAID (siswa baru): Mulai dari batas bawah
+        startProjectionDate = absoluteStart;
+    }
+    
+    // Jika hasil proyeksi ternyata masih lebih kecil dari batas mulai SPP,
+    // paksa mulai dari batas mulai SPP.
+    if (startProjectionDate < absoluteStart) {
+        startProjectionDate = absoluteStart;
     }
     
     // Sisa logika untuk membuat proyeksi tetap sama

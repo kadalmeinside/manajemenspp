@@ -1,11 +1,10 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Kelas;
+use App\Http\Controllers\WelcomeController;
 
 use App\Http\Controllers\Admin\Auth\AuthenticatedSessionController as AdminAuthenticatedSessionController;
 use App\Http\Controllers\WebhookController;
@@ -40,23 +39,7 @@ use App\Http\Controllers\Siswa\TagihanController as SiswaTagihanController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 
 
-Route::get('/', function (Request $request) {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'userIp' => $request->ip(),
-        // 'laravelVersion' => Application::VERSION,
-        // 'phpVersion' => PHP_VERSION,
-        'allKelas' => Kelas::orderBy('nama_kelas')->get()->map(function($kelas) {
-            return [
-                'nama_kelas' => $kelas->nama_kelas,
-                'deskripsi' => Str::limit($kelas->deskripsi, 50),
-                // Tambahkan path gambar jika Anda punya, jika tidak kita gunakan placeholder
-                'gambar' => 'https://placehold.co/400x300/e2e8f0/4a5563?text=' . urlencode($kelas->nama_kelas),
-            ];
-        }),
-    ]);
-})->name('welcome'); 
+Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 
 // Route::get('/cek-tagihan', [CekTagihanController::class, 'showForm'])->name('tagihan.check_form');
 // Route::post('/cek-tagihan', [CekTagihanController::class, 'checkStatus'])->name('tagihan.check_status');
@@ -177,24 +160,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Web Push Subscriptions
             Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
             Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
-            
-            // ROUTE DEBUG PUSH NOTIF (Hapus nanti jika sudah tidak dipakai)
-            Route::get('debug-push', function (\Illuminate\Http\Request $request) {
-                if ($request->user()) {
-                    // Gunakan sendNow agar dieksekusi langsung tanpa menunggu antrean Queue (untuk debugging)
-                    \Illuminate\Support\Facades\Notification::sendNow(
-                        $request->user(),
-                        new \App\Notifications\SystemNotification([
-                            'title' => 'Ting Tung! 🔔',
-                            'message' => 'Push Notifikasi dari Server bekerja dengan baik!',
-                            'type' => 'test',
-                            'url' => '/admin/dashboard'
-                        ])
-                    );
-                    return 'Notifikasi berhasil ditembak langsung! Silakan cek web / layar Anda.';
-                }
-                return 'Anda belum login.';
-            });
 
             Route::get('jobs', [\App\Http\Controllers\Admin\JobBatchController::class, 'index'])->name('jobs.index');
 

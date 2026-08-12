@@ -169,26 +169,35 @@ class HandleInertiaRequests extends Middleware
 
                 return $settings;
             },
-            // Badge notifikasi cuti — hanya untuk admin yang punya akses
+            // Badge notifikasi cuti — hanya untuk admin yang punya akses.
+            // Cache 30 detik per user untuk mengurangi query DB pada setiap request.
             'pending_leaves_count' => function () use ($request) {
                 if ($request->user() && $request->user()->can('manage_all_tagihan')) {
-                    return StudentLeave::where('status', 'pending')->count();
+                    return Cache::remember(
+                        'pending_leaves_count_u' . $request->user()->id,
+                        30,
+                        fn () => StudentLeave::where('status', 'pending')->count()
+                    );
                 }
                 return 0;
             },
             'pending_aktivasi_spp_count' => function () use ($request) {
                 if ($request->user() && $request->user()->can('view_siswa')) {
-                    $query = \App\Models\Siswa::whereNull('mulai_spp_date')
-                        ->whereHas('invoices', function ($q) {
-                            $q->where('type', 'pendaftaran')->where('status', 'PAID');
-                        });
-                    
-                    if ($request->user()->hasRole('admin_kelas')) {
-                        $managedKelasIds = $request->user()->managedClasses()->pluck('kelas.id_kelas');
-                        $query->whereIn('id_kelas', $managedKelasIds);
-                    }
-                    
-                    return $query->count();
+                    return Cache::remember(
+                        'pending_aktivasi_spp_count_u' . $request->user()->id,
+                        30,
+                        function () use ($request) {
+                            $query = \App\Models\Siswa::whereNull('mulai_spp_date')
+                                ->whereHas('invoices', function ($q) {
+                                    $q->where('type', 'pendaftaran')->where('status', 'PAID');
+                                });
+                            if ($request->user()->hasRole('admin_kelas')) {
+                                $managedKelasIds = $request->user()->managedClasses()->pluck('kelas.id_kelas');
+                                $query->whereIn('id_kelas', $managedKelasIds);
+                            }
+                            return $query->count();
+                        }
+                    );
                 }
                 return 0;
             },

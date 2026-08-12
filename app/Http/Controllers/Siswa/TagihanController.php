@@ -77,6 +77,7 @@ class TagihanController extends Controller
                 'id_siswa' => $siswa->id_siswa,
                 'jumlah_spp_custom' => (float) $siswa->jumlah_spp_custom,
                 'admin_fee_custom' => (float) $siswa->admin_fee_custom,
+                'mulai_spp_date' => $siswa->mulai_spp_date ? $siswa->mulai_spp_date->format('Y-m-d') : null,
             ],
             'pageTitle' => 'Tagihan SPP',
         ]);

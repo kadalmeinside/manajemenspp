@@ -143,13 +143,28 @@ const displayList = computed(() => {
     
     let startProjectionDate;
     
+    // Absolute Lower Bound (Bulan Mulai SPP)
+    let absoluteStart = new Date();
+    const mulaiSppDateStr = props.selectedSiswa?.mulai_spp_date;
+    if (mulaiSppDateStr) {
+        const parts = mulaiSppDateStr.split('-').map(Number);
+        absoluteStart = new Date(Date.UTC(parts[0], parts[1] - 1, 1));
+    } else {
+        absoluteStart = new Date(Date.UTC(absoluteStart.getFullYear(), absoluteStart.getMonth(), 1)); // Fallback: bulan ini
+    }
+    
     if (props.lastPeriod) {
         const parts = props.lastPeriod.split('-').map(Number);
         const lastDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
         startProjectionDate = new Date(Date.UTC(lastDate.getUTCFullYear(), lastDate.getUTCMonth() + 1, 1));
+        
+        // Jika hasil proyeksi (bulan depannya) ternyata masih lebih kecil dari batas mulai SPP,
+        // paksa mulai dari batas mulai SPP.
+        if (startProjectionDate < absoluteStart) {
+            startProjectionDate = absoluteStart;
+        }
     } else {
-        const today = new Date();
-        startProjectionDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+        startProjectionDate = absoluteStart;
     }
     
     let currentPeriod = startProjectionDate;

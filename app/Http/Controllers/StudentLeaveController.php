@@ -78,7 +78,7 @@ class StudentLeaveController extends Controller
         }
 
         $siswa = Siswa::find($validated['id_siswa']);
-        NotificationService::sendToAdmins([
+        app(NotificationService::class)->sendToAdmins([
             'title' => 'Pengajuan Cuti Baru',
             'message' => "Siswa {$siswa->nama_siswa} mengajukan cuti untuk beberapa bulan.",
             'type' => 'leave_request',

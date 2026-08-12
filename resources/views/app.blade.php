@@ -8,7 +8,9 @@
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
         <link rel="icon" href="{{ asset('favicon.ico') }}?v=2" type="image/x-icon">
         
-        <!-- PWA Configuration -->
+        {{-- PWA Configuration --}}
+        {{-- Saat ini hanya diaktifkan untuk area Admin. --}}
+        {{-- Rencana: diperluas ke portal siswa di iterasi berikutnya. --}}
         @if (request()->is('admin*'))
             <link rel="manifest" href="{{ asset('manifest.json') }}?v=2">
             <meta name="theme-color" content="#1f2937">
@@ -43,7 +45,9 @@
     <body class="font-sans antialiased">
         @inertia
         
-        <!-- PWA Service Worker Registration -->
+        {{-- PWA Service Worker Registration --}}
+        {{-- Saat ini hanya diaktifkan untuk area Admin. --}}
+        {{-- Rencana: diperluas ke portal siswa di iterasi berikutnya. --}}
         @if (request()->is('admin*'))
             <script>
                 if ('serviceWorker' in navigator) {
