@@ -177,6 +177,24 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Web Push Subscriptions
             Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
             Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
+            
+            // ROUTE DEBUG PUSH NOTIF (Hapus nanti jika sudah tidak dipakai)
+            Route::get('debug-push', function (\Illuminate\Http\Request $request) {
+                if ($request->user()) {
+                    // Gunakan sendNow agar dieksekusi langsung tanpa menunggu antrean Queue (untuk debugging)
+                    \Illuminate\Support\Facades\Notification::sendNow(
+                        $request->user(),
+                        new \App\Notifications\SystemNotification([
+                            'title' => 'Ting Tung! 🔔',
+                            'message' => 'Push Notifikasi dari Server bekerja dengan baik!',
+                            'type' => 'test',
+                            'url' => '/admin/dashboard'
+                        ])
+                    );
+                    return 'Notifikasi berhasil ditembak langsung! Silakan cek web / layar Anda.';
+                }
+                return 'Anda belum login.';
+            });
 
             Route::get('jobs', [\App\Http\Controllers\Admin\JobBatchController::class, 'index'])->name('jobs.index');
 
