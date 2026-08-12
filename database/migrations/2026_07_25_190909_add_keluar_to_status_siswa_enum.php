@@ -12,7 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE siswa MODIFY COLUMN status_siswa ENUM('Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar') DEFAULT 'Aktif'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE siswa MODIFY COLUMN status_siswa ENUM('Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar') DEFAULT 'Aktif'");
+        }
     }
 
     /**
@@ -20,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE siswa MODIFY COLUMN status_siswa ENUM('Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment') DEFAULT 'Aktif'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE siswa MODIFY COLUMN status_siswa ENUM('Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment') DEFAULT 'Aktif'");
+        }
     }
 };
