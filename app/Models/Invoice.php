@@ -51,16 +51,30 @@ class Invoice extends Model
         'xendit_callback_payload' => 'array',
     ];
 
+    /**
+     * [LEGACY BULK PAYMENT]
+     * Mengambil invoice anak yang tergabung dalam pembayaran bulk ini.
+     * Menggunakan tabel pivot `invoice_relations`.
+     */
     public function childInvoices()
     {
         return $this->belongsToMany(Invoice::class, 'invoice_relations', 'parent_invoice_id', 'child_invoice_id');
     }
 
+    /**
+     * [LEGACY BULK PAYMENT]
+     * Mengambil invoice induk jika invoice ini dibayar secara bulk via tabel pivot.
+     */
     public function parentInvoice()
     {
         return $this->belongsToMany(Invoice::class, 'invoice_relations', 'child_invoice_id', 'parent_invoice_id');
     }
 
+    /**
+     * [MODERN GABUNGAN PAYMENT]
+     * Menyimpan referensi ke parent invoice (pembayaran_spp_gabungan) yang melunasi invoice ini.
+     * Tidak menggunakan tabel pivot, langsung via foreign key `parent_payment_id`.
+     */
     public function paymentParent()
     {
         return $this->belongsTo(Invoice::class, 'parent_payment_id');
