@@ -284,7 +284,8 @@ const mainMenu = computed(() => {
 });
 
 const adminMenu = [
-    { name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: ChartBarIcon, current: 'admin.laporan.pembayaran_bulanan', requiredPermission: 'manage_all_tagihan' },
+    { name: 'Statistik & Tren', route: 'admin.analytics.index', icon: ChartBarIcon, current: 'admin.analytics.index', requiredPermission: 'manage_all_tagihan' },
+    { name: 'Laporan Pembayaran', route: 'admin.laporan.pembayaran_bulanan', icon: DocumentChartBarIcon, current: 'admin.laporan.pembayaran_bulanan', requiredPermission: 'manage_all_tagihan' },
     { name: 'Riwayat Aktivitas', route: 'admin.laporan.aktivitas', icon: QueueListIcon, current: 'admin.laporan.aktivitas', requiredPermission: 'manage_all_tagihan' },
     { name: 'Manajemen Invoice', route: 'admin.invoices.index', icon: DocumentChartBarIcon, current: 'admin.invoices.*', requiredPermission: 'manage_all_tagihan' },
     { name: 'Aktivasi SPP', route: 'admin.siswa.pendaftar_lunas', icon: CheckBadgeIcon, current: 'admin.siswa.pendaftar_lunas', requiredPermission: 'view_siswa', badgeType: 'aktivasi_spp' },

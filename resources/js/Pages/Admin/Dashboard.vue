@@ -1,23 +1,16 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Bar, Doughnut, Line } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, LineElement, PointElement } from 'chart.js';
 import { ref, computed, watch } from 'vue';
 import { UserGroupIcon, UserPlusIcon, BanknotesIcon, ClockIcon, ArrowUpIcon, ArrowDownIcon, ExclamationTriangleIcon, DocumentTextIcon, ChartBarIcon, CheckCircleIcon, CalendarDaysIcon, UserMinusIcon } from '@heroicons/vue/24/outline';
 import { debounce } from 'lodash';
 
 import { usePage } from '@inertiajs/vue3';
 
-// Registrasi komponen Chart.js
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, LineElement, PointElement);
 
 const props = defineProps({
     stats: Object,
-    annual_stats: Object,
-    grafikPendapatan: Object,
-    grafikStatusTagihan: Object,
-    grafikPendaftar: Object,
+
     aktivitasPublik: Array,
     siswaPerKelas: Array,
     latestJobs: Array,
@@ -84,65 +77,7 @@ const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
 };
 
-const barChartData = computed(() => ({
-  labels: props.grafikPendapatan.labels,
-  datasets: [{
-      label: 'Pendapatan (IDR)',
-      backgroundColor: 'rgba(79, 70, 229, 0.8)',
-      borderColor: 'rgba(79, 70, 229, 1)',
-      data: props.grafikPendapatan.data,
-      borderRadius: 4,
-  }],
-}));
 
-const lineChartData = computed(() => ({
-  labels: props.grafikPendaftar.labels,
-  datasets: [{
-      label: 'Pendaftar Baru',
-      backgroundColor: 'rgba(16, 185, 129, 0.2)',
-      borderColor: 'rgba(16, 185, 129, 1)',
-      pointBackgroundColor: 'rgba(16, 185, 129, 1)',
-      data: props.grafikPendaftar.data,
-      tension: 0.4,
-      fill: true
-  }],
-}));
-
-const doughnutChartData = computed(() => ({
-    labels: props.grafikStatusTagihan.labels.map(label => label.charAt(0).toUpperCase() + label.slice(1).toLowerCase()),
-    datasets: [{
-        backgroundColor: props.grafikStatusTagihan.labels.map(label => {
-            if (label === 'PAID') return '#22c55e'; // green-500
-            if (label === 'PENDING') return '#f59e0b'; // amber-500
-            if (label === 'EXPIRED') return '#ef4444'; // red-500
-            if (label === 'FAILED') return '#64748b'; // slate-500
-            return '#9ca3af'; // gray-400
-        }),
-        data: props.grafikStatusTagihan.data,
-    }]
-}));
-
-const barChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    y: { ticks: { callback: value => 'Rp ' + (value / 1000) + 'k' } }
-  }
-};
-const lineChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    y: { beginAtZero: true, ticks: { precision: 0 } }
-  }
-};
-const doughnutChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { position: 'bottom' } },
-};
 
 // Helper untuk status Job
 const getJobStatusClass = (status) => {
@@ -167,41 +102,25 @@ const getJobStatusClass = (status) => {
             <div class="max-w-7xl mx-auto">
                 
                 <!-- ============================================== -->
-                <!-- SECTION 1: ANNUAL & OVERALL OVERVIEW (MODERN)  -->
+                <!-- SECTION 1: OVERALL OVERVIEW (MODERN)           -->
                 <!-- ============================================== -->
                 <div v-if="isSuperAdmin" class="mb-8">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 px-1 sm:px-0 space-y-2 sm:space-y-0">
                         <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2 w-full sm:w-auto">
                             <ChartBarIcon class="w-6 h-6 text-indigo-500" />
-                            Ringkasan Tahunan
+                            Ringkasan Keseluruhan
                         </h3>
-                        <!-- Year Filter for Annual Data -->
-                        <select v-model="selectedTahun" class="text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm w-full sm:w-auto">
-                            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-                        </select>
                     </div>
 
-                    <!-- Top Annual Cards (Modern Glass/Gradient Style) -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-1 sm:px-0">
-                        <!-- Total Pendapatan Tahunan -->
+                    <!-- Top Cards (Modern Glass/Gradient Style) -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 sm:px-0">
+                        <!-- Total Pendapatan Bulan Ini -->
                         <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
                             <div class="absolute -right-6 -top-6 opacity-20">
                                 <BanknotesIcon class="w-32 h-32" />
                             </div>
-                            <p class="text-indigo-100 text-sm font-medium uppercase tracking-wider relative z-10">Total Pendapatan {{ selectedTahun }}</p>
-                            <p class="text-2xl font-bold mt-2 relative z-10">{{ formatCurrency(annual_stats.pendapatan_total) }}</p>
-                        </div>
-
-                        <!-- Payment Rate Tahunan -->
-                        <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
-                            <div class="absolute -right-6 -top-6 opacity-20">
-                                <CheckCircleIcon class="w-32 h-32" />
-                            </div>
-                            <p class="text-emerald-100 text-sm font-medium uppercase tracking-wider relative z-10">Payment Rate {{ selectedTahun }}</p>
-                            <div class="flex items-end gap-2 mt-2 relative z-10">
-                                <p class="text-3xl font-bold">{{ annual_stats.payment_rate }}%</p>
-                                <p class="text-sm mb-1 opacity-80">({{ annual_stats.tagihan_lunas_count }}/{{ annual_stats.tagihan_semua_count }} Tagihan)</p>
-                            </div>
+                            <p class="text-indigo-100 text-sm font-medium uppercase tracking-wider relative z-10">Total Pendapatan (Bulan Ini)</p>
+                            <p class="text-2xl font-bold mt-2 relative z-10">{{ formatCurrency(stats.pendapatan.total) }}</p>
                         </div>
 
                         <!-- Total Siswa Aktif -->
@@ -218,29 +137,12 @@ const getJobStatusClass = (status) => {
                             <div class="absolute -right-6 -top-6 opacity-20">
                                 <DocumentTextIcon class="w-32 h-32" />
                             </div>
-                            <p class="text-rose-100 text-sm font-medium uppercase tracking-wider relative z-10">Total Tunggakan (All Time)</p>
+                            <p class="text-rose-100 text-sm font-medium uppercase tracking-wider relative z-10">Total Tunggakan (Keseluruhan)</p>
                             <p class="text-2xl font-bold mt-2 relative z-10">{{ formatCurrency(stats.total_tunggakan.total_amount) }}</p>
                             <p class="text-sm mt-1 opacity-80 relative z-10">{{ stats.total_tunggakan.count }} Tagihan Tertunda</p>
                         </Link>
                     </div>
-
-                    <!-- Annual Charts -->
-                    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 px-1 sm:px-0">
-                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
-                            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tren Pendaftar Baru ({{ selectedTahun }})</h3>
-                            <div class="mt-4 h-[250px]">
-                                <Line :data="lineChartData" :options="lineChartOptions" />
-                            </div>
-                        </div>
-                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
-                            <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendapatan 6 Bulan Terakhir</h3>
-                            <div class="mt-4 h-[250px]">
-                                <Bar :data="barChartData" :options="barChartOptions" />
-                            </div>
-                        </div>
-                    </div>
                 </div>
-
 
                 <!-- Divider -->
                 <div v-if="isSuperAdmin" class="relative py-4">
@@ -327,7 +229,7 @@ const getJobStatusClass = (status) => {
                     </div>
 
                     <!-- Monthly Stats Cards -->
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 px-1 sm:px-0">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 px-1 sm:px-0">
                         <!-- Pendapatan Bulan Ini -->
                         <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
                             <div>
@@ -365,17 +267,6 @@ const getJobStatusClass = (status) => {
                                 <ArrowDownIcon v-else class="h-3 w-3 text-red-500 mr-1"/>
                                 <span :class="stats.siswa_baru.change >= 0 ? 'text-green-600' : 'text-red-600'">{{ Math.abs(stats.siswa_baru.change).toFixed(1) }}%</span>
                                 <span class="ml-1 text-gray-400">vs bln lalu</span>
-                            </div>
-                        </div>
-
-                        <!-- Status Tagihan Chart -->
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center">
-                            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 w-full text-left">Status Tagihan SPP</p>
-                            <div v-if="grafikStatusTagihan.data.length > 0" class="h-[120px] w-full">
-                                <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
-                            </div>
-                            <div v-else class="h-[120px] flex items-center justify-center text-xs text-gray-400 text-center">
-                                Tidak ada data tagihan
                             </div>
                         </div>
                     </div>

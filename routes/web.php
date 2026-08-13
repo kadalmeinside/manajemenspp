@@ -130,6 +130,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::middleware(['role:admin|user|admin_kelas'])->group(function() {
             Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+            Route::get('analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('analytics.index');
             Route::resource('kelas', KelasController::class);
             Route::get('siswa/export', [SiswaController::class, 'export'])->name('siswa.export');
             Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
