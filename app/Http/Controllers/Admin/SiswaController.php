@@ -475,21 +475,14 @@ class SiswaController extends Controller
             abort(403);
         }
 
-        $token = Str::random(60);
-        
-        DB::table('resignation_tokens')->insert([
-            'siswa_id' => $siswa->id_siswa,
-            'token' => $token,
-            'created_at' => now(),
-            'expires_at' => now()->addDays(7)
-        ]);
+        $url = \Illuminate\Support\Facades\URL::signedRoute('public.resignation.form', [
+            'siswa' => $siswa->id_siswa,
+            'tanggal_resign' => $request->input('tanggal_resign')
+        ], now()->addDays(7));
 
-        $url = route('resignation.form', ['token' => $token]);
-
-        return back()->with([
-            'type' => 'success',
+        return response()->json([
             'message' => 'Link pengajuan berhenti berhasil dibuat.',
-            'resignation_url' => $url
+            'url' => $url
         ]);
     }
 
