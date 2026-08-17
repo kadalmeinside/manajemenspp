@@ -15,7 +15,20 @@ class UpdateSiswaRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('edit_siswa');
+        $user = $this->user();
+        if (!$user->can('edit_siswa')) {
+            return false;
+        }
+
+        if ($user->hasRole('admin_kelas')) {
+            $siswa = $this->route('siswa');
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas')->toArray();
+            if (!in_array($siswa->id_kelas, $managedKelasIds)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

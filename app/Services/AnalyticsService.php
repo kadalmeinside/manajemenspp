@@ -203,7 +203,7 @@ class AnalyticsService
         
         return Cache::remember($cacheKey, 1800, function () use ($month, $year, $managedKelasIds) {
             $query = Kelas::withCount(['siswa' => function ($q) use ($month, $year) {
-                $q->where('status_siswa', 'Resign')
+                $q->where('status_siswa', 'Keluar')
                   ->whereMonth('updated_at', $month)
                   ->whereYear('updated_at', $year); // Asumsi updated_at adalah tanggal resign
             }])->orderBy('nama_kelas');

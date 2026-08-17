@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Services\XenditService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreRegistrationRequest;
+use App\Http\Requests\ValidatePromoRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
@@ -88,16 +90,13 @@ class RegistrationController extends Controller
     /**
      * Memvalidasi kode promo secara real-time.
      */
-    public function validatePromoCode(Request $request)
+    public function validatePromoCode(ValidatePromoRequest $request)
     {
-        $validated = $request->validate([
-            'id_kelas'   => 'required|uuid|exists:kelas,id_kelas',
-            'kode_promo' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         $kelas          = Kelas::findOrFail($validated['id_kelas']);
         $hargaNormal    = (float) $kelas->biaya_pendaftaran;
-        $hargaSetelahDiskon = $kelas->getBiayaPendaftaranSaatIni($validated['kode_promo']);
+        $hargaSetelahDiskon = $kelas->getBiayaPendaftaranSaatIni($request->validated('kode_promo'));
 
         if ($hargaSetelahDiskon < $hargaNormal) {
             return response()->json([
@@ -141,45 +140,17 @@ class RegistrationController extends Controller
      * Menyimpan aplikasi pendaftaran sementara dan memanggil Xendit.
      * Tidak membuat User/Siswa/Invoice.
      */
-    public function store(Request $request, XenditService $xenditService)
+    public function store(StoreRegistrationRequest $request, XenditService $xenditService)
     {
-        $messages = [
-            'nama_siswa.required'         => 'Nama lengkap siswa wajib diisi.',
-            'nama_siswa.string'           => 'Nama siswa harus berupa teks.',
-            'nama_siswa.max'              => 'Nama siswa maksimal 255 karakter.',
-            'tanggal_lahir.required'      => 'Tanggal lahir wajib diisi.',
-            'tanggal_lahir.date'          => 'Format tanggal lahir tidak valid.',
-            'id_kelas.required'           => 'Pilihan cabang atau kelas wajib diisi.',
-            'id_kelas.exists'             => 'Cabang atau kelas yang dipilih tidak valid.',
-            'user_name.required'          => 'Nama lengkap wali wajib diisi.',
-            'user_name.string'            => 'Nama wali harus berupa teks.',
-            'user_name.max'               => 'Nama wali maksimal 255 karakter.',
-            'email_wali.required'         => 'Alamat email wali wajib diisi.',
-            'email_wali.email'            => 'Format alamat email tidak valid.',
-            'nomor_telepon_wali.required' => 'Nomor WhatsApp wali wajib diisi.',
-            'terms.accepted'              => 'Anda harus menyetujui syarat dan ketentuan yang berlaku.',
-            'legal_document_id.required'  => 'Dokumen persetujuan wajib diisi.',
-            'kode_promo.exists'           => 'Kode promo tidak ditemukan atau tidak valid.',
-        ];
-
-        $validated = $request->validate([
-            'nama_siswa'           => 'required|string|max:255',
-            'tanggal_lahir'        => 'required|date',
-            'id_kelas'             => 'required|uuid|exists:kelas,id_kelas',
-            'user_name'            => 'required|string|max:255',
-            'email_wali'           => 'required|string|email|max:255',
-            'nomor_telepon_wali'   => 'required|string|max:20',
-            'terms'                => 'accepted',
-            'legal_document_id'    => 'required|exists:legal_documents,id',
-            'kode_promo'           => 'nullable|string|exists:promos,kode_promo',
-        ], $messages);
-
+        $validated = $request->validated();
+        
         // Format proper case
         $validated['nama_siswa'] = Str::title(strtolower(trim($validated['nama_siswa'])));
         $validated['user_name']  = Str::title(strtolower(trim($validated['user_name'])));
 
         $kelas = Kelas::findOrFail($validated['id_kelas']);
         
+        $kodePromoInput = $request->validated('kode_promo');
         // Deteksi existing user (Anak sudah ada dan aktif)
         $existingUser = User::where('email', $validated['email_wali'])->with('siswas')->first();
         if ($existingUser) {
@@ -201,7 +172,7 @@ class RegistrationController extends Controller
             ->where('status', '!=', 'paid')
             ->first();
 
-        $biayaFinal  = $kelas->getBiayaPendaftaranSaatIni($validated['kode_promo']);
+        $biayaFinal  = $kelas->getBiayaPendaftaranSaatIni($kodePromoInput);
         $adminFee    = (float)($kelas->admin_fee_custom ?? 0);
         $totalAmount = $biayaFinal + $adminFee;
         $externalId  = 'PREG-' . strtoupper(Str::random(10));
@@ -222,7 +193,7 @@ class RegistrationController extends Controller
                 'tanggal_lahir'      => $validated['tanggal_lahir'],
                 'id_kelas'           => $kelas->id_kelas,
                 'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
-                'kode_promo'         => $validated['kode_promo'],
+                'kode_promo'         => $kodePromoInput,
                 'legal_document_id'  => $validated['legal_document_id'],
                 'ip_address'         => $request->ip(),
                 'amount'             => $biayaFinal,
@@ -241,7 +212,7 @@ class RegistrationController extends Controller
                 'tanggal_lahir'      => $validated['tanggal_lahir'],
                 'id_kelas'           => $kelas->id_kelas,
                 'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
-                'kode_promo'         => $validated['kode_promo'],
+                'kode_promo'         => $kodePromoInput,
                 'legal_document_id'  => $validated['legal_document_id'],
                 'ip_address'         => $request->ip(),
                 'amount'             => $biayaFinal,
@@ -287,7 +258,7 @@ class RegistrationController extends Controller
             ]);
 
             // Increment kuota promo yang dipakai (Hold Quota)
-            $appliedPromos = $kelas->getAppliedPromos($validated['kode_promo']);
+            $appliedPromos = $kelas->getAppliedPromos($kodePromoInput);
             foreach ($appliedPromos as $promo) {
                 $promo->increment('current_uses');
             }

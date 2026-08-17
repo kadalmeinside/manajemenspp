@@ -209,7 +209,7 @@ class LaporanController extends Controller
                 DB::raw("NULL as original_type"),
                 DB::raw("NULL as payment_method")
             )
-            ->where('siswa.status_siswa', 'Resign');
+            ->where('siswa.status_siswa', 'Keluar');
 
         $sub = $invoices->union($leaves)->union($resigns);
         

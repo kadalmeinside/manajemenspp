@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use App\Services\XenditService;
 use App\Services\NotificationService;
+use App\Http\Requests\StoreStudentLeaveRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -23,15 +24,9 @@ class StudentLeaveController extends Controller
      * Store a newly created leave request.
      * Accessible by Public (via /cek-spp) and Student (via Dashboard).
      */
-    public function store(Request $request)
+    public function store(StoreStudentLeaveRequest $request)
     {
-        $validated = $request->validate([
-            'id_siswa' => 'required|exists:siswa,id_siswa',
-            'months' => 'required|array|min:1',
-            'months.*' => 'required|integer|min:1|max:12',
-            'year' => 'required|integer|min:' . date('Y'),
-            'reason' => 'required|string|max:500',
-        ]);
+        $validated = $request->validated();
 
         if (!auth()->check()) {
             $validSessionSiswaId = session('verified_spp_siswa_id') ?? session('checked_siswa_id');

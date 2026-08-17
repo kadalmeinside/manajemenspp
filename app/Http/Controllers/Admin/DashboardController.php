@@ -103,7 +103,7 @@ class DashboardController extends Controller
             ->latest('updated_at');
             
         // 3. Aktivitas Resign
-        $resignActivityQuery = Siswa::where('status_siswa', 'Resign')
+        $resignActivityQuery = Siswa::where('status_siswa', 'Keluar')
             ->latest('updated_at');
 
         $siswaPerKelasQuery = Kelas::withCount(['siswa' => fn($q) => $q->where('status_siswa', 'Aktif')])->orderBy('nama_kelas');

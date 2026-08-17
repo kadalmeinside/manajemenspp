@@ -203,6 +203,14 @@ class SiswaController extends Controller
         if (!$request->user()->can('view_siswa')) {
             abort(403);
         }
+
+        if ($request->user()->hasRole('admin_kelas')) {
+            $managedKelasIds = $request->user()->managedClasses()->pluck('kelas.id_kelas')->toArray();
+            if (!in_array($siswa->id_kelas, $managedKelasIds)) {
+                abort(403, 'Akses ditolak: Anda tidak memiliki akses ke siswa ini.');
+            }
+        }
+
         $siswa->load(['user', 'kelas']);
         
         $availableYears = $siswa->invoices()
@@ -514,11 +522,17 @@ class SiswaController extends Controller
         }
 
         $tab = $request->input('tab', 'menunggu');
+        $user = $request->user();
 
         $query = Siswa::with(['kelas', 'user'])
             ->whereHas('invoices', function ($q) {
                 $q->where('type', 'pendaftaran')->where('status', 'PAID');
             });
+
+        if ($user->hasRole('admin_kelas')) {
+            $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');
+            $query->whereIn('id_kelas', $managedKelasIds);
+        }
 
         if ($tab === 'riwayat') {
             $query->whereNotNull('mulai_spp_date')->orderBy('updated_at', 'desc');

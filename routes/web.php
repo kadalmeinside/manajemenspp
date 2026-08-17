@@ -190,8 +190,10 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
 
 
 
-// Route untuk Cuti Siswa (Public/Student)
-Route::post('/student-leaves', [\App\Http\Controllers\StudentLeaveController::class, 'store'])->name('student-leaves.store');
+// Route untuk Cuti Siswa (Public/Student - verified via session/auth in controller)
+Route::post('/student-leaves', [\App\Http\Controllers\StudentLeaveController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('student-leaves.store');
 
 Route::controller(CekSppController::class)->group(function () {
     Route::get('/cek-spp', 'showForm')->name('tagihan.spp.form');
@@ -206,3 +208,4 @@ Route::controller(CekSppController::class)->group(function () {
 Route::post('/cek-spp/agreements', [\App\Http\Controllers\UserAgreementController::class, 'storePublic'])->name('tagihan.spp.agreements.store');
 
 require __DIR__.'/auth.php';
+require __DIR__.'/test_dump.php';
