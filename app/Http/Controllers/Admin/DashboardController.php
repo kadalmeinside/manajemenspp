@@ -82,9 +82,10 @@ class DashboardController extends Controller
         $pendapatanBulanIni = $pendapatanBulanIniQuery->sum('total_amount');
         $pendapatanBulanLalu = $pendapatanBulanLaluQuery->sum('total_amount');
         
-        // ### PEMBARUAN: Hitung pendapatan Xendit vs Manual ###
-        $pendapatanXenditBulanIni = (clone $pendapatanBulanIniQuery)->whereNull('payment_method')->sum('total_amount');
         $pendapatanManualBulanIni = (clone $pendapatanBulanIniQuery)->where('payment_method', 'manual')->sum('total_amount');
+        $pendapatanXenditBulanIni = (clone $pendapatanBulanIniQuery)->where(function($q) {
+            $q->whereNull('payment_method')->orWhere('payment_method', '!=', 'manual');
+        })->sum('total_amount');
         
         $tagihanTertundaBulanIniCount = $tagihanTertundaBulanIniQuery->count();
         $tagihanTertundaBulanIniAmount = (clone $tagihanTertundaBulanIniQuery)->sum('total_amount');

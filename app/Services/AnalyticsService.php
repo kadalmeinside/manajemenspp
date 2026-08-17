@@ -160,6 +160,7 @@ class AnalyticsService
         
         return Cache::remember($cacheKey, 1800, function () use ($month, $year, $managedKelasIds) {
             $query = Invoice::where('status', 'PAID')
+                ->whereIn('type', ['spp', 'pendaftaran'])
                 ->whereMonth('paid_at', $month)
                 ->whereYear('paid_at', $year);
 
@@ -490,7 +491,7 @@ class AnalyticsService
                 $stats[$kelasLabel]['total']++;
                 
                 if ($inv->status === 'PAID') {
-                    if ($inv->payment_method === 'XENDIT') {
+                    if ($inv->payment_method !== 'manual') {
                         $stats[$kelasLabel]['xendit']++;
                     } else {
                         $stats[$kelasLabel]['manual']++;
