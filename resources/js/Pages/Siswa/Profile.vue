@@ -7,6 +7,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Toast from '@/Components/Toast.vue';
+import { UserCircleIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     siswa: Object,
@@ -63,9 +64,12 @@ const getStatusClass = (status) => {
 
     <SiswaLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                {{ pageTitle }}
-            </h2>
+            <div class="flex justify-between items-center w-full">
+                <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
+                    <UserCircleIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-indigo-600 dark:text-indigo-400" />
+                    {{ pageTitle }}
+                </h2>
+            </div>
         </template>
         <Toast :message="flashMessage" :type="flashType" />
         <div class="py-12">

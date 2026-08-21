@@ -201,6 +201,13 @@ class HandleInertiaRequests extends Middleware
                 }
                 return 0;
             },
+            'cart_count' => function () use ($request) {
+                if ($request->user() && $request->user()->hasRole('siswa')) {
+                    $cart = \App\Models\Cart::where('user_id', $request->user()->id)->first();
+                    return $cart ? $cart->items()->sum('quantity') : 0;
+                }
+                return 0;
+            },
         ]);
     }
 }

@@ -143,4 +143,9 @@ class Siswa extends Model
     {
         return $query->whereNull('mulai_spp_date')->where('status_siswa', 'Aktif');
     }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'siswa_id', 'id_siswa');
+    }
 }

@@ -99,9 +99,10 @@ Terkait pertanyaan apakah setiap `admin_kelas` memiliki stok sendiri, berikut ad
 
 ---
 
-## Open Questions (Pertanyaan untuk Pengembangan Nanti)
-1. **Keranjang Belanja (Cart)**: Apakah orang tua perlu bisa menambahkan SPP dan Jersey ke dalam satu "Keranjang" untuk dibayar dalam 1 tagihan Xendit sekaligus, atau pembayarannya dipisah (bayar SPP sendiri, beli Jersey sendiri)?
-2. **Pengiriman**: Apakah produk murni hanya "Ambil di Tempat Latihan (Pickup)", atau ada opsi pengiriman kurir ke rumah yang butuh ongkos kirim?
-3. **Stok**: Jika ukuran M habis saat orang tua mencoba beli, apakah tombol beli dinonaktifkan secara otomatis (sistem inventori ketat) atau dibiarkan *Pre-Order*? 
+## 4. Kesimpulan Aturan Bisnis (Telah Disepakati)
 
-*(Dokumen ini akan menjadi acuan saat kita memulai fase pengembangan fitur ini di sesi mendatang).*
+1. **Keranjang Belanja (Cart)**: Keranjang belanja *khusus* untuk produk/merchandise. Tidak bisa digabung dengan pembayaran SPP dalam satu transaksi Xendit (dipisah).
+2. **Pengiriman**: Untuk sementara murni **Ambil di Tempat Latihan** (Pickup). Sistem tidak menghitung ongkos kirim. Ke depannya akan dikembangkan opsi pengiriman via kurir.
+3. **Manajemen Stok & Pre-Order**: 
+   - **Mode Ketat (Strict Mode)** aktif secara *default*. Jika stok = 0, tombol beli dinonaktifkan.
+   - Akan ditambahkan opsi/fitur **"Pre-Order"** pada produk. Jika admin mencentang fitur *Pre-Order*, maka siswa tetap bisa membeli produk tersebut meskipun stok 0 (atau stok tidak dihitung).

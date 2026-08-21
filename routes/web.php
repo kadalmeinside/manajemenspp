@@ -148,6 +148,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');
             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');
             Route::resource('promos', PromoController::class)->except(['show']);
+            Route::resource('products', \App\Http\Controllers\Admin\ProductController::class);
+            Route::get('products/{product}/stock', [\App\Http\Controllers\Admin\StockController::class, 'index'])->name('products.stock.index');
+            Route::post('products/{product}/stock', [\App\Http\Controllers\Admin\StockController::class, 'store'])->name('products.stock.store');
+            Route::get('pos', [\App\Http\Controllers\Admin\PosController::class, 'index'])->name('pos.index');
+            Route::post('pos', [\App\Http\Controllers\Admin\PosController::class, 'store'])->name('pos.store');
+            Route::get('orders', [\App\Http\Controllers\Admin\StoreOrderController::class, 'index'])->name('orders.index');
+            Route::patch('orders/{order}/complete', [\App\Http\Controllers\Admin\StoreOrderController::class, 'complete'])->name('orders.complete');
             Route::get('laporan/pembayaran-bulanan', [LaporanController::class, 'pembayaranBulanan'])->name('laporan.pembayaran_bulanan');
             Route::get('laporan/aktivitas', [LaporanController::class, 'aktivitas'])->name('laporan.aktivitas');
             Route::get('laporan/aktivitas/export', [LaporanController::class, 'exportAktivitas'])->name('laporan.aktivitas.export');
@@ -186,6 +193,19 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
         Route::post('/invoices/{invoice}/pay', [SiswaTagihanController::class, 'createPaymentToken'])->name('tagihan.pay');
         Route::post('/invoices/bulk-pay', [SiswaTagihanController::class, 'createBulkPayment'])->name('invoices.bulk_pay');
         Route::post('/tagihan/pay', [SiswaTagihanController::class, 'createUnifiedPayment'])->name('invoices.unified_pay');
+        
+        // Store / E-commerce
+        Route::get('/toko', [\App\Http\Controllers\Siswa\StoreController::class, 'index'])->name('store.index');
+        Route::get('/toko/keranjang', [\App\Http\Controllers\Siswa\StoreController::class, 'cart'])->name('store.cart');
+        Route::post('/toko/keranjang', [\App\Http\Controllers\Siswa\StoreController::class, 'addToCart'])->name('store.cart.add');
+        Route::put('/toko/keranjang/{cartItem}', [\App\Http\Controllers\Siswa\StoreController::class, 'updateCartItem'])->name('store.cart.update');
+        Route::delete('/toko/keranjang/{cartItem}', [\App\Http\Controllers\Siswa\StoreController::class, 'removeCartItem'])->name('store.cart.remove');
+        // Checkout & Orders
+        Route::post('/toko/checkout', [\App\Http\Controllers\Siswa\StoreCheckoutController::class, 'checkout'])->name('store.checkout');
+        Route::get('/toko/pesanan', [\App\Http\Controllers\Siswa\StoreOrderController::class, 'index'])->name('store.orders.index');
+        Route::get('/toko/pesanan/{order}', [\App\Http\Controllers\Siswa\StoreOrderController::class, 'show'])->name('store.orders.show');
+        
+        Route::get('/toko/{product:slug}', [\App\Http\Controllers\Siswa\StoreController::class, 'show'])->name('store.show');
 });
 
 

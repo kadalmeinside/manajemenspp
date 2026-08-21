@@ -1,25 +1,13 @@
 <script setup>
 import SiswaLayout from '@/Layouts/SiswaLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { BanknotesIcon, ClockIcon, CreditCardIcon, CheckBadgeIcon, ExclamationTriangleIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline';
-import Modal from '@/Components/Modal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputError from '@/Components/InputError.vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { BanknotesIcon, ClockIcon, CreditCardIcon, CheckBadgeIcon, ExclamationTriangleIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 
-// --- PERUBAHAN PROPS ---
 const props = defineProps({
     pageTitle: String,
-    siswaName: String,
-    id_siswa: String,
-    paidMonths: Array, // ['2025-1', '2025-2', ...]
-    pendingLeaveMonths: Array,
-    overdueInvoices: Array, // Sebelumnya: upcomingInvoice: Object
-    overdueTotal: Object,   // Prop baru untuk total tertunggak
-    paymentSummary: Object,
+    familySummary: Array,
+    grandTotal: Object,
     errorMessage: String,
 });
 
@@ -29,48 +17,22 @@ const getShortDescription = (description) => {
     return description.split('-')[0].trim();
 };
 
-// --- State Cuti ---
-const showLeaveModal = ref(false);
-const leaveForm = useForm({
-    id_siswa: props.id_siswa,
-    months: [new Date().getMonth() + 1],
-    year: String(new Date().getFullYear()),
-    reason: '',
-});
-
-const openLeaveModal = () => {
-    leaveForm.year = String(new Date().getFullYear());
-    const currentMonth = new Date().getMonth() + 1;
-    // reset selections when opening, check if current month is disabled
-    leaveForm.months = isMonthDisabled(currentMonth) ? [] : [currentMonth];
-    showLeaveModal.value = true;
-};
-
-const toggleMonth = (m) => {
-    if (isMonthDisabled(m)) return;
-    const index = leaveForm.months.indexOf(m);
-    if (index > -1) {
-        leaveForm.months.splice(index, 1);
-    } else {
-        leaveForm.months.push(m);
-    }
-};
-
-const isMonthDisabled = (month) => {
-    const year = leaveForm.year;
-    if (!year) return false;
-    const key = `${year}-${month}`;
-    return (props.paidMonths || []).includes(key) || (props.pendingLeaveMonths || []).includes(key);
-};
-
-const submitLeave = () => {
-    leaveForm.id_siswa = props.id_siswa; // Ensure ID is set
-    leaveForm.post(route('student-leaves.store'), {
+const goToTagihan = (id_siswa) => {
+    // Switch active siswa then go to tagihan
+    router.post(route('siswa.switch-siswa', id_siswa), {}, {
         preserveScroll: true,
         onSuccess: () => {
-            showLeaveModal.value = false;
-            leaveForm.reset();
-        },
+            router.visit(route('siswa.tagihan.index'));
+        }
+    });
+};
+
+const goToProfil = (id_siswa) => {
+    router.post(route('siswa.switch-siswa', id_siswa), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            router.visit(route('siswa.profil.show'));
+        }
     });
 };
 </script>
@@ -79,157 +41,147 @@ const submitLeave = () => {
     <Head :title="pageTitle" />
     <SiswaLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                Selamat Datang, {{ siswaName }}!
-            </h2>
+            <div class="flex justify-between items-center w-full">
+                <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
+                    <UserGroupIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-indigo-600 dark:text-indigo-400" />
+                    {{ pageTitle }}
+                </h2>
+            </div>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div v-if="errorMessage" class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-md shadow-md" role="alert">
-                    <p class="font-bold">Terjadi Kesalahan</p>
-                    <p>{{ errorMessage }}</p>
-                </div>
-
-                <div v-else class="space-y-8">
-                    <div v-if="overdueInvoices && overdueInvoices.length > 0" class="bg-red-50 dark:bg-gray-800 border border-red-200 dark:border-red-900/50 overflow-hidden shadow-lg rounded-xl p-6">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <h3 class="text-lg font-semibold text-red-800 dark:text-red-300">Tagihan Tertunggak</h3>
-                                <p class="mt-1 text-sm text-red-700 dark:text-red-400">
-                                    Anda memiliki {{ overdueTotal.count }} tagihan yang telah melewati jatuh tempo.
-                                </p>
-                            </div>
-                            <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-red-500">
-                                <ExclamationTriangleIcon class="h-6 w-6 text-white"/>
-                            </div>
-                        </div>
-
-                        <div class="mt-4 space-y-2">
-                           <div v-for="invoice in overdueInvoices" :key="invoice.id" class="flex justify-between items-center text-sm">
-                               <span class="text-gray-700 dark:text-gray-300">{{ getShortDescription(invoice.description) }}</span>
-                               <span class="font-medium text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</span>
-                           </div>
-                        </div>
-
-                        <div class="mt-4 pt-4 border-t border-red-200 dark:border-gray-700 flex flex-col sm:flex-row items-baseline justify-between gap-4">
-                            <div>
-                                <p class="text-sm text-red-700 dark:text-red-400">Total Tertunggak</p>
-                                <p class="text-3xl font-bold text-red-800 dark:text-red-300">{{ overdueTotal.formatted }}</p>
-                            </div>
-                            <Link :href="route('siswa.tagihan.index')" class="w-full sm:w-auto inline-flex items-center justify-center text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-6 py-3 dark:bg-red-600 dark:hover:bg-red-700 focus:outline-none dark:focus:ring-red-800 transition-transform hover:scale-105">
-                                <CreditCardIcon class="h-5 w-5 mr-2" />
-                                Bayar Tagihan
-                            </Link>
-                        </div>
-                    </div>
-                    
-                    <div v-else class="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-xl p-6 text-center">
-                        <CheckBadgeIcon class="mx-auto h-12 w-12 text-green-500" />
-                        <h3 class="mt-2 text-lg font-medium text-gray-900 dark:text-white">Tidak Ada Tunggakan!</h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Semua tagihan Anda hingga saat ini sudah lunas. Terima kasih!</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-md rounded-lg p-5">
-                            <div class="flex items-start justify-between">
-                                <div class="w-0 flex-1">
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Total Terbayar/Tahun</p>
-                                    <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ paymentSummary.total_paid_formatted }}</p>
-                                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ paymentSummary.total_paid_count }} tagihan lunas</p>
-                                </div>
-                                <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-green-500">
-                                    <BanknotesIcon class="h-6 w-6 text-white"/>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-md rounded-lg p-5">
-                            <div class="flex items-start justify-between">
-                                <div class="w-0 flex-1">
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase">Total Kewajiban</p>
-                                    <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ paymentSummary.total_unpaid_formatted }}</p>
-                                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ paymentSummary.total_unpaid_count }} tagihan belum lunas</p>
-                                </div>
-                                <div class="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-full bg-yellow-500">
-                                    <ClockIcon class="h-6 w-6 text-white"/>
-                                </div>
-                            </div>
-                        </div> -->
-                    </div>
-
-                    <div class="text-center pt-4">
-                        <Link :href="route('siswa.tagihan.index')" class="text-sm font-medium text-red-600 hover:text-red-500 dark:text-red-400 dark:hover:text-red-300">
-                            Lihat Semua Riwayat Tagihan &rarr;
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Card Ajukan Cuti -->
-                 <div v-if="false" class="mt-8 bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900 dark:text-gray-100 flex justify-between items-center">
+        <div class="py-4 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <div v-if="errorMessage" class="mb-6 md:mb-8 p-4 md:p-5 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 rounded-lg shadow-sm" role="alert">
+                    <div class="flex items-center">
+                        <ExclamationTriangleIcon class="h-5 w-5 md:h-6 md:w-6 mr-3 text-red-500 shrink-0" />
                         <div>
-                            <h3 class="text-lg font-medium">Pengajuan Cuti</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Ajukan cuti untuk bulan tertentu agar tagihan SPP disesuaikan.</p>
+                            <p class="font-bold text-base md:text-lg">Terjadi Kesalahan</p>
+                            <p class="text-sm md:text-base">{{ errorMessage }}</p>
                         </div>
-                        <SecondaryButton @click="openLeaveModal">
-                            <CalendarDaysIcon class="h-5 w-5 mr-2" />
-                            Ajukan Cuti
-                        </SecondaryButton>
                     </div>
                 </div>
 
-            </div>
-        </div>
+                <div v-else class="space-y-6 md:space-y-8">
+                    
+                    <!-- Grand Total Warning if any -->
+                    <div v-if="grandTotal && grandTotal.count > 0" class="relative overflow-hidden bg-gradient-to-r from-red-600 to-rose-500 rounded-2xl shadow-lg p-5 md:p-8 text-white transition-transform transform hover:-translate-y-1 hover:shadow-xl duration-300">
+                        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 md:w-32 md:h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+                        
+                        <div class="relative flex flex-row items-center justify-between z-10">
+                            <div class="flex items-center">
+                                <div class="bg-white/20 p-3 md:p-4 rounded-full mr-4 md:mr-6 backdrop-blur-sm shrink-0">
+                                    <ExclamationTriangleIcon class="h-6 w-6 md:h-10 md:w-10 text-white" />
+                                </div>
+                                <div>
+                                    <h3 class="text-base md:text-2xl font-extrabold tracking-tight">Perhatian: Ada Tagihan Tertunggak</h3>
+                                    <p class="text-red-100 mt-1 md:mt-2 text-xs md:text-lg leading-relaxed">Secara keseluruhan, ada <span class="font-bold text-white">{{ grandTotal.count }}</span> tagihan tertunggak sebesar <span class="font-bold text-white bg-red-800/40 px-1.5 py-0.5 rounded-md whitespace-nowrap">{{ grandTotal.formatted }}</span>.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-        <!-- Modal Ajukan Cuti -->
-        <Modal :show="showLeaveModal" @close="showLeaveModal = false">
-            <div class="p-6">
-                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Ajukan Cuti</h2>
-                <form @submit.prevent="submitLeave" class="space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-6">
-                        <div class="sm:col-span-3">
-                            <InputLabel value="Bulan Cuti" />
-                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
-                                <button v-for="m in 12" :key="m" type="button"
-                                    @click="toggleMonth(m)"
-                                    :disabled="isMonthDisabled(m)"
-                                    :class="[
-                                        'px-2 py-2 text-sm font-semibold rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500',
-                                        leaveForm.months.includes(m) 
-                                            ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-transparent shadow-md transform scale-105' 
-                                            : (isMonthDisabled(m) 
-                                                ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700/50 dark:text-gray-600' 
-                                                : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 dark:bg-gray-800/80 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700')
-                                    ]">
-                                    <span class="block">{{ new Date(0, m-1).toLocaleString('id-ID', { month: 'short' }) }}</span>
-                                    <span v-if="(props.pendingLeaveMonths || []).includes(leaveForm.year+'-'+m)" class="block text-[10px] opacity-75 font-normal -mt-1">(Proses)</span>
-                                    <span v-else-if="(props.paidMonths || []).includes(leaveForm.year+'-'+m)" class="block text-[10px] opacity-75 font-normal -mt-1">(Lunas)</span>
+                    <!-- Welcome / Info Section (Optional: only if no grand total warning) -->
+                    <div v-else-if="familySummary && familySummary.length > 0" class="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-blue-500 rounded-2xl shadow-lg p-5 md:p-8 text-white transition-transform transform hover:-translate-y-1 hover:shadow-xl duration-300">
+                         <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 md:w-32 md:h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
+                         <div class="relative flex items-center z-10">
+                             <div class="bg-white/20 p-3 md:p-4 rounded-full mr-4 md:mr-6 backdrop-blur-sm shrink-0">
+                                 <CheckBadgeIcon class="h-6 w-6 md:h-10 md:w-10 text-white" />
+                             </div>
+                             <div>
+                                 <h3 class="text-base md:text-2xl font-extrabold tracking-tight">Semua Tagihan Lunas</h3>
+                                 <p class="text-indigo-100 mt-1 md:mt-2 text-xs md:text-lg leading-relaxed">Terima kasih atas pembayaran yang tepat waktu untuk seluruh tagihan administrasi.</p>
+                             </div>
+                         </div>
+                    </div>
+
+                    <!-- Cards per Anak -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                        <div v-for="siswa in familySummary" :key="siswa.id_siswa" class="group bg-white dark:bg-gray-800 rounded-3xl shadow-md hover:shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col transition-all duration-300">
+                            <!-- Header Anak -->
+                            <div class="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-750 p-5 md:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start">
+                                <div class="flex items-center space-x-3 md:space-x-4">
+                                    <div class="h-12 w-12 md:h-16 md:w-16 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center border-2 border-indigo-200 dark:border-indigo-700 shadow-sm shrink-0">
+                                        <span class="text-xl md:text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ siswa.nama_siswa.charAt(0).toUpperCase() }}</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg md:text-xl font-extrabold text-gray-900 dark:text-white">{{ siswa.nama_siswa }}</h3>
+                                        <div class="flex items-center mt-1 space-x-2 md:space-x-3 text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                                            <span class="bg-gray-100 dark:bg-gray-700 px-2 md:px-2.5 py-0.5 rounded-full font-medium">{{ siswa.kelas }}</span>
+                                            <span class="flex items-center"><span class="w-1.5 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mr-1.5 md:mr-2"></span>NIS: {{ siswa.nis || '-' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button @click="goToProfil(siswa.id_siswa)" class="p-1.5 md:p-2 rounded-full text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors" title="Lihat Profil">
+                                    <ArrowRightIcon class="h-4 w-4 md:h-5 md:w-5" />
                                 </button>
                             </div>
-                            <InputError :message="leaveForm.errors.months" class="mt-1" />
+
+                            <!-- Body Tagihan -->
+                            <div class="p-5 md:p-6 flex-grow flex flex-col space-y-5 md:space-y-6">
+                                <!-- Tunggakan -->
+                                <div v-if="siswa.overdueTotal.count > 0" class="bg-red-50 dark:bg-red-900/10 rounded-2xl p-4 md:p-5 border border-red-100 dark:border-red-900/30">
+                                    <div class="flex justify-between items-center mb-3 md:mb-4">
+                                        <div class="flex items-center text-red-700 dark:text-red-400 font-bold text-sm md:text-base">
+                                            <ExclamationTriangleIcon class="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
+                                            Tagihan Tertunda ({{ siswa.overdueTotal.count }})
+                                        </div>
+                                        <span class="text-red-700 dark:text-red-400 font-extrabold text-base md:text-lg">{{ siswa.overdueTotal.formatted }}</span>
+                                    </div>
+                                    <ul class="space-y-2 md:space-y-3">
+                                        <!-- SPP Invoices -->
+                                        <li v-for="inv in siswa.overdueInvoices" :key="inv.id" class="flex justify-between items-center p-2.5 md:p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-50 dark:border-red-900/20">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs md:text-sm font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none">{{ getShortDescription(inv.description) }}</span>
+                                                <span class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">{{ inv.periode_formatted }}</span>
+                                            </div>
+                                            <span class="text-xs md:text-sm font-bold text-red-600 dark:text-red-400 ml-2 whitespace-nowrap">{{ inv.total_amount_formatted }}</span>
+                                        </li>
+                                        <!-- Store Orders -->
+                                        <li v-for="order in siswa.pendingStoreOrders" :key="'store-'+order.id" class="flex justify-between items-center p-2.5 md:p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-50 dark:border-red-900/20">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs md:text-sm font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none">{{ getShortDescription(order.description) }}</span>
+                                                <span class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">{{ order.periode_formatted }}</span>
+                                            </div>
+                                            <span class="text-xs md:text-sm font-bold text-red-600 dark:text-red-400 ml-2 whitespace-nowrap">{{ order.total_amount_formatted }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- Bersih -->
+                                <div v-else class="flex items-center justify-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 p-4 md:p-5 rounded-2xl border border-green-100 dark:border-green-900/30 h-full min-h-[100px] md:min-h-[120px]">
+                                    <div class="text-center">
+                                        <CheckBadgeIcon class="h-8 w-8 md:h-10 md:w-10 mx-auto mb-1.5 md:mb-2 opacity-80" />
+                                        <span class="text-xs md:text-sm font-bold">Tidak ada tunggakan pembayaran.</span>
+                                    </div>
+                                </div>
+
+                                <!-- Ringkasan Pembayaran -->
+                                <div class="mt-auto pt-4 md:pt-6 border-t border-gray-100 dark:border-gray-700/60">
+                                    <div class="flex items-end justify-between">
+                                        <div>
+                                            <p class="text-[11px] md:text-sm font-medium text-gray-500 dark:text-gray-400 mb-0.5 md:mb-1">Total Terbayar</p>
+                                            <p class="text-lg md:text-2xl font-extrabold text-gray-900 dark:text-white leading-none">
+                                                {{ siswa.paymentSummary.total_paid_formatted }}
+                                            </p>
+                                            <p class="text-[10px] md:text-xs font-medium text-green-600 dark:text-green-400 mt-1.5 md:mt-2 flex items-center">
+                                                <CheckBadgeIcon class="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 shrink-0" />
+                                                {{ siswa.paymentSummary.total_paid_count }} Lunas
+                                            </p>
+                                        </div>
+                                        <div class="text-right ml-2">
+                                            <button @click="goToTagihan(siswa.id_siswa)" class="inline-flex items-center justify-center px-4 py-2.5 md:px-6 md:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold text-xs md:text-sm shadow-md hover:bg-indigo-600 dark:hover:bg-indigo-50 hover:text-white dark:hover:text-indigo-900 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 transform group-hover:scale-105">
+                                                Tagihan
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="sm:col-span-1">
-                            <InputLabel value="Tahun" />
-                            <TextInput type="number" 
-                                v-model="leaveForm.year" 
-                                :max="new Date().getFullYear()" 
-                                :min="new Date().getFullYear() - 1" 
-                                class="w-full mt-2 rounded-xl border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 focus:bg-white focus:ring-indigo-500 transition-colors" />
-                            <InputError :message="leaveForm.errors.year" class="mt-1" />
-                        </div>
                     </div>
-                    <div>
-                        <InputLabel value="Alasan Cuti" />
-                        <textarea v-model="leaveForm.reason" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" rows="3" placeholder="Contoh: Sakit, Liburan Keluarga, dll."></textarea>
-                         <InputError :message="leaveForm.errors.reason" />
-                    </div>
-                    
-                    <div class="mt-6 flex justify-end space-x-3">
-                         <SecondaryButton @click="showLeaveModal = false">Batal</SecondaryButton>
-                         <PrimaryButton :disabled="leaveForm.processing">Ajukan</PrimaryButton>
-                    </div>
-                </form>
+
+                </div>
             </div>
-        </Modal>
+        </div>
     </SiswaLayout>
 </template>

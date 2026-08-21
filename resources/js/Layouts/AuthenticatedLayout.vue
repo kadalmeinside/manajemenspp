@@ -13,7 +13,7 @@ import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
     ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon, ArrowDownTrayIcon, CheckBadgeIcon,
-    BellSlashIcon, ClockIcon
+    BellSlashIcon, ClockIcon, TagIcon, ShoppingBagIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
@@ -291,6 +291,9 @@ const adminMenu = [
     { name: 'Aktivasi SPP', route: 'admin.siswa.pendaftar_lunas', icon: CheckBadgeIcon, current: 'admin.siswa.pendaftar_lunas', requiredPermission: 'view_siswa', badgeType: 'aktivasi_spp' },
     { name: 'Manajemen Siswa', route: 'admin.siswa.index', icon: UserGroupIcon, current: 'admin.siswa.index', requiredPermission: 'view_siswa' },
     { name: 'Manajemen Kelas', route: 'admin.kelas.index', icon: BuildingOfficeIcon, current: 'admin.kelas.*', requiredPermission: 'manage_kelas' },
+    { name: 'Manajemen Produk', route: 'admin.products.index', icon: TagIcon, current: 'admin.products.*', requiredPermission: 'manage_kelas' },
+    { name: 'Kasir Toko (POS)', route: 'admin.pos.index', icon: ShoppingBagIcon, current: 'admin.pos.*', requiredPermission: 'manage_kelas' },
+    { name: 'Manajemen Pesanan', route: 'admin.orders.index', icon: ShoppingBagIcon, current: 'admin.orders.*', requiredPermission: 'manage_kelas' },
     { name: 'Manajemen Promo', route: 'admin.promos.index', icon: CurrencyDollarIcon, current: 'admin.promos.*', requiredPermission: 'manage_kelas' },
     { name: 'Pengajuan Cuti', route: 'admin.leaves.index', icon: CalendarDaysIcon, current: 'admin.leaves.*', requiredPermission: 'manage_all_tagihan', badgeType: 'cuti' },
 ];

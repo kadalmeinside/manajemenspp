@@ -7,6 +7,7 @@ use App\Services\NotificationService;
 use App\Services\Webhook\LegacyBulkHandler;
 use App\Services\Webhook\PendaftaranHandler;
 use App\Services\Webhook\SppGabunganHandler;
+use App\Services\Webhook\StoreOrderHandler;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,7 @@ class WebhookController extends Controller
         private readonly SppGabunganHandler $sppGabunganHandler,
         private readonly PendaftaranHandler $pendaftaranHandler,
         private readonly LegacyBulkHandler  $legacyBulkHandler,
+        private readonly StoreOrderHandler    $storeOrderHandler,
     ) {}
 
     /**
@@ -64,9 +66,12 @@ class WebhookController extends Controller
             return response()->json(['message' => 'Missing external_id'], 400);
         }
 
-        // === 3. DETEKSI DUAL-MODE: PREG- (PendingRegistration) vs invoice biasa ===
+        // === 3. DETEKSI DUAL-MODE: PREG- (PendingRegistration), STORE_INV (Order), vs invoice biasa ===
         if (str_starts_with($externalId, 'PREG-')) {
             return $this->pendaftaranHandler->handlePendingRegistration($externalId, $payload, $payloadStatus);
+        }
+        if (str_starts_with($externalId, 'STORE_INV_')) {
+            return $this->storeOrderHandler->handleStoreOrder($externalId, $payload, $payloadStatus);
         }
 
         // === 4. PROSES INVOICE BIASA (SPP, Pendaftaran, Gabungan) ===

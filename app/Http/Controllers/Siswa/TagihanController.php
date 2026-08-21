@@ -49,7 +49,9 @@ class TagihanController extends Controller
                                ->orderBy('periode_tagihan', 'asc')
                                ->get();
 
-        // 2. Cari SATU invoice SPP terakhir yang statusnya PAID
+        // (Fitur pesanan toko dipisahkan ke halaman Pesanan Toko tersendiri)
+
+        // 3. Cari SATU invoice SPP terakhir yang statusnya PAID
         $lastPaidInvoice = $siswa->invoices()
                                 ->where('type', 'spp')
                                 ->where('status', 'PAID')
