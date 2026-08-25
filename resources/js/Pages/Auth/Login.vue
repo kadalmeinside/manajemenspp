@@ -45,7 +45,7 @@ const submit = () => {
     <GuestLayout>
         <Head title="Masuk Akun" />
 
-        <div class="w-full flex flex-col justify-center min-h-[70vh] lg:min-h-0">
+        <div class="w-full flex flex-col justify-center py-4 lg:py-0">
              <div class="mb-8 lg:mb-10 text-center lg:text-left">
                 <h2 class="text-2xl lg:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
                     Selamat Datang!
@@ -156,8 +156,8 @@ const submit = () => {
 
                 <!-- Google Login Button -->
                 <div class="mt-4 lg:mt-6">
-                    <button 
-                        type="button" 
+                    <a 
+                        href="/auth/google"
                         class="w-full flex items-center justify-center py-2.5 lg:py-3.5 px-4 rounded-xl text-sm lg:text-base font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                     >
                         <svg class="h-4 w-4 lg:h-5 lg:w-5 mr-2 lg:mr-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -166,32 +166,10 @@ const submit = () => {
                             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.15C1.43 8.55 1 10.22 1 12s.43 3.45 1.15 4.93l3.69-2.84z" fill="#FBBC05"/>
                             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.15 7.07l3.69 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                         </svg>
-                        Google
-                    </button>
+                        Masuk dengan Google
+                    </a>
                 </div>
             </form>
-
-            <div class="hidden mt-8 lg:mt-12 p-4 lg:p-6 bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-700 text-center lg:text-left flex-col sm:flex-row items-center justify-between gap-4 transition-all">
-                <div>
-                    <p class="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
-                        Ada masalah Login?
-                    </p>
-                    <p class="text-sm lg:text-base font-bold text-gray-900 dark:text-white mt-0.5 tracking-wide">
-                        CS: +62 811-386-846
-                    </p>
-                </div>
-                <a href="https://wa.me/62811386846" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    class="inline-flex items-center justify-center rounded-xl bg-green-500 px-5 py-2.5 text-white text-sm font-bold shadow-md shadow-green-500/20 transition-all hover:bg-green-400 hover:shadow-lg focus:outline-none shrink-0"
-                    aria-label="Chat di WhatsApp">
-                    
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
-                    </svg>
-                    Chat WhatsApp
-                </a>
-            </div>
         </div>
     </GuestLayout>
 </template>

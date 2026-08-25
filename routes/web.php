@@ -37,6 +37,7 @@ use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Siswa\ProfileController as SiswaProfileController;
 use App\Http\Controllers\Siswa\TagihanController as SiswaTagihanController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 
 
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
@@ -69,6 +70,12 @@ Route::post('/pendaftaran/check-email', [RegistrationController::class, 'checkEm
 Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');
 Route::get('/pendaftaran/pending/{pending}', [RegistrationSuccessController::class, 'showPending'])->name('registration.success.pending');
 Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->middleware('throttle:30,1')->name('promo.validate');
+
+// Google OAuth Routes
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
 
 Route::get('/dashboard', function () {
     if (auth()->check() && auth()->user()->hasRole('siswa')) {
