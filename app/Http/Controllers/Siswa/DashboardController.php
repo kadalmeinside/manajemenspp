@@ -53,7 +53,10 @@ class DashboardController extends Controller
             $pendingStoreTotalAmount = $pendingStoreOrders->sum('total_amount');
             
             $totalPaidQuery = $siswa->invoices()->where('type', 'spp')->where('status', 'PAID');
-            $totalUnpaidQuery = $siswa->invoices()->where('type', 'spp')->whereIn('status', ['PENDING', 'EXPIRED']);
+            $totalUnpaidQuery = $siswa->invoices()
+                ->where('type', 'spp')
+                ->whereIn('status', ['PENDING', 'EXPIRED'])
+                ->where('periode_tagihan', '<=', now()->endOfMonth());
             
             // Gabungkan total SPP + Toko
             $combinedOverdueTotalAmount = $overdueTotalAmount + $pendingStoreTotalAmount;

@@ -95,6 +95,24 @@ const goToProfil = (id_siswa) => {
                          </div>
                     </div>
 
+                    <!-- Store Promo Banner -->
+                    <div class="relative overflow-hidden rounded-3xl shadow-lg mt-6 md:mt-8 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700">
+                        <!-- Decorative graphic -->
+                        <div class="absolute right-0 top-0 bottom-0 w-1/2 md:w-1/3 bg-gradient-to-l from-red-600/40 to-transparent"></div>
+                        
+                        <div class="relative p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between z-10">
+                            <div class="mb-5 md:mb-0">
+                                <span class="inline-block px-3 py-1 bg-red-600 text-white text-[10px] md:text-xs font-bold rounded-full mb-3 uppercase tracking-wider shadow-sm">Persija Store</span>
+                                <h3 class="text-lg md:text-2xl font-extrabold text-white mb-1.5 md:mb-2 tracking-tight">Perlengkapan Resmi & Jersey Baru</h3>
+                                <p class="text-gray-400 text-xs md:text-sm max-w-md leading-relaxed">Dukung latihan putra Anda dengan perlengkapan original. Belanja lebih mudah, ambil langsung di akademi.</p>
+                            </div>
+                            <Link :href="route('siswa.store.index')" class="w-full md:w-auto inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all transform hover:scale-105 shrink-0">
+                                Kunjungi Toko
+                                <ArrowRightIcon class="h-4 w-4 ml-2" />
+                            </Link>
+                        </div>
+                    </div>
+
                     <!-- Cards per Anak -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                         <div v-for="siswa in familySummary" :key="siswa.id_siswa" class="group bg-white dark:bg-gray-800 rounded-3xl shadow-md hover:shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col transition-all duration-300">
@@ -152,28 +170,30 @@ const goToProfil = (id_siswa) => {
                                 <div v-else class="flex items-center justify-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 p-4 md:p-5 rounded-2xl border border-green-100 dark:border-green-900/30 h-full min-h-[100px] md:min-h-[120px]">
                                     <div class="text-center">
                                         <CheckBadgeIcon class="h-8 w-8 md:h-10 md:w-10 mx-auto mb-1.5 md:mb-2 opacity-80" />
-                                        <span class="text-xs md:text-sm font-bold">Tidak ada tunggakan pembayaran.</span>
+                                        <span class="text-xs md:text-sm font-bold">Hebat! Semua tagihan sampai bulan ini sudah lunas.</span>
                                     </div>
                                 </div>
 
                                 <!-- Ringkasan Pembayaran -->
                                 <div class="mt-auto pt-4 md:pt-6 border-t border-gray-100 dark:border-gray-700/60">
-                                    <div class="flex items-end justify-between">
+                                    <div class="grid grid-cols-2 gap-4 items-center">
                                         <div>
-                                            <p class="text-[11px] md:text-sm font-medium text-gray-500 dark:text-gray-400 mb-0.5 md:mb-1">Total Terbayar</p>
-                                            <p class="text-lg md:text-2xl font-extrabold text-gray-900 dark:text-white leading-none">
+                                            <p class="text-[10px] md:text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Sisa Tagihan (s/d Bulan Ini)</p>
+                                            <p class="text-base md:text-xl font-extrabold text-red-600 dark:text-red-400 leading-none">
+                                                {{ siswa.paymentSummary.total_unpaid_formatted }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] md:text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Total Terbayar</p>
+                                            <p class="text-base md:text-xl font-extrabold text-gray-900 dark:text-white leading-none">
                                                 {{ siswa.paymentSummary.total_paid_formatted }}
                                             </p>
-                                            <p class="text-[10px] md:text-xs font-medium text-green-600 dark:text-green-400 mt-1.5 md:mt-2 flex items-center">
-                                                <CheckBadgeIcon class="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 shrink-0" />
-                                                {{ siswa.paymentSummary.total_paid_count }} Lunas
-                                            </p>
                                         </div>
-                                        <div class="text-right ml-2">
-                                            <button @click="goToTagihan(siswa.id_siswa)" class="inline-flex items-center justify-center px-4 py-2.5 md:px-6 md:py-3 bg-red-600 dark:bg-red-500 text-white rounded-xl font-bold text-xs md:text-sm shadow-md hover:bg-red-700 dark:hover:bg-red-400 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 transform group-hover:scale-105">
-                                                Tagihan
-                                            </button>
-                                        </div>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/30 text-center">
+                                        <button @click="goToTagihan(siswa.id_siswa)" class="w-full inline-flex items-center justify-center px-4 py-2.5 md:py-3 bg-red-600 dark:bg-red-500 text-white rounded-xl font-bold text-xs md:text-sm shadow-sm hover:bg-red-700 dark:hover:bg-red-400 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                                            Lihat Detail Tagihan
+                                        </button>
                                     </div>
                                 </div>
                             </div>
