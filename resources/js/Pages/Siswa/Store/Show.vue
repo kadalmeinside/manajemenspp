@@ -82,7 +82,7 @@ const addToCart = () => {
     <Head :title="product.name" />
 
     <SiswaLayout>
-        <div class="py-8 md:py-12 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div class="pt-4 pb-8 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
                 
                 <!-- Success Toast -->
@@ -106,7 +106,7 @@ const addToCart = () => {
                 </transition>
 
                 <div class="mb-6 md:mb-8">
-                    <Link :href="route('siswa.store.index')" class="inline-flex items-center text-sm md:text-base font-bold text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors">
+                    <Link :href="route('siswa.store.index')" class="inline-flex items-center text-sm md:text-base font-bold text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
                         <ArrowLeftIcon class="w-5 h-5 mr-2" />
                         Kembali ke Katalog
                     </Link>
@@ -126,7 +126,7 @@ const addToCart = () => {
 
                         <!-- Product Info Box -->
                         <div class="p-6 md:p-12 lg:p-16 flex flex-col">
-                            <span class="text-xs md:text-sm font-bold text-indigo-500 dark:text-indigo-400 mb-2 uppercase tracking-widest">{{ product.category }}</span>
+                            <span class="text-xs md:text-sm font-bold text-red-500 dark:text-red-400 mb-2 uppercase tracking-widest">{{ product.category }}</span>
                             <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight">{{ product.name }}</h1>
                             
                             <div class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 mb-6">
@@ -199,8 +199,8 @@ const addToCart = () => {
                                 <button 
                                     @click="addToCart"
                                     :disabled="isOutOfStock || form.processing" 
-                                    class="w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base md:text-lg font-bold text-white shadow-lg disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
-                                    :class="[isOutOfStock ? 'bg-gray-400' : 'bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400']"
+                                    class="w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base md:text-lg font-bold text-white shadow-lg disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-500/50"
+                                    :class="[isOutOfStock ? 'bg-gray-400' : 'bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400']"
                                 >
                                     <ShoppingBagIcon class="w-6 h-6 mr-2" />
                                     {{ isOutOfStock ? 'Stok Habis' : 'Masukkan ke Keranjang' }}

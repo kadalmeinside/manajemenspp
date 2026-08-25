@@ -114,15 +114,17 @@ class HandleInertiaRequests extends Middleware
                 return null;
             },
             'ziggy' => function () use ($request) {
-                $ziggy = new Ziggy(null, $request->url());
-
-                // Jika user adalah admin, berikan semua rute.
-                // Jika tidak, berikan hanya rute dari grup 'public'.
-                if (! $request->user() || !$request->user()->hasRole('admin|user')) {
-                    $ziggy->filter(config('ziggy.groups.public'));
+                $group = 'public';
+                
+                if ($request->user()) {
+                    if ($request->user()->hasRole('admin|user')) {
+                        $group = 'admin';
+                    } else {
+                        $group = 'siswa';
+                    }
                 }
 
-                return $ziggy->toArray();
+                return (new Ziggy($group, $request->url()))->toArray();
             },
             'flash' => [ // Pastikan flash message di-handle
                 'message' => fn () => $request->session()->get('message'),

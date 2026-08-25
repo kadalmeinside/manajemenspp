@@ -66,13 +66,13 @@ const getStatusText = (status) => {
         <template #header>
             <div class="flex justify-between items-center w-full">
                 <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
-                    <ClipboardDocumentListIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-indigo-600 dark:text-indigo-400" />
+                    <ClipboardDocumentListIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-red-600 dark:text-red-400" />
                     Riwayat Pesanan Merchandise
                 </h2>
             </div>
         </template>
 
-        <div class="py-8 md:py-12 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div class="py-4 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
                 
                 <div v-if="orders.data.length > 0" class="space-y-6 md:space-y-8">
@@ -93,7 +93,7 @@ const getStatusText = (status) => {
                             
                             <div class="text-left sm:text-right shrink-0">
                                 <p class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Total Belanja</p>
-                                <p class="font-black text-indigo-600 dark:text-indigo-400 text-xl md:text-2xl">{{ formatRupiah(order.total_amount) }}</p>
+                                <p class="font-black text-red-600 dark:text-red-400 text-xl md:text-2xl">{{ formatRupiah(order.total_amount) }}</p>
                             </div>
                         </div>
 
@@ -115,7 +115,7 @@ const getStatusText = (status) => {
                                             <p class="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium">{{ order.items[0].quantity }} x {{ formatRupiah(order.items[0].unit_price) }}</p>
                                         </div>
                                     </div>
-                                    <div v-if="order.items.length > 1" class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/60 text-xs sm:text-sm font-bold text-indigo-500 dark:text-indigo-400">
+                                    <div v-if="order.items.length > 1" class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/60 text-xs sm:text-sm font-bold text-red-500 dark:text-red-400">
                                         + {{ order.items.length - 1 }} produk lainnya
                                     </div>
                                 </div>
@@ -153,7 +153,7 @@ const getStatusText = (status) => {
                     </div>
                     <h3 class="text-xl md:text-2xl font-extrabold text-gray-900 dark:text-white mb-2">Belum Ada Pesanan</h3>
                     <p class="text-gray-500 dark:text-gray-400 mb-8 max-w-sm text-sm md:text-base">Anda belum pernah melakukan pembelian merchandise. Yuk intip katalog kami sekarang!</p>
-                    <Link :href="route('siswa.store.index')" class="inline-flex justify-center items-center py-3.5 px-8 rounded-2xl text-base font-bold text-white shadow-lg bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none">
+                    <Link :href="route('siswa.store.index')" class="inline-flex justify-center items-center py-3.5 px-8 rounded-2xl text-base font-bold text-white shadow-lg bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none">
                         Mulai Belanja &rarr;
                     </Link>
                 </div>
@@ -163,7 +163,7 @@ const getStatusText = (status) => {
                     <div class="flex flex-wrap gap-2">
                         <template v-for="(link, key) in orders.links" :key="key">
                             <div v-if="link.url === null" class="px-4 py-2.5 text-sm font-bold text-gray-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl cursor-not-allowed shadow-sm" v-html="link.label" />
-                            <Link v-else :href="link.url" class="px-4 py-2.5 text-sm font-bold border rounded-xl hover:shadow-md transition-all duration-300" :class="{ 'bg-indigo-600 text-white border-indigo-600 shadow-md': link.active, 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600': !link.active }" v-html="link.label" />
+                            <Link v-else :href="link.url" class="px-4 py-2.5 text-sm font-bold border rounded-xl hover:shadow-md transition-all duration-300" :class="{ 'bg-red-600 text-white border-red-600 shadow-md': link.active, 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600': !link.active }" v-html="link.label" />
                         </template>
                     </div>
                 </div>

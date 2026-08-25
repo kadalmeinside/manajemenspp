@@ -54,11 +54,11 @@ const checkout = () => {
     <Head title="Keranjang Belanja" />
 
     <SiswaLayout>
-        <div class="py-8 md:py-12 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div class="pt-4 pb-8 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <div class="mb-6 md:mb-8">
-                    <Link :href="route('siswa.store.index')" class="inline-flex items-center text-sm md:text-base font-bold text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors">
+                    <Link :href="route('siswa.store.index')" class="inline-flex items-center text-sm md:text-base font-bold text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
                         <ArrowLeftIcon class="w-5 h-5 mr-2" />
                         Lanjut Belanja
                     </Link>
@@ -75,7 +75,7 @@ const checkout = () => {
                         <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700/60">
                             <div class="p-6 md:p-8 border-b border-gray-100 dark:border-gray-700/60 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800">
                                 <h1 class="text-xl md:text-2xl font-extrabold text-gray-900 dark:text-white flex items-center">
-                                    <ShoppingBagIcon class="w-7 h-7 md:w-8 md:h-8 mr-3 text-indigo-600 dark:text-indigo-400" />
+                                    <ShoppingBagIcon class="w-7 h-7 md:w-8 md:h-8 mr-3 text-red-600 dark:text-red-400" />
                                     Keranjang Anda
                                 </h1>
                             </div>
@@ -123,7 +123,7 @@ const checkout = () => {
                                 </div>
                                 <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Keranjang Kosong</h3>
                                 <p class="text-gray-500 dark:text-gray-400 mb-6">Anda belum menambahkan produk apapun ke keranjang.</p>
-                                <Link :href="route('siswa.store.index')" class="text-indigo-600 font-medium hover:text-indigo-800">
+                                <Link :href="route('siswa.store.index')" class="text-red-600 font-bold hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                                     Mulai Belanja &rarr;
                                 </Link>
                             </div>
@@ -146,7 +146,7 @@ const checkout = () => {
                                 </div>
                                 <div class="flex justify-between items-center pt-3">
                                     <span class="font-bold text-gray-900 dark:text-white text-base md:text-lg">Total Tagihan</span>
-                                    <span class="font-black text-indigo-600 dark:text-indigo-400 text-xl md:text-2xl">{{ formatRupiah(grandTotal) }}</span>
+                                    <span class="font-black text-red-600 dark:text-red-400 text-xl md:text-2xl">{{ formatRupiah(grandTotal) }}</span>
                                 </div>
                             </div>
                             
@@ -154,7 +154,7 @@ const checkout = () => {
                                 <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">
                                     Pesanan ini untuk siapa?
                                 </label>
-                                <select v-model="checkoutForm.siswa_id" class="w-full text-base border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl shadow-inner px-4 py-3 font-medium transition-colors">
+                                <select v-model="checkoutForm.siswa_id" class="w-full text-base border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-gray-300 focus:border-red-500 focus:ring-red-500 rounded-xl shadow-inner px-4 py-3 font-medium transition-colors">
                                     <option value="" disabled>-- Pilih Anak --</option>
                                     <option v-for="siswa in siswas" :key="siswa.id_siswa" :value="siswa.id_siswa">
                                         {{ siswa.nama_siswa }}
@@ -170,7 +170,7 @@ const checkout = () => {
                                 <button 
                                     @click="checkout"
                                     :disabled="items.length === 0 || checkoutForm.processing"
-                                    class="w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base md:text-lg font-bold text-white shadow-lg disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/50 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400"
+                                    class="w-full flex justify-center items-center py-4 px-6 rounded-2xl text-base md:text-lg font-bold text-white shadow-lg disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-500/50 bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400"
                                 >
                                     {{ checkoutForm.processing ? 'Memproses...' : 'Checkout & Bayar' }}
                                 </button>

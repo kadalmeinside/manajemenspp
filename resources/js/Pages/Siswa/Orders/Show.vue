@@ -66,17 +66,17 @@ const getStatusText = (status) => {
         <template #header>
             <div class="flex justify-between items-center w-full">
                 <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
-                    <DocumentTextIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-indigo-600 dark:text-indigo-400" />
+                    <DocumentTextIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-red-600 dark:text-red-400" />
                     Detail Pesanan
                 </h2>
             </div>
         </template>
 
-        <div class="py-8 md:py-12 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div class="py-4 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
                 
                 <div class="mb-6 md:mb-8">
-                    <Link :href="route('siswa.store.orders.index')" class="inline-flex items-center text-sm md:text-base font-bold text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors">
+                    <Link :href="route('siswa.store.orders.index')" class="inline-flex items-center text-sm md:text-base font-bold text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors">
                         <ArrowLeftIcon class="w-5 h-5 mr-2" />
                         Kembali ke Riwayat
                     </Link>
@@ -103,7 +103,7 @@ const getStatusText = (status) => {
                     <!-- Products List -->
                     <div class="p-6 md:p-10 border-b border-gray-100 dark:border-gray-700/60">
                         <h3 class="text-lg font-extrabold text-gray-900 dark:text-white mb-6 flex items-center">
-                            <ShoppingBagIcon class="w-5 h-5 mr-2 text-indigo-500" /> Daftar Produk
+                            <ShoppingBagIcon class="w-5 h-5 mr-2 text-red-500" /> Daftar Produk
                         </h3>
                         <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
                             <div v-for="item in order.items" :key="item.id" class="py-6 first:pt-0 last:pb-0 flex flex-row gap-4 sm:gap-6 hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors rounded-xl px-2 -mx-2">
@@ -132,7 +132,7 @@ const getStatusText = (status) => {
                         <!-- Summary -->
                         <div class="flex-grow order-2 md:order-1">
                             <h3 class="text-lg font-extrabold text-gray-900 dark:text-white mb-6 flex items-center">
-                                <CreditCardIcon class="w-5 h-5 mr-2 text-indigo-500" /> Rincian Pembayaran
+                                <CreditCardIcon class="w-5 h-5 mr-2 text-red-500" /> Rincian Pembayaran
                             </h3>
                             <div class="space-y-3 text-sm md:text-base">
                                 <div class="flex justify-between text-gray-600 dark:text-gray-400 font-medium">
@@ -145,7 +145,7 @@ const getStatusText = (status) => {
                                 </div>
                                 <div class="flex justify-between items-center pt-4 mt-2 border-t border-gray-200 dark:border-gray-700">
                                     <span class="font-bold text-gray-900 dark:text-white text-base md:text-lg">Total Belanja</span>
-                                    <span class="font-black text-indigo-600 dark:text-indigo-400 text-xl md:text-2xl">{{ formatRupiah(order.total_amount) }}</span>
+                                    <span class="font-black text-red-600 dark:text-red-400 text-xl md:text-2xl">{{ formatRupiah(order.total_amount) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -154,7 +154,7 @@ const getStatusText = (status) => {
                         <div class="w-full md:w-72 flex-shrink-0 order-1 md:order-2 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/60 flex flex-col justify-center h-full">
                             <template v-if="order.status === 'PENDING'">
                                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4 text-center">Segera selesaikan pembayaran Anda untuk memproses pesanan.</p>
-                                <a v-if="order.payment_url" :href="order.payment_url" target="_blank" class="w-full flex justify-center items-center py-3.5 px-6 rounded-2xl text-base font-bold text-white shadow-lg bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-500 hover:to-blue-400 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none text-center">
+                                <a v-if="order.payment_url" :href="order.payment_url" target="_blank" class="w-full flex justify-center items-center py-3.5 px-6 rounded-2xl text-base font-bold text-white shadow-lg bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:shadow-xl focus:outline-none text-center">
                                     Bayar Sekarang &rarr;
                                 </a>
                             </template>

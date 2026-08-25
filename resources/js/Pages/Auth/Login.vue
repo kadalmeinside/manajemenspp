@@ -45,12 +45,12 @@ const submit = () => {
     <GuestLayout>
         <Head title="Masuk Akun" />
 
-        <div class="w-full">
-             <div class="mb-6 lg:mb-8">
+        <div class="w-full flex flex-col justify-center min-h-[70vh] lg:min-h-0">
+             <div class="mb-8 lg:mb-10 text-center lg:text-left">
                 <h2 class="text-2xl lg:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
                     Selamat Datang!
                 </h2>
-                <p class="mt-1 lg:mt-2 text-sm text-gray-600 dark:text-gray-400 leading-tight">
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                     Silakan masukkan email dan kata sandi Anda untuk mengakses Portal Soccer School.
                 </p>
                 <p v-if="status" class="mt-4 rounded-xl bg-green-50 border border-green-200 p-4 text-sm font-medium text-green-800">
@@ -171,17 +171,22 @@ const submit = () => {
                 </div>
             </form>
 
-            <div class="mt-6 lg:mt-10 p-3 lg:p-5 bg-gray-100/50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-700/50 text-center flex flex-col sm:flex-row items-center justify-between">
-                <p class="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-0">
-                    Ada masalah Login? <span class="font-semibold text-gray-900 dark:text-white">CS: +62 811-386-846</span>
-                </p>
+            <div class="hidden mt-8 lg:mt-12 p-4 lg:p-6 bg-gray-50 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-700 text-center lg:text-left flex-col sm:flex-row items-center justify-between gap-4 transition-all">
+                <div>
+                    <p class="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
+                        Ada masalah Login?
+                    </p>
+                    <p class="text-sm lg:text-base font-bold text-gray-900 dark:text-white mt-0.5 tracking-wide">
+                        CS: +62 811-386-846
+                    </p>
+                </div>
                 <a href="https://wa.me/62811386846" 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    class="inline-flex items-center justify-center rounded-lg bg-green-500 px-3 lg:px-4 py-1.5 lg:py-2 text-white text-xs lg:text-sm font-bold shadow-sm transition-all hover:bg-green-400 hover:shadow-md focus:outline-none"
+                    class="inline-flex items-center justify-center rounded-xl bg-green-500 px-5 py-2.5 text-white text-sm font-bold shadow-md shadow-green-500/20 transition-all hover:bg-green-400 hover:shadow-lg focus:outline-none shrink-0"
                     aria-label="Chat di WhatsApp">
                     
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 lg:h-4 lg:w-4 mr-1.5" fill="currentColor" viewBox="0 0 16 16">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                     </svg>
                     Chat WhatsApp

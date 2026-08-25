@@ -43,7 +43,7 @@ const goToProfil = (id_siswa) => {
         <template #header>
             <div class="flex justify-between items-center w-full">
                 <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
-                    <UserGroupIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-indigo-600 dark:text-indigo-400" />
+                    <UserGroupIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-red-600 dark:text-red-400" />
                     {{ pageTitle }}
                 </h2>
             </div>
@@ -82,7 +82,7 @@ const goToProfil = (id_siswa) => {
                     </div>
 
                     <!-- Welcome / Info Section (Optional: only if no grand total warning) -->
-                    <div v-else-if="familySummary && familySummary.length > 0" class="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-blue-500 rounded-2xl shadow-lg p-5 md:p-8 text-white transition-transform transform hover:-translate-y-1 hover:shadow-xl duration-300">
+                    <div v-else-if="familySummary && familySummary.length > 0" class="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-green-500 rounded-2xl shadow-lg p-5 md:p-8 text-white transition-transform transform hover:-translate-y-1 hover:shadow-xl duration-300">
                          <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 md:w-32 md:h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
                          <div class="relative flex items-center z-10">
                              <div class="bg-white/20 p-3 md:p-4 rounded-full mr-4 md:mr-6 backdrop-blur-sm shrink-0">
@@ -90,7 +90,7 @@ const goToProfil = (id_siswa) => {
                              </div>
                              <div>
                                  <h3 class="text-base md:text-2xl font-extrabold tracking-tight">Semua Tagihan Lunas</h3>
-                                 <p class="text-indigo-100 mt-1 md:mt-2 text-xs md:text-lg leading-relaxed">Terima kasih atas pembayaran yang tepat waktu untuk seluruh tagihan administrasi.</p>
+                                 <p class="text-emerald-100 mt-1 md:mt-2 text-xs md:text-lg leading-relaxed">Terima kasih atas pembayaran yang tepat waktu untuk seluruh tagihan administrasi.</p>
                              </div>
                          </div>
                     </div>
@@ -101,8 +101,8 @@ const goToProfil = (id_siswa) => {
                             <!-- Header Anak -->
                             <div class="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-750 p-5 md:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start">
                                 <div class="flex items-center space-x-3 md:space-x-4">
-                                    <div class="h-12 w-12 md:h-16 md:w-16 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center border-2 border-indigo-200 dark:border-indigo-700 shadow-sm shrink-0">
-                                        <span class="text-xl md:text-2xl font-bold text-indigo-700 dark:text-indigo-300">{{ siswa.nama_siswa.charAt(0).toUpperCase() }}</span>
+                                    <div class="h-12 w-12 md:h-16 md:w-16 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center border-2 border-red-200 dark:border-red-700 shadow-sm shrink-0">
+                                        <span class="text-xl md:text-2xl font-bold text-red-700 dark:text-red-300">{{ siswa.nama_siswa.charAt(0).toUpperCase() }}</span>
                                     </div>
                                     <div>
                                         <h3 class="text-lg md:text-xl font-extrabold text-gray-900 dark:text-white">{{ siswa.nama_siswa }}</h3>
@@ -112,7 +112,7 @@ const goToProfil = (id_siswa) => {
                                         </div>
                                     </div>
                                 </div>
-                                <button @click="goToProfil(siswa.id_siswa)" class="p-1.5 md:p-2 rounded-full text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors" title="Lihat Profil">
+                                <button @click="goToProfil(siswa.id_siswa)" class="p-1.5 md:p-2 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Lihat Profil">
                                     <ArrowRightIcon class="h-4 w-4 md:h-5 md:w-5" />
                                 </button>
                             </div>
@@ -170,7 +170,7 @@ const goToProfil = (id_siswa) => {
                                             </p>
                                         </div>
                                         <div class="text-right ml-2">
-                                            <button @click="goToTagihan(siswa.id_siswa)" class="inline-flex items-center justify-center px-4 py-2.5 md:px-6 md:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold text-xs md:text-sm shadow-md hover:bg-indigo-600 dark:hover:bg-indigo-50 hover:text-white dark:hover:text-indigo-900 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 transform group-hover:scale-105">
+                                            <button @click="goToTagihan(siswa.id_siswa)" class="inline-flex items-center justify-center px-4 py-2.5 md:px-6 md:py-3 bg-red-600 dark:bg-red-500 text-white rounded-xl font-bold text-xs md:text-sm shadow-md hover:bg-red-700 dark:hover:bg-red-400 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 transform group-hover:scale-105">
                                                 Tagihan
                                             </button>
                                         </div>

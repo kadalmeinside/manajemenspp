@@ -138,7 +138,7 @@ const submitPayment = () => {
 };
 
 const getStatusClass = (status) => ({
-    'PENDING': 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800',
+    'PENDING': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
     'PROJECTED': 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700',
 }[status] || 'bg-gray-100 text-gray-800 border-gray-200');
 
@@ -161,13 +161,13 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
         <template #header>
             <div class="flex justify-between items-center w-full">
                 <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
-                    <DocumentTextIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-indigo-600 dark:text-indigo-400" />
+                    <DocumentTextIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-red-600 dark:text-red-400" />
                     {{ pageTitle }}
                 </h2>
             </div>
         </template>
 
-        <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div class="py-4 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div v-if="errors.error" class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 dark:text-red-300 dark:bg-red-900/30 rounded-lg shadow-sm">
                     {{ errors.error }}
@@ -175,20 +175,20 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
                 
                 <!-- Ringkasan Tagihan Card -->
                 <div v-if="summarySppPendingCount > 0" class="mb-10 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <div class="bg-gradient-to-r from-indigo-900 to-indigo-800 p-6 sm:px-10 sm:py-8 text-white relative overflow-hidden">
+                    <div class="bg-gradient-to-r from-red-900 to-red-800 p-6 sm:px-10 sm:py-8 text-white relative overflow-hidden">
                         <!-- Decorative circles -->
                         <div class="absolute -top-16 -right-16 w-64 h-64 bg-white opacity-5 rounded-full blur-2xl"></div>
-                        <div class="absolute -bottom-20 -left-10 w-48 h-48 bg-indigo-500 opacity-20 rounded-full blur-2xl"></div>
+                        <div class="absolute -bottom-20 -left-10 w-48 h-48 bg-rose-500 opacity-20 rounded-full blur-2xl"></div>
                         
                         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div>
-                                <h3 class="text-indigo-200 font-bold tracking-wider uppercase text-sm mb-1">Total Kewajiban Pembayaran</h3>
+                                <h3 class="text-red-200 font-bold tracking-wider uppercase text-sm mb-1">Total Kewajiban Pembayaran</h3>
                                 <p class="text-4xl sm:text-5xl font-black">{{ formatCurrency(grandTotalPendingAmount) }}</p>
                             </div>
                             
                             <div class="flex gap-4 sm:gap-6 bg-white/10 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
                                 <div>
-                                    <p class="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1 flex items-center"><DocumentTextIcon class="w-3 h-3 mr-1"/> Belum Dibayar ({{ summarySppPendingCount }} Bulan)</p>
+                                    <p class="text-red-200 text-xs font-bold uppercase tracking-wider mb-1 flex items-center"><DocumentTextIcon class="w-3 h-3 mr-1"/> Belum Dibayar ({{ summarySppPendingCount }} Bulan)</p>
                                     <p class="text-xl font-bold">{{ formatCurrency(summarySppPendingAmount) }}</p>
                                 </div>
                             </div>
@@ -196,11 +196,11 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
                     </div>
                 </div>
 
-                <div class="bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-500 p-5 mb-10 rounded-r-xl shadow-sm flex items-start">
-                    <InformationCircleIcon class="h-6 w-6 text-indigo-500 mr-3 mt-0.5 flex-shrink-0" />
+                <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-8 rounded-r-xl shadow-sm flex items-start">
+                    <InformationCircleIcon class="h-5 w-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
                     <div>
-                        <h4 class="font-bold text-indigo-900 dark:text-indigo-300 text-lg">Informasi Pembayaran</h4>
-                        <p class="text-sm text-indigo-700 dark:text-indigo-400 mt-1">
+                        <h4 class="font-bold text-red-900 dark:text-red-300 text-sm">Informasi Pembayaran</h4>
+                        <p class="text-sm text-red-700 dark:text-red-400 mt-0.5">
                             Pilih tagihan SPP yang ingin dibayar. Pembayaran bulan berikutnya hanya bisa dipilih jika bulan sebelumnya sudah dipilih.
                         </p>
                     </div>
@@ -208,7 +208,7 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
 
                 <!-- Bagian Header SPP -->
                 <div class="flex items-center mb-6">
-                    <div class="bg-gradient-to-br from-indigo-500 to-blue-500 p-2 rounded-xl shadow-lg shadow-indigo-500/30 mr-4">
+                    <div class="bg-gradient-to-br from-red-500 to-rose-500 p-2 rounded-xl shadow-lg shadow-red-500/30 mr-4">
                         <DocumentTextIcon class="h-6 w-6 text-white" />
                     </div>
                     <h3 class="font-extrabold text-2xl text-gray-900 dark:text-white">
@@ -295,15 +295,15 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
                                 <button @click="selectedPeriods = []" class="p-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-500 rounded-full transition-colors flex-shrink-0" title="Batal Pilih">
                                     <XMarkIcon class="h-6 w-6" />
                                 </button>
-                                <div class="h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                                    <CurrencyDollarIcon class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                                <div class="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                                    <CurrencyDollarIcon class="h-6 w-6 text-red-600 dark:text-red-400" />
                                 </div>
                                 <div class="flex-1">
                                     <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ selectedPeriods.length }} bulan terpilih</h4>
                                     <p class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{{ totalSelectedAmountFormatted }}</p>
                                 </div>
                             </div>
-                            <button @click="submitPayment" :disabled="paymentForm.processing" class="w-full sm:w-auto inline-flex justify-center items-center px-8 py-4 bg-indigo-600 text-white rounded-xl font-extrabold text-sm shadow-xl shadow-indigo-600/30 hover:bg-indigo-500 focus:outline-none transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button @click="submitPayment" :disabled="paymentForm.processing" class="w-full sm:w-auto inline-flex justify-center items-center px-8 py-4 bg-red-600 text-white rounded-xl font-extrabold text-sm shadow-xl shadow-red-600/30 hover:bg-red-500 focus:outline-none transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <CreditCardIcon class="h-5 w-5 mr-2"/>
                                 {{ paymentForm.processing ? 'Memproses...' : 'Lanjut Pembayaran' }}
                             </button>

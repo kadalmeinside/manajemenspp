@@ -37,7 +37,7 @@ import GlobalLoader from '@/Components/GlobalLoader.vue';
         </div>
 
         <!-- Bottom Sheet on Mobile / Right Side on Desktop: Auth Form Container -->
-        <div class="w-full lg:w-1/2 flex-grow flex flex-col justify-center bg-white dark:bg-gray-900 relative z-20 rounded-t-[2.5rem] lg:rounded-none -mt-10 lg:mt-0 pb-8 pt-6 lg:pt-0 lg:px-24 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] lg:shadow-none">
+        <div class="w-full lg:w-1/2 flex-grow flex flex-col justify-center items-center bg-white dark:bg-gray-900 relative z-20 rounded-t-[2.5rem] lg:rounded-none -mt-10 lg:mt-0 py-8 lg:py-0 lg:px-24 shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.3)] lg:shadow-none">
             
             <div class="relative z-10 w-full max-w-md mx-auto px-6 sm:px-12 lg:px-0">
                 <!-- Mobile drag indicator pill -->

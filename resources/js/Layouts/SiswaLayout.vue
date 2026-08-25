@@ -126,11 +126,11 @@ const submitAgreement = () => {
                 
                 <template v-for="(item, index) in siswaMenu" :key="'menu-' + index">
                     <Link v-if="item.type === 'link'" :href="route(item.route)"
-                          :class="['flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 group relative', isLinkActive(item.current) ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white']">
+                          :class="['flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 group relative', isLinkActive(item.current) ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white']">
                         
-                        <div v-if="isLinkActive(item.current)" class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-indigo-600 dark:bg-indigo-400 rounded-r-full"></div>
+                        <div v-if="isLinkActive(item.current)" class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-red-600 dark:bg-red-400 rounded-r-full"></div>
                         
-                        <div :class="['p-2 rounded-xl mr-3 shadow-sm transition-all duration-200', isLinkActive(item.current) ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-600 group-hover:text-indigo-600 dark:group-hover:text-indigo-300']">
+                        <div :class="['p-2 rounded-xl mr-3 shadow-sm transition-all duration-200', isLinkActive(item.current) ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-600 group-hover:text-red-600 dark:group-hover:text-red-300']">
                             <component :is="isLinkActive(item.current) && item.activeIcon ? item.activeIcon : item.icon" class="h-5 w-5" />
                         </div>
                         {{ item.name }}
@@ -165,7 +165,7 @@ const submitAgreement = () => {
                             <!-- Cart Icon -->
                             <Link :href="route('siswa.store.cart')" class="relative p-2.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none transition-colors group">
                                 <span class="sr-only">Keranjang Belanja</span>
-                                <ShoppingBagIcon class="h-6 w-6 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
+                                <ShoppingBagIcon class="h-6 w-6 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
                                 <span v-if="$page.props.cart_count > 0" class="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-900 shadow-sm transform group-hover:scale-110 transition-transform">
                                     {{ $page.props.cart_count }}
                                 </span>
@@ -174,7 +174,7 @@ const submitAgreement = () => {
                             <!-- Notification Icon -->
                             <button class="relative p-2.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none transition-colors group">
                                 <span class="sr-only">Notifikasi</span>
-                                <BellIcon class="h-6 w-6 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
+                                <BellIcon class="h-6 w-6 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
                             </button>
 
                             <div class="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
@@ -184,7 +184,7 @@ const submitAgreement = () => {
                                 <template #trigger>
                                     <button class="flex items-center text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200">
                                         <span class="mr-2 text-gray-400">Anak:</span>
-                                        <span class="text-indigo-600 dark:text-indigo-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                        <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
                                         <ChevronDownIcon class="ml-2 h-4 w-4 text-gray-400" />
                                     </button>
                                 </template>
@@ -195,8 +195,8 @@ const submitAgreement = () => {
                                     <div class="p-1">
                                         <DropdownLink v-for="siswa in userSiswas" :key="siswa.id_siswa" as="button" @click="switchSiswa(siswa.id_siswa)" class="rounded-lg">
                                             <div class="flex items-center justify-between w-full">
-                                                <span :class="{'font-bold text-indigo-600 dark:text-indigo-400': activeSiswaId === siswa.id_siswa}">{{ siswa.nama_siswa }}</span>
-                                                <svg v-if="activeSiswaId === siswa.id_siswa" class="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                                <span :class="{'font-bold text-red-600 dark:text-red-400': activeSiswaId === siswa.id_siswa}">{{ siswa.nama_siswa }}</span>
+                                                <svg v-if="activeSiswaId === siswa.id_siswa" class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
                                             </div>
                                         </DropdownLink>
                                     </div>
@@ -206,8 +206,8 @@ const submitAgreement = () => {
                             <!-- User Profile -->
                             <Dropdown align="right" width="48">
                                 <template #trigger>
-                                    <button class="flex items-center p-1 border-2 border-transparent rounded-full focus:outline-none focus:border-indigo-300 transition duration-150 ease-in-out hover:ring-2 hover:ring-indigo-100 dark:hover:ring-indigo-900/50">
-                                        <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md">
+                                    <button class="flex items-center p-1 border-2 border-transparent rounded-full focus:outline-none focus:border-red-300 transition duration-150 ease-in-out hover:ring-2 hover:ring-red-100 dark:hover:ring-red-900/50">
+                                        <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-md">
                                             <span class="text-sm font-bold leading-none">{{ userInitial }}</span>
                                         </span>
                                     </button>
@@ -219,7 +219,7 @@ const submitAgreement = () => {
                                     </div>
                                     <div class="p-1 space-y-1">
                                         <DropdownLink :href="route('siswa.profil.show')" class="rounded-lg flex items-center">
-                                            <UserCircleIcon class="mr-3 h-5 w-5 text-gray-400 group-hover:text-indigo-500" />
+                                            <UserCircleIcon class="mr-3 h-5 w-5 text-gray-400 group-hover:text-red-500" />
                                             Pengaturan Profil
                                         </DropdownLink>
                                         <div class="border-t border-gray-100 dark:border-gray-700/50 my-1"></div>
@@ -372,7 +372,7 @@ const submitAgreement = () => {
                         <button type="submit" 
                                 :disabled="agreementForm.processing || !agreementForm.terms_accepted"
                                 :class="{'opacity-50 cursor-not-allowed': agreementForm.processing || !agreementForm.terms_accepted}"
-                                class="inline-flex items-center px-6 py-3 bg-indigo-600 border border-transparent rounded-xl font-bold text-sm text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-md">
+                                class="inline-flex items-center px-6 py-3 bg-red-600 border border-transparent rounded-xl font-bold text-sm text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 shadow-md">
                             Saya Setuju & Lanjutkan
                         </button>
                     </div>

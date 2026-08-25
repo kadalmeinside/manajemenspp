@@ -90,13 +90,13 @@ const isVariantDisabled = (product, variant) => {
         <template #header>
             <div class="flex justify-between items-center w-full">
                 <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
-                    <ShoppingBagIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-indigo-600 dark:text-indigo-400" />
+                    <ShoppingBagIcon class="h-6 w-6 md:h-8 md:w-8 mr-2 md:mr-3 text-red-600 dark:text-red-400" />
                     Toko Merchandise
                 </h2>
             </div>
         </template>
 
-        <div class="py-8 md:py-12 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div class="py-4 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
                 
                 <!-- Success Toast -->
@@ -120,12 +120,12 @@ const isVariantDisabled = (product, variant) => {
                 </transition>
                 
                 <!-- Search Bar -->
-                <div class="mb-10 relative max-w-2xl mx-auto">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <MagnifyingGlassIcon class="h-6 w-6 text-gray-400" />
+                <div class="mb-6 relative max-w-2xl mx-auto">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" />
                     </div>
                     <input type="text" v-model="search" placeholder="Cari seragam, buku, alat tulis..." 
-                        class="block w-full pl-12 pr-4 py-4 border border-gray-200 dark:border-gray-700 rounded-2xl leading-5 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-lg shadow-sm hover:shadow-md transition duration-300 ease-in-out">
+                        class="block w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-2xl leading-5 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-base shadow-sm hover:shadow-md transition duration-300 ease-in-out">
                 </div>
 
                 <!-- Product Grid -->
@@ -147,8 +147,8 @@ const isVariantDisabled = (product, variant) => {
                         
                         <!-- Product Details -->
                         <div class="p-4 md:p-5 flex-grow flex flex-col">
-                            <span class="text-[10px] md:text-xs font-bold text-indigo-500 dark:text-indigo-400 mb-1 uppercase tracking-widest">{{ product.category }}</span>
-                            <h3 class="text-sm md:text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ product.name }}</h3>
+                            <span class="text-[10px] md:text-xs font-bold text-red-500 dark:text-red-400 mb-1 uppercase tracking-widest">{{ product.category }}</span>
+                            <h3 class="text-sm md:text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 leading-snug group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{{ product.name }}</h3>
                             
                             <div class="mt-auto pt-3 flex items-end justify-between border-t border-gray-100 dark:border-gray-700/50">
                                 <div>
@@ -157,7 +157,7 @@ const isVariantDisabled = (product, variant) => {
                                 </div>
                                 <button 
                                     @click.prevent="handleAddToCartClick(product)"
-                                    class="p-2 md:p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 transition-all shadow-sm transform hover:scale-110 active:scale-95"
+                                    class="p-2 md:p-2.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-500 transition-all shadow-sm transform hover:scale-110 active:scale-95"
                                     title="Tambah ke Keranjang"
                                 >
                                     <ShoppingCartIcon class="w-5 h-5" />
@@ -179,7 +179,7 @@ const isVariantDisabled = (product, variant) => {
                     <div class="flex flex-wrap gap-1">
                         <template v-for="(link, key) in products.links" :key="key">
                             <div v-if="link.url === null" class="px-4 py-2 text-sm text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md cursor-not-allowed" v-html="link.label" />
-                            <Link v-else :href="link.url" class="px-4 py-2 text-sm border rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" :class="{ 'bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-300 dark:border-indigo-700': link.active, 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700': !link.active }" v-html="link.label" />
+                            <Link v-else :href="link.url" class="px-4 py-2 text-sm border rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" :class="{ 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700': link.active, 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700': !link.active }" v-html="link.label" />
                         </template>
                     </div>
                 </div>
@@ -201,7 +201,7 @@ const isVariantDisabled = (product, variant) => {
                         <img v-if="selectedProduct.image_path" :src="'/storage/' + selectedProduct.image_path" class="w-16 h-16 rounded-xl object-contain bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700" />
                         <div>
                             <p class="font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">{{ selectedProduct.name }}</p>
-                            <p class="text-sm text-indigo-600 dark:text-indigo-400 font-bold mt-1">{{ formatRupiah(selectedVariant ? selectedVariant.price : getLowestPrice(selectedProduct.variants)) }}</p>
+                            <p class="text-sm text-red-600 dark:text-red-400 font-bold mt-1">{{ formatRupiah(selectedVariant ? selectedVariant.price : getLowestPrice(selectedProduct.variants)) }}</p>
                         </div>
                     </div>
                     
@@ -213,7 +213,7 @@ const isVariantDisabled = (product, variant) => {
                             :class="[
                                 'px-3 py-2.5 rounded-xl border-2 text-sm font-bold transition-all duration-200 ease-in-out',
                                 selectedVariant?.id === variant.id 
-                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-md transform scale-[1.02]' 
+                                    ? 'bg-red-600 border-red-600 text-white shadow-md transform scale-[1.02]' 
                                     : 'bg-white border-gray-200 text-gray-700 hover:border-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:border-white',
                                 isVariantDisabled(selectedProduct, variant) ? 'opacity-40 cursor-not-allowed' : ''
                             ]"
