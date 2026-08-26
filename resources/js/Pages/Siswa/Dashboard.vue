@@ -46,9 +46,9 @@ const goToProfil = (id_siswa) => {
     <SiswaLayout>
         <template #header>
             <div class="flex justify-between items-center w-full">
-                <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight flex items-center">
-                    <UserGroupIcon class="h-6 w-6 md:h-8 md:w-8 mr-0 md:mr-3 text-red-600 dark:text-red-400" />
-                    <span class="hidden md:inline ml-2 md:ml-0">Dashboard</span>
+                <h2 class="font-extrabold text-xl md:text-2xl text-gray-800 dark:text-gray-100 leading-tight hidden md:flex items-center">
+                    <UserGroupIcon class="h-6 w-6 md:h-8 md:w-8 mr-3 text-red-600 dark:text-red-400" />
+                    <span>Dashboard</span>
                 </h2>
             </div>
         </template>
