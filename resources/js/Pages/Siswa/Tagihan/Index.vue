@@ -211,7 +211,7 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
                     <div class="bg-gradient-to-br from-red-500 to-rose-500 p-2 rounded-xl shadow-lg shadow-red-500/30 mr-4">
                         <DocumentTextIcon class="h-6 w-6 text-white" />
                     </div>
-                    <h3 class="font-extrabold text-2xl text-gray-900 dark:text-white">
+                    <h3 class="font-extrabold text-xl md:text-2xl text-gray-900 dark:text-white">
                         Tagihan Bulanan (SPP)
                     </h3>
                 </div>
