@@ -53,7 +53,8 @@ const goToProfil = (id_siswa) => {
             </div>
         </template>
 
-        <div class="py-4 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <!-- Tambahkan -mt-16 khusus mobile untuk menarik konten ke atas (mengisi ruang judul yang disembunyikan) -->
+        <div class="pb-4 pt-2 md:py-8 bg-gray-50 dark:bg-gray-900 min-h-screen -mt-16 md:mt-0 relative z-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <div v-if="errorMessage" class="mb-6 md:mb-8 p-4 md:p-5 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-300 rounded-lg shadow-sm" role="alert">
