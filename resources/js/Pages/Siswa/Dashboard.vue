@@ -1,7 +1,7 @@
 <script setup>
 import SiswaLayout from '@/Layouts/SiswaLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { BanknotesIcon, ClockIcon, CreditCardIcon, CheckBadgeIcon, ExclamationTriangleIcon, UserGroupIcon, ArrowRightIcon } from '@heroicons/vue/24/outline';
+import { BanknotesIcon, ClockIcon, CreditCardIcon, CheckBadgeIcon, ExclamationTriangleIcon, UserGroupIcon, ArrowRightIcon, ShoppingBagIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 
 const props = defineProps({
@@ -107,7 +107,7 @@ const goToProfil = (id_siswa) => {
                             <!-- Left: Promo Text -->
                             <div class="w-full md:w-1/3 mb-2 md:mb-0">
                                 <span class="inline-block px-3 py-1 bg-red-600 text-white text-[10px] md:text-xs font-bold rounded-full mb-3 uppercase tracking-wider shadow-sm">Store</span>
-                                <h3 class="text-xl md:text-3xl font-extrabold text-white mb-2 md:mb-3 tracking-tight leading-tight">Perlengkapan Resmi & Jersey Baru 🌟</h3>
+                                <h3 class="text-xl md:text-3xl font-extrabold text-white mb-2 md:mb-3 tracking-tight leading-tight">Perlengkapan Resmi & Jersey Baru</h3>
                                 <p class="text-gray-400 text-xs md:text-sm mb-5 leading-relaxed">Cek koleksi perlengkapan terbaru untuk putra Anda. Dapatkan penawaran spesial khusus pemesanan via aplikasi.</p>
                                 <Link :href="route('siswa.store.index')" class="inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all transform hover:-translate-y-0.5">
                                     Kunjungi Toko
@@ -123,8 +123,9 @@ const goToProfil = (id_siswa) => {
                                     :href="route('siswa.store.show', product.slug)"
                                     class="snap-start shrink-0 w-36 md:w-44 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 hover:bg-white/20 transition-all duration-300 overflow-hidden group"
                                 >
-                                    <div class="h-32 md:h-40 w-full overflow-hidden bg-gray-800 flex items-center justify-center">
-                                        <img :src="product.image_url" :alt="product.name" class="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                                    <div class="h-32 md:h-40 w-full overflow-hidden bg-gray-800 flex items-center justify-center relative">
+                                        <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                                        <ShoppingBagIcon v-else class="w-12 h-12 text-gray-500 transform group-hover:scale-110 transition-transform duration-500" />
                                     </div>
                                     <div class="p-3 md:p-4">
                                         <h4 class="text-white font-bold text-xs md:text-sm truncate mb-1">{{ product.name }}</h4>

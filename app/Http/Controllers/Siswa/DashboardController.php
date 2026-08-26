@@ -112,7 +112,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'image_url' => $product->image_path ? '/storage/' . $product->image_path : '/images/placeholder.png',
+                    'image_url' => $product->image_path ? '/storage/' . $product->image_path : null,
                     'price_formatted' => 'Rp ' . number_format($lowestPrice, 0, ',', '.'),
                     'slug' => $product->slug,
                 ];
