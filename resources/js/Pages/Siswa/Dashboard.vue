@@ -7,6 +7,10 @@ import { ref } from 'vue';
 const props = defineProps({
     pageTitle: String,
     familySummary: Array,
+    featuredProducts: {
+        type: Array,
+        default: () => []
+    },
     grandTotal: Object,
     errorMessage: String,
 });
@@ -95,21 +99,44 @@ const goToProfil = (id_siswa) => {
                          </div>
                     </div>
 
-                    <!-- Store Promo Banner -->
-                    <div class="relative overflow-hidden rounded-3xl shadow-lg mt-6 md:mt-8 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700">
-                        <!-- Decorative graphic -->
-                        <div class="absolute right-0 top-0 bottom-0 w-1/2 md:w-1/3 bg-gradient-to-l from-red-600/40 to-transparent"></div>
+                    <!-- Store Promo Banner & Featured Products -->
+                    <div class="relative overflow-hidden rounded-3xl shadow-lg mt-6 md:mt-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-gray-700">
+                        <div class="absolute right-0 top-0 bottom-0 w-1/2 md:w-1/3 bg-gradient-to-l from-red-600/30 to-transparent pointer-events-none"></div>
                         
-                        <div class="relative p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between z-10">
-                            <div class="mb-5 md:mb-0">
+                        <div class="relative p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center justify-between z-10">
+                            <!-- Left: Promo Text -->
+                            <div class="w-full md:w-1/3 mb-2 md:mb-0">
                                 <span class="inline-block px-3 py-1 bg-red-600 text-white text-[10px] md:text-xs font-bold rounded-full mb-3 uppercase tracking-wider shadow-sm">Store</span>
-                                <h3 class="text-lg md:text-2xl font-extrabold text-white mb-1.5 md:mb-2 tracking-tight">Promo Menarik Bulan Ini! 🌟</h3>
-                                <p class="text-gray-400 text-xs md:text-sm max-w-md leading-relaxed">Cek koleksi perlengkapan terbaru untuk putra Anda. Dapatkan penawaran spesial khusus pemesanan via aplikasi.</p>
+                                <h3 class="text-xl md:text-3xl font-extrabold text-white mb-2 md:mb-3 tracking-tight leading-tight">Perlengkapan Resmi & Jersey Baru 🌟</h3>
+                                <p class="text-gray-400 text-xs md:text-sm mb-5 leading-relaxed">Cek koleksi perlengkapan terbaru untuk putra Anda. Dapatkan penawaran spesial khusus pemesanan via aplikasi.</p>
+                                <Link :href="route('siswa.store.index')" class="inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all transform hover:-translate-y-0.5">
+                                    Kunjungi Toko
+                                    <ArrowRightIcon class="h-4 w-4 ml-2" />
+                                </Link>
                             </div>
-                            <Link :href="route('siswa.store.index')" class="w-full md:w-auto inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all transform hover:scale-105 shrink-0">
-                                Kunjungi Toko
-                                <ArrowRightIcon class="h-4 w-4 ml-2" />
-                            </Link>
+
+                            <!-- Right: Product Highlights (Grid/Slider) -->
+                            <div class="w-full md:w-2/3 flex overflow-x-auto pb-4 md:pb-0 gap-4 snap-x hide-scrollbar">
+                                <Link 
+                                    v-for="product in featuredProducts" 
+                                    :key="product.id"
+                                    :href="route('siswa.store.show', product.slug)"
+                                    class="snap-start shrink-0 w-36 md:w-44 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 hover:bg-white/20 transition-all duration-300 overflow-hidden group"
+                                >
+                                    <div class="h-32 md:h-40 w-full overflow-hidden bg-gray-800 flex items-center justify-center">
+                                        <img :src="product.image_url" :alt="product.name" class="h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                                    </div>
+                                    <div class="p-3 md:p-4">
+                                        <h4 class="text-white font-bold text-xs md:text-sm truncate mb-1">{{ product.name }}</h4>
+                                        <p class="text-red-400 font-extrabold text-[11px] md:text-xs">{{ product.price_formatted }}</p>
+                                    </div>
+                                </Link>
+                                
+                                <!-- Empty State for Products if none exist -->
+                                <div v-if="featuredProducts.length === 0" class="flex-1 min-h-[160px] flex items-center justify-center border border-dashed border-gray-600 rounded-2xl">
+                                    <p class="text-gray-500 text-sm italic">Produk sedang diperbarui...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

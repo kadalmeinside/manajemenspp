@@ -99,6 +99,25 @@ class DashboardController extends Controller
             ];
         });
 
+        // Ambil 4 produk terbaru untuk ditampilkan di Banner Store Dashboard
+        $featuredProducts = \App\Models\Product::where('is_active', true)
+            ->with(['variants' => function ($q) {
+                $q->orderBy('price', 'asc');
+            }])
+            ->latest()
+            ->take(4)
+            ->get()
+            ->map(function ($product) {
+                $lowestPrice = $product->variants->first() ? $product->variants->first()->price : 0;
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'image_url' => $product->image_path ? '/storage/' . $product->image_path : '/images/placeholder.png',
+                    'price_formatted' => 'Rp ' . number_format($lowestPrice, 0, ',', '.'),
+                    'slug' => $product->slug,
+                ];
+            });
+
         // Hitung total gabungan (semua anak)
         $grandTotalOverdue = $familySummary->sum(fn($s) => $s['overdueTotal']['amount']);
         $grandTotalCount = $familySummary->sum(fn($s) => $s['overdueTotal']['count']);
@@ -106,10 +125,13 @@ class DashboardController extends Controller
         return Inertia::render('Siswa/Dashboard', [
             'pageTitle' => 'Dashboard Keluarga',
             'familySummary' => $familySummary,
+            'featuredProducts' => $featuredProducts,
             'grandTotal' => [
+                'amount' => $grandTotalOverdue,
                 'formatted' => 'Rp ' . number_format($grandTotalOverdue, 0, ',', '.'),
                 'count' => $grandTotalCount
             ],
+            'errorMessage' => null
         ]);
     }
 }
