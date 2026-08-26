@@ -296,7 +296,7 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
                                     <XMarkIcon class="h-6 w-6" />
                                 </button>
                                 <div class="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                                    <CurrencyDollarIcon class="h-6 w-6 text-red-600 dark:text-red-400" />
+                                    <span class="text-red-600 dark:text-red-400 font-black text-lg tracking-tighter">Rp</span>
                                 </div>
                                 <div class="flex-1">
                                     <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ selectedPeriods.length }} bulan terpilih</h4>
