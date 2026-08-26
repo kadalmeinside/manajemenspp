@@ -58,9 +58,9 @@ class DashboardController extends Controller
                 ->whereIn('status', ['PENDING', 'EXPIRED'])
                 ->where('periode_tagihan', '<=', now()->endOfMonth());
             
-            // Gabungkan total SPP + Toko
-            $combinedOverdueTotalAmount = $overdueTotalAmount + $pendingStoreTotalAmount;
-            $combinedOverdueCount = $overdueInvoices->count() + $pendingStoreOrders->count();
+            // Jangan gabungkan total SPP + Toko. SPP terisolasi di overdueTotal
+            $combinedOverdueTotalAmount = $overdueTotalAmount;
+            $combinedOverdueCount = $overdueInvoices->count();
 
             return [
                 'id_siswa' => $siswa->id_siswa,

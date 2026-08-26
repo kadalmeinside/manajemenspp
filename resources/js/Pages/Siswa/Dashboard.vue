@@ -102,9 +102,9 @@ const goToProfil = (id_siswa) => {
                         
                         <div class="relative p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between z-10">
                             <div class="mb-5 md:mb-0">
-                                <span class="inline-block px-3 py-1 bg-red-600 text-white text-[10px] md:text-xs font-bold rounded-full mb-3 uppercase tracking-wider shadow-sm">Persija Store</span>
-                                <h3 class="text-lg md:text-2xl font-extrabold text-white mb-1.5 md:mb-2 tracking-tight">Perlengkapan Resmi & Jersey Baru</h3>
-                                <p class="text-gray-400 text-xs md:text-sm max-w-md leading-relaxed">Dukung latihan putra Anda dengan perlengkapan original. Belanja lebih mudah, ambil langsung di akademi.</p>
+                                <span class="inline-block px-3 py-1 bg-red-600 text-white text-[10px] md:text-xs font-bold rounded-full mb-3 uppercase tracking-wider shadow-sm">Store</span>
+                                <h3 class="text-lg md:text-2xl font-extrabold text-white mb-1.5 md:mb-2 tracking-tight">Promo Menarik Bulan Ini! 🌟</h3>
+                                <p class="text-gray-400 text-xs md:text-sm max-w-md leading-relaxed">Cek koleksi perlengkapan terbaru untuk putra Anda. Dapatkan penawaran spesial khusus pemesanan via aplikasi.</p>
                             </div>
                             <Link :href="route('siswa.store.index')" class="w-full md:w-auto inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-600/30 hover:bg-red-500 transition-all transform hover:scale-105 shrink-0">
                                 Kunjungi Toko
@@ -136,13 +136,13 @@ const goToProfil = (id_siswa) => {
                             </div>
 
                             <!-- Body Tagihan -->
-                            <div class="p-5 md:p-6 flex-grow flex flex-col space-y-5 md:space-y-6">
-                                <!-- Tunggakan -->
+                            <div class="p-5 md:p-6 flex-grow flex flex-col space-y-4 md:space-y-5">
+                                <!-- Tunggakan SPP -->
                                 <div v-if="siswa.overdueTotal.count > 0" class="bg-red-50 dark:bg-red-900/10 rounded-2xl p-4 md:p-5 border border-red-100 dark:border-red-900/30">
                                     <div class="flex justify-between items-center mb-3 md:mb-4">
                                         <div class="flex items-center text-red-700 dark:text-red-400 font-bold text-sm md:text-base">
                                             <ExclamationTriangleIcon class="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
-                                            Tagihan Tertunda ({{ siswa.overdueTotal.count }})
+                                            Tunggakan SPP ({{ siswa.overdueTotal.count }})
                                         </div>
                                         <span class="text-red-700 dark:text-red-400 font-extrabold text-base md:text-lg">{{ siswa.overdueTotal.formatted }}</span>
                                     </div>
@@ -155,19 +155,30 @@ const goToProfil = (id_siswa) => {
                                             </div>
                                             <span class="text-xs md:text-sm font-bold text-red-600 dark:text-red-400 ml-2 whitespace-nowrap">{{ inv.total_amount_formatted }}</span>
                                         </li>
-                                        <!-- Store Orders -->
-                                        <li v-for="order in siswa.pendingStoreOrders" :key="'store-'+order.id" class="flex justify-between items-center p-2.5 md:p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-50 dark:border-red-900/20">
+                                    </ul>
+                                </div>
+
+                                <!-- Pesanan Toko PENDING -->
+                                <div v-if="siswa.pendingStoreOrders.length > 0" class="bg-yellow-50 dark:bg-yellow-900/10 rounded-2xl p-4 md:p-5 border border-yellow-200 dark:border-yellow-900/30">
+                                    <div class="flex justify-between items-center mb-3 md:mb-4">
+                                        <div class="flex items-center text-yellow-700 dark:text-yellow-500 font-bold text-sm md:text-base">
+                                            <ExclamationTriangleIcon class="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2" />
+                                            Pesanan Toko (Menunggu Pembayaran)
+                                        </div>
+                                    </div>
+                                    <ul class="space-y-2 md:space-y-3">
+                                        <li v-for="order in siswa.pendingStoreOrders" :key="'store-'+order.id" class="flex justify-between items-center p-2.5 md:p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-yellow-100 dark:border-yellow-900/20">
                                             <div class="flex flex-col">
                                                 <span class="text-xs md:text-sm font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none">{{ getShortDescription(order.description) }}</span>
                                                 <span class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">{{ order.periode_formatted }}</span>
                                             </div>
-                                            <span class="text-xs md:text-sm font-bold text-red-600 dark:text-red-400 ml-2 whitespace-nowrap">{{ order.total_amount_formatted }}</span>
+                                            <span class="text-xs md:text-sm font-bold text-yellow-600 dark:text-yellow-500 ml-2 whitespace-nowrap">{{ order.total_amount_formatted }}</span>
                                         </li>
                                     </ul>
                                 </div>
 
                                 <!-- Bersih -->
-                                <div v-else class="flex items-center justify-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 p-4 md:p-5 rounded-2xl border border-green-100 dark:border-green-900/30 h-full min-h-[100px] md:min-h-[120px]">
+                                <div v-if="siswa.overdueTotal.count === 0 && siswa.pendingStoreOrders.length === 0" class="flex items-center justify-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/10 p-4 md:p-5 rounded-2xl border border-green-100 dark:border-green-900/30 h-full min-h-[100px] md:min-h-[120px]">
                                     <div class="text-center">
                                         <CheckBadgeIcon class="h-8 w-8 md:h-10 md:w-10 mx-auto mb-1.5 md:mb-2 opacity-80" />
                                         <span class="text-xs md:text-sm font-bold">Hebat! Semua tagihan sampai bulan ini sudah lunas.</span>

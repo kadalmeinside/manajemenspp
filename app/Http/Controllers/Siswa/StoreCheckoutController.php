@@ -30,6 +30,16 @@ class StoreCheckoutController extends Controller
         ]);
 
         $user = Auth::user();
+
+        // Validasi Anti-Hoarding: Cek apakah user masih punya pesanan PENDING
+        $hasPendingOrder = Order::where('user_id', $user->id)
+            ->where('status', 'PENDING')
+            ->exists();
+
+        if ($hasPendingOrder) {
+            return back()->with('error', 'Anda masih memiliki pesanan toko yang menunggu pembayaran. Harap selesaikan atau tunggu hingga pesanan kadaluarsa sebelum membuat pesanan baru.');
+        }
+
         $cart = Cart::with(['items.product', 'items.variant'])->where('user_id', $user->id)->first();
 
         if (!$cart || $cart->items->count() === 0) {
