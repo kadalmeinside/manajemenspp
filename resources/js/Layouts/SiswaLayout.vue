@@ -246,13 +246,13 @@ const submitAgreement = () => {
                     </Link>
                 </div>
 
-                <!-- Right: Actions Box -->
-                <div class="pointer-events-auto bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-2xl py-1.5 px-1.5 flex items-center space-x-1">
-                    <!-- Mobile Siswa Selector -->
-                    <Dropdown v-if="userSiswas.length > 1" align="right" width="48">
+                <!-- Center: Student Selector -->
+                <div v-if="userSiswas.length > 1" class="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+                    <Dropdown align="center" width="48">
                         <template #trigger>
-                            <button class="relative p-2 rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white focus:outline-none transition-colors group">
-                                <UsersIcon class="h-6 w-6 transition-colors" />
+                            <button class="flex items-center bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md px-3 py-2 rounded-2xl hover:bg-gray-800 transition-colors">
+                                <span class="text-white text-xs font-bold truncate max-w-[90px] xs:max-w-[110px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                <ChevronDownIcon class="ml-1 h-4 w-4 text-gray-300" />
                             </button>
                         </template>
                         <template #content>
@@ -269,6 +269,11 @@ const submitAgreement = () => {
                             </div>
                         </template>
                     </Dropdown>
+                </div>
+
+                <!-- Right: Actions Box -->
+                <div class="pointer-events-auto bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-2xl py-1.5 px-1.5 flex items-center space-x-1">
+
 
                     <!-- Cart Icon -->
                     <Link :href="route('siswa.store.cart')" class="relative p-2 rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white focus:outline-none transition-colors group">
