@@ -16,7 +16,8 @@ import {
     BellIcon,
     ChevronDownIcon,
     ShoppingBagIcon,
-    ClipboardDocumentListIcon
+    ClipboardDocumentListIcon,
+    UsersIcon
 } from '@heroicons/vue/24/outline';
 
 import {
@@ -247,6 +248,28 @@ const submitAgreement = () => {
 
                 <!-- Right: Actions Box -->
                 <div class="pointer-events-auto bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-2xl py-1.5 px-1.5 flex items-center space-x-1">
+                    <!-- Mobile Siswa Selector -->
+                    <Dropdown v-if="userSiswas.length > 1" align="right" width="48">
+                        <template #trigger>
+                            <button class="relative p-2 rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white focus:outline-none transition-colors group">
+                                <UsersIcon class="h-6 w-6 transition-colors" />
+                            </button>
+                        </template>
+                        <template #content>
+                            <div class="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                                Pilih Anak
+                            </div>
+                            <div class="p-1">
+                                <DropdownLink v-for="siswa in userSiswas" :key="siswa.id_siswa" as="button" @click="switchSiswa(siswa.id_siswa)" class="rounded-lg">
+                                    <div class="flex items-center justify-between w-full">
+                                        <span :class="{'font-bold text-red-600 dark:text-red-400': activeSiswaId === siswa.id_siswa}">{{ siswa.nama_siswa }}</span>
+                                        <svg v-if="activeSiswaId === siswa.id_siswa" class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                    </div>
+                                </DropdownLink>
+                            </div>
+                        </template>
+                    </Dropdown>
+
                     <!-- Cart Icon -->
                     <Link :href="route('siswa.store.cart')" class="relative p-2 rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white focus:outline-none transition-colors group">
                         <span class="sr-only">Keranjang Belanja</span>
