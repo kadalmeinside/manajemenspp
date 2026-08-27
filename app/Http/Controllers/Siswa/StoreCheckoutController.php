@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\StockMovement;
 use App\Services\XenditService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -31,13 +32,45 @@ class StoreCheckoutController extends Controller
 
         $user = Auth::user();
 
-        // Validasi Anti-Hoarding: Cek apakah user masih punya pesanan PENDING
-        $hasPendingOrder = Order::where('user_id', $user->id)
-            ->where('status', 'PENDING')
-            ->exists();
+        $force = $request->boolean('force');
 
-        if ($hasPendingOrder) {
-            return back()->with('error', 'Anda masih memiliki pesanan toko yang menunggu pembayaran. Harap selesaikan atau tunggu hingga pesanan kadaluarsa sebelum membuat pesanan baru.');
+        // Validasi Anti-Hoarding: Cek apakah user masih punya pesanan PENDING
+        $pendingOrders = Order::with('items.variant')->where('user_id', $user->id)
+            ->where('status', 'PENDING')
+            ->get();
+
+        if ($pendingOrders->isNotEmpty()) {
+            if ($force) {
+                // Batalkan semua pesanan PENDING dan kembalikan stok
+                DB::transaction(function () use ($pendingOrders) {
+                    foreach ($pendingOrders as $pendingOrder) {
+                        foreach ($pendingOrder->items as $item) {
+                            $variant = $item->variant;
+                            if ($variant && !$item->product->is_preorder) {
+                                $previousStock = $variant->stock;
+                                $variant->increment('stock', $item->quantity);
+                                
+                                StockMovement::create([
+                                    'product_variant_id' => $variant->id,
+                                    'type' => 'returned',
+                                    'quantity' => $item->quantity,
+                                    'previous_stock' => $previousStock,
+                                    'new_stock' => $previousStock + $item->quantity,
+                                    'reference_id' => $pendingOrder->order_number,
+                                    'user_id' => $pendingOrder->user_id,
+                                    'notes' => 'Stok dikembalikan karena pesanan dibatalkan (Override by user).'
+                                ]);
+                            }
+                        }
+                        $pendingOrder->update(['status' => 'CANCELLED']);
+                    }
+                });
+            } else {
+                return back()->with([
+                    'pending_order_conflict' => true,
+                    'error' => 'Anda masih memiliki pesanan toko yang menunggu pembayaran. Harap selesaikan atau batalkan pesanan tersebut sebelum membuat pesanan baru.'
+                ]);
+            }
         }
 
         $cart = Cart::with(['items.product', 'items.variant'])->where('user_id', $user->id)->first();

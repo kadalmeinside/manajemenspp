@@ -1,9 +1,12 @@
 <script setup>
 import SiswaLayout from '@/Layouts/SiswaLayout.vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
+import Modal from '@/Components/Modal.vue';
+import DangerButton from '@/Components/DangerButton.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { TrashIcon, ArrowLeftIcon, ShoppingBagIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -41,11 +44,27 @@ const removeItem = (item) => {
 
 const checkoutForm = useForm({
     siswa_id: props.siswas && props.siswas.length === 1 ? props.siswas[0].id_siswa : '',
+    force: false,
 });
 
 const checkout = () => {
     checkoutForm.post(route('siswa.store.checkout'), {
         preserveScroll: true,
+        onSuccess: () => {
+            if (usePage().props.flash && usePage().props.flash.pending_order_conflict) {
+                // Biarkan modal terbuka yang diatur oleh v-if="$page.props.flash.pending_order_conflict"
+            }
+        },
+    });
+};
+
+const forceCheckout = () => {
+    checkoutForm.force = true;
+    checkoutForm.post(route('siswa.store.checkout'), {
+        preserveScroll: true,
+        onFinish: () => {
+            checkoutForm.force = false;
+        }
     });
 };
 </script>
@@ -64,7 +83,7 @@ const checkout = () => {
                     </Link>
                 </div>
 
-                <div v-if="$page.props.flash && $page.props.flash.error" class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-md shadow-sm">
+                <div v-if="$page.props.flash && $page.props.flash.error && !$page.props.flash.pending_order_conflict" class="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-md shadow-sm">
                     <p class="font-bold">Gagal</p>
                     <p>{{ $page.props.flash.error }}</p>
                 </div>
@@ -181,5 +200,36 @@ const checkout = () => {
                 
             </div>
         </div>
+
+        <!-- Modal Konfirmasi Override Pesanan Pending -->
+        <Modal :show="$page.props.flash && $page.props.flash.pending_order_conflict" maxWidth="md">
+            <div class="p-6 md:p-8">
+                <div class="flex items-center justify-center w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full mb-6">
+                    <ShoppingBagIcon class="w-8 h-8 text-red-600 dark:text-red-400" />
+                </div>
+                
+                <h2 class="text-xl md:text-2xl font-black text-center text-gray-900 dark:text-white mb-4">Terdapat Pesanan Belum Dibayar</h2>
+                
+                <p class="text-sm md:text-base text-gray-600 dark:text-gray-400 text-center mb-8">
+                    Anda masih memiliki pesanan toko yang berstatus <span class="font-bold text-yellow-600 dark:text-yellow-400">PENDING</span> (menunggu pembayaran). Untuk mencegah penumpukan pemesanan barang, Anda harus membatalkan pesanan sebelumnya jika ingin melanjutkan pesanan ini.
+                </p>
+
+                <div class="flex flex-col gap-3">
+                    <DangerButton @click="forceCheckout" class="w-full justify-center py-4 text-sm md:text-base shadow-lg" :class="{ 'opacity-50': checkoutForm.processing }" :disabled="checkoutForm.processing">
+                        {{ checkoutForm.processing ? 'Memproses...' : 'Batalkan Pesanan Lama & Lanjut' }}
+                    </DangerButton>
+                    
+                    <Link :href="route('siswa.tagihan.index')" class="w-full">
+                        <SecondaryButton type="button" class="w-full justify-center py-4 text-sm md:text-base">
+                            Lihat & Bayar Pesanan Lama
+                        </SecondaryButton>
+                    </Link>
+
+                    <button @click="$page.props.flash.pending_order_conflict = false" class="mt-4 text-sm font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </Modal>
     </SiswaLayout>
 </template>
