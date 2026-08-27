@@ -3,7 +3,7 @@ import { ref, computed, watchEffect, onMounted, onUnmounted } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link, usePage, router, useForm } from '@inertiajs/vue3';
+import { Link, Head, usePage, router, useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -262,7 +262,7 @@ onUnmounted(() => {
                                             Pengaturan Profil
                                         </DropdownLink>
                                         <div class="border-t border-gray-100 dark:border-gray-700/50 my-1"></div>
-                                        <DropdownLink @click="confirmLogout" as="button" class="rounded-lg flex items-center text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                        <DropdownLink href="#" @click.prevent="confirmLogout" as="button" class="rounded-lg flex items-center text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
                                             <ArrowLeftStartOnRectangleIcon class="mr-3 h-5 w-5 text-red-400 group-hover:text-red-500" />
                                             Keluar
                                         </DropdownLink>
