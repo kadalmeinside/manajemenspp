@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watchEffect } from 'vue';
+import { ref, computed, watchEffect, onMounted, onUnmounted } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -106,6 +106,38 @@ const submitAgreement = () => {
         }
     });
 };
+
+const showBottomNav = ref(true);
+let lastScrollY = 0;
+let scrollTimeout = null;
+
+const handleScroll = () => {
+    const currentScrollY = window.scrollY;
+    
+    // Hide when scrolling down, show when scrolling up
+    if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        showBottomNav.value = false;
+    } else {
+        showBottomNav.value = true;
+    }
+    
+    lastScrollY = currentScrollY;
+    
+    // Also show when scroll stops
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+        showBottomNav.value = true;
+    }, 1500);
+};
+
+onMounted(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+});
+
+onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll);
+    clearTimeout(scrollTimeout);
+});
 </script>
 
 <template>
@@ -242,10 +274,10 @@ const submitAgreement = () => {
                 </div>
             </header>
             
-            <!-- Mobile Floating Header -->
-            <div class="md:hidden fixed top-0 left-0 right-0 z-40 p-4 flex justify-between items-start pointer-events-none">
+            <!-- Non-Fixed Mobile Header (Scrolls Away) -->
+            <div class="md:hidden pt-4 px-4 pb-2 flex items-center space-x-3">
                 <!-- Left: Logo Box -->
-                <div class="pointer-events-auto bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-2xl py-2 px-3 flex items-center">
+                <div class="bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-xl py-2 px-3 flex items-center shrink-0">
                     <Link :href="route('dashboard')" class="flex items-center">
                         <img v-if="appLogo" :src="`/storage/${appLogo}`" alt="App Logo" class="h-8 w-auto">
                         <ApplicationLogo v-else class="h-8 w-auto fill-current text-white" />
@@ -253,12 +285,12 @@ const submitAgreement = () => {
                 </div>
 
                 <!-- Center: Student Selector -->
-                <div v-if="userSiswas.length > 0" class="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-auto h-[48px] flex items-center justify-center">
-                    <Dropdown v-if="userSiswas.length > 1" align="center" width="48">
+                <div v-if="userSiswas.length > 0" class="flex-1 flex items-center h-[48px]">
+                    <Dropdown v-if="userSiswas.length > 1" align="left" width="48">
                         <template #trigger>
-                            <button class="flex items-center px-2 py-1 rounded-lg focus:outline-none group">
-                                <span class="text-white text-base font-extrabold tracking-wide drop-shadow-md truncate max-w-[100px] xs:max-w-[130px] group-hover:text-gray-200 transition-colors">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
-                                <ChevronDownIcon class="ml-1 h-5 w-5 text-white drop-shadow-md group-hover:text-gray-200 transition-colors" />
+                            <button class="flex items-center px-1 py-1 focus:outline-none group">
+                                <span class="text-gray-900 dark:text-white text-base font-extrabold tracking-wide truncate max-w-[120px] group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                <ChevronDownIcon class="ml-1 h-5 w-5 text-gray-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
                             </button>
                         </template>
                         <template #content>
@@ -275,15 +307,15 @@ const submitAgreement = () => {
                             </div>
                         </template>
                     </Dropdown>
-                    <div v-else class="flex items-center px-2 py-1 cursor-default">
-                        <span class="text-white text-base font-extrabold tracking-wide drop-shadow-md truncate max-w-[100px] xs:max-w-[130px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
+                    <div v-else class="flex items-center px-1 py-1 cursor-default">
+                        <span class="text-gray-900 dark:text-white text-base font-extrabold tracking-wide truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
                     </div>
                 </div>
+            </div>
 
-                <!-- Right: Actions Box -->
+            <!-- Fixed Mobile Actions Box -->
+            <div class="md:hidden fixed top-0 right-0 z-40 p-4 pointer-events-none">
                 <div class="pointer-events-auto bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-2xl py-1.5 px-1.5 flex items-center space-x-1">
-
-
                     <!-- Cart Icon -->
                     <Link :href="route('siswa.store.cart')" class="relative p-2 rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white focus:outline-none transition-colors group">
                         <span class="sr-only">Keranjang Belanja</span>
@@ -302,7 +334,7 @@ const submitAgreement = () => {
             </div>
 
             <!-- Mobile Page Title Slot -->
-            <div class="md:hidden px-4 pt-24 pb-2">
+            <div class="md:hidden px-4 pb-2">
                 <slot name="header" />
             </div>
 
@@ -322,7 +354,7 @@ const submitAgreement = () => {
         </div>
 
         <!-- Sleek Mobile Bottom Navigation -->
-        <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 px-5 pb-6 pt-2 pointer-events-none">
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 px-5 pb-6 pt-2 pointer-events-none transition-transform duration-300 ease-in-out" :class="showBottomNav ? 'translate-y-0' : 'translate-y-[150%]'">
             <nav class="bg-gradient-to-r from-rose-500 to-orange-400 shadow-[0_10px_40px_rgba(244,63,94,0.6)] border border-white/30 backdrop-blur-xl rounded-full flex justify-around items-center h-16 pointer-events-auto">
                  <template v-for="item in siswaMenu" :key="item.name + '-mobile'">
                     <Link v-if="item.type === 'link'" :href="route(item.route)"
