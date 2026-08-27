@@ -253,7 +253,7 @@ onUnmounted(() => {
                                 </template>
                                 <template #content>
                                     <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                                        <p class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{{ userName }}</p>
+                                        <p class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate" :title="userName">{{ userName }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Orang Tua / Wali</p>
                                     </div>
                                     <div class="p-1 space-y-1">

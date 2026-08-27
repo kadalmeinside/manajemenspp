@@ -120,7 +120,7 @@ const initials = computed(() => {
                                 </div>
                                 <div class="min-w-0">
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kelas</p>
-                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ siswa.kelas?.nama_kelas || '-' }}</p>
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate" :title="siswa.kelas?.nama_kelas || '-'">{{ siswa.kelas?.nama_kelas || '-' }}</p>
                                 </div>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 flex items-start space-x-2.5">
@@ -129,7 +129,7 @@ const initials = computed(() => {
                                 </div>
                                 <div class="min-w-0">
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">NIS</p>
-                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ siswa.nis || '-' }}</p>
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate" :title="siswa.nis || '-'">{{ siswa.nis || '-' }}</p>
                                 </div>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 flex items-start space-x-2.5">
@@ -138,7 +138,7 @@ const initials = computed(() => {
                                 </div>
                                 <div class="min-w-0">
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tgl Lahir</p>
-                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ siswa.tanggal_lahir_formatted }}</p>
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate" :title="siswa.tanggal_lahir_formatted">{{ siswa.tanggal_lahir_formatted }}</p>
                                 </div>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 flex items-start space-x-2.5">
@@ -147,7 +147,7 @@ const initials = computed(() => {
                                 </div>
                                 <div class="min-w-0">
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bergabung</p>
-                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ siswa.tanggal_bergabung_formatted }}</p>
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate" :title="siswa.tanggal_bergabung_formatted">{{ siswa.tanggal_bergabung_formatted }}</p>
                                 </div>
                             </div>
                         </div>
