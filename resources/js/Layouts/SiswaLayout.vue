@@ -181,28 +181,34 @@ const submitAgreement = () => {
                             <div class="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
 
                             <!-- Siswa Selector -->
-                            <Dropdown v-if="userSiswas.length > 1" align="right" width="48">
-                                <template #trigger>
-                                    <button class="flex items-center text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200">
-                                        <span class="mr-2 text-gray-400">Anak:</span>
-                                        <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
-                                        <ChevronDownIcon class="ml-2 h-4 w-4 text-gray-400" />
-                                    </button>
-                                </template>
-                                <template #content>
-                                    <div class="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
-                                        Pilih Anak
-                                    </div>
-                                    <div class="p-1">
-                                        <DropdownLink v-for="siswa in userSiswas" :key="siswa.id_siswa" as="button" @click="switchSiswa(siswa.id_siswa)" class="rounded-lg">
-                                            <div class="flex items-center justify-between w-full">
-                                                <span :class="{'font-bold text-red-600 dark:text-red-400': activeSiswaId === siswa.id_siswa}">{{ siswa.nama_siswa }}</span>
-                                                <svg v-if="activeSiswaId === siswa.id_siswa" class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                                            </div>
-                                        </DropdownLink>
-                                    </div>
-                                </template>
-                            </Dropdown>
+                            <template v-if="userSiswas.length > 0">
+                                <Dropdown v-if="userSiswas.length > 1" align="right" width="48">
+                                    <template #trigger>
+                                        <button class="flex items-center text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200">
+                                            <span class="mr-2 text-gray-400">Anak:</span>
+                                            <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                            <ChevronDownIcon class="ml-2 h-4 w-4 text-gray-400" />
+                                        </button>
+                                    </template>
+                                    <template #content>
+                                        <div class="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                                            Pilih Anak
+                                        </div>
+                                        <div class="p-1">
+                                            <DropdownLink v-for="siswa in userSiswas" :key="siswa.id_siswa" as="button" @click="switchSiswa(siswa.id_siswa)" class="rounded-lg">
+                                                <div class="flex items-center justify-between w-full">
+                                                    <span :class="{'font-bold text-red-600 dark:text-red-400': activeSiswaId === siswa.id_siswa}">{{ siswa.nama_siswa }}</span>
+                                                    <svg v-if="activeSiswaId === siswa.id_siswa" class="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                                </div>
+                                            </DropdownLink>
+                                        </div>
+                                    </template>
+                                </Dropdown>
+                                <div v-else class="flex items-center text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm cursor-default">
+                                    <span class="mr-2 text-gray-400">Anak:</span>
+                                    <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
+                                </div>
+                            </template>
 
                             <!-- User Profile -->
                             <Dropdown align="right" width="48">
@@ -247,8 +253,8 @@ const submitAgreement = () => {
                 </div>
 
                 <!-- Center: Student Selector -->
-                <div v-if="userSiswas.length > 1" class="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
-                    <Dropdown align="center" width="48">
+                <div v-if="userSiswas.length > 0" class="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+                    <Dropdown v-if="userSiswas.length > 1" align="center" width="48">
                         <template #trigger>
                             <button class="flex items-center bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md px-3 py-2 rounded-2xl hover:bg-gray-800 transition-colors">
                                 <span class="text-white text-xs font-bold truncate max-w-[90px] xs:max-w-[110px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
@@ -269,6 +275,9 @@ const submitAgreement = () => {
                             </div>
                         </template>
                     </Dropdown>
+                    <div v-else class="flex items-center bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md px-3 py-2 rounded-2xl cursor-default">
+                        <span class="text-white text-xs font-bold truncate max-w-[90px] xs:max-w-[110px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
+                    </div>
                 </div>
 
                 <!-- Right: Actions Box -->
