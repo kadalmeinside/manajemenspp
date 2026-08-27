@@ -218,7 +218,7 @@ onUnmounted(() => {
                                     <template #trigger>
                                         <button class="flex items-center text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-200">
                                             <span class="mr-2 text-gray-400">Anak:</span>
-                                            <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                            <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]" :title="activeSiswa?.nama_siswa">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
                                             <ChevronDownIcon class="ml-2 h-4 w-4 text-gray-400" />
                                         </button>
                                     </template>
@@ -238,7 +238,7 @@ onUnmounted(() => {
                                 </Dropdown>
                                 <div v-else class="flex items-center text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm cursor-default">
                                     <span class="mr-2 text-gray-400">Anak:</span>
-                                    <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
+                                    <span class="text-red-600 dark:text-red-400 truncate max-w-[120px]" :title="activeSiswa?.nama_siswa">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
                                 </div>
                             </template>
 
@@ -289,7 +289,7 @@ onUnmounted(() => {
                     <Dropdown v-if="userSiswas.length > 1" align="left" width="48">
                         <template #trigger>
                             <button class="flex items-center px-1 py-1 focus:outline-none group">
-                                <span class="text-gray-900 dark:text-white text-base font-extrabold tracking-wide truncate max-w-[120px] group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                <span class="text-gray-900 dark:text-white text-base font-extrabold tracking-wide truncate max-w-[120px] group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" :title="activeSiswa?.nama_siswa">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
                                 <ChevronDownIcon class="ml-1 h-5 w-5 text-gray-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors" />
                             </button>
                         </template>
@@ -308,7 +308,7 @@ onUnmounted(() => {
                         </template>
                     </Dropdown>
                     <div v-else class="flex items-center px-1 py-1 cursor-default">
-                        <span class="text-gray-900 dark:text-white text-base font-extrabold tracking-wide truncate max-w-[120px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
+                        <span class="text-gray-900 dark:text-white text-base font-extrabold tracking-wide truncate max-w-[120px]" :title="activeSiswa?.nama_siswa">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
                     </div>
                 </div>
             </div>
@@ -339,7 +339,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Page Content -->
-            <main class="flex-1 w-full">
+            <main class="flex-1 w-full pb-28 md:pb-0">
                 <slot />
             </main>
             
