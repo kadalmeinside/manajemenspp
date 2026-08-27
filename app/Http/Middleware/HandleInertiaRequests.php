@@ -130,8 +130,10 @@ class HandleInertiaRequests extends Middleware
                 'message' => fn () => $request->session()->get('message'),
                 'type' => fn () => $request->session()->get('type'),
                 'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
                 'completed_data' => fn () => $request->session()->get('completed_data'),
-                'key' => fn () => $request->session()->get('key'), 
+                'key' => fn () => $request->session()->get('key'),
+                'pending_order_conflict' => fn () => $request->session()->get('pending_order_conflict'),
             ],
             'app_settings' => function () {
                 // Gunakan cache pendek atau non-forever agar versi bisa update tanpa perlu clear cache manual
