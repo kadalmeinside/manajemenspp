@@ -26,6 +26,11 @@ class Product extends Model
         'is_preorder' => 'boolean',
     ];
 
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('created_at', 'asc');
+    }
+
     public function variants()
     {
         return $this->hasMany(ProductVariant::class, 'product_id', 'id');

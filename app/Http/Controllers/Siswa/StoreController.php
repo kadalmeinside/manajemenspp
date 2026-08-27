@@ -15,7 +15,7 @@ class StoreController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::where('is_active', true)->with('variants');
+        $query = Product::where('is_active', true)->with(['variants', 'images']);
 
         if ($request->has('search')) {
             $search = $request->input('search');
@@ -37,7 +37,7 @@ class StoreController extends Controller
             ->where('is_active', true)
             ->with(['variants' => function($q) {
                 $q->orderBy('price', 'asc');
-            }])
+            }, 'images'])
             ->firstOrFail();
 
         return Inertia::render('Siswa/Store/Show', [

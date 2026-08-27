@@ -156,6 +156,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('invoices/bulk-store-all', [InvoiceController::class, 'bulkStoreAll'])->name('invoices.bulk_store_all');
             Route::resource('promos', PromoController::class)->except(['show']);
             Route::resource('products', \App\Http\Controllers\Admin\ProductController::class);
+            Route::delete('products/{product}/images/{image}', [\App\Http\Controllers\Admin\ProductController::class, 'deleteImage'])->name('products.images.destroy');
             Route::get('products/{product}/stock', [\App\Http\Controllers\Admin\StockController::class, 'index'])->name('products.stock.index');
             Route::post('products/{product}/stock', [\App\Http\Controllers\Admin\StockController::class, 'store'])->name('products.stock.store');
             Route::get('pos', [\App\Http\Controllers\Admin\PosController::class, 'index'])->name('pos.index');

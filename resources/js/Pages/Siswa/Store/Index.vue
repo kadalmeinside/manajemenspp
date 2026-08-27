@@ -29,6 +29,14 @@ const getLowestPrice = (variants) => {
     return Math.min(...variants.map(v => parseFloat(v.price)));
 };
 
+const getMainImage = (product) => {
+    if (product.images && product.images.length > 0) {
+        const primary = product.images.find(img => img.is_primary);
+        return primary ? primary.image_path : product.images[0].image_path;
+    }
+    return product.image_path;
+};
+
 const form = useForm({
     product_id: null,
     product_variant_id: null,
@@ -140,7 +148,7 @@ const isVariantDisabled = (product, variant) => {
                         <div class="bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center relative w-full pt-[100%] overflow-hidden">
                             <span v-if="product.is_preorder" class="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 rounded-full shadow-md z-10">Pre-Order</span>
                             <div class="absolute inset-0 p-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
-                                <img v-if="product.image_path" :src="'/storage/' + product.image_path" :alt="product.name" class="w-full h-full object-contain drop-shadow-md" />
+                                <img v-if="getMainImage(product)" :src="'/storage/' + getMainImage(product)" :alt="product.name" class="w-full h-full object-contain drop-shadow-md" />
                                 <ShoppingBagIcon v-else class="w-16 h-16 text-gray-300 dark:text-gray-600 drop-shadow-sm" />
                             </div>
                         </div>

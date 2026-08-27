@@ -13,6 +13,14 @@ const formatRupiah = (number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
 };
 
+const mainImage = ref(null);
+if (props.product.images && props.product.images.length > 0) {
+    const primary = props.product.images.find(img => img.is_primary);
+    mainImage.value = primary ? primary.image_path : props.product.images[0].image_path;
+} else if (props.product.image_path) {
+    mainImage.value = props.product.image_path;
+}
+
 const selectedVariant = ref(props.product.variants.length === 1 ? props.product.variants[0] : null);
 const quantity = ref(1);
 
@@ -116,12 +124,26 @@ const addToCart = () => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
                         
                         <!-- Product Image Box -->
-                        <div class="bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center relative min-h-[300px] md:min-h-full overflow-hidden p-8">
+                        <div class="bg-gray-50 dark:bg-gray-900/50 flex flex-col items-center justify-between relative min-h-[400px] md:min-h-full overflow-hidden p-6 md:p-8">
                             <span v-if="product.is_preorder" class="absolute top-6 left-6 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-xs md:text-sm font-bold px-4 py-1.5 rounded-full shadow-lg z-10">
                                 Pre-Order Aktif
                             </span>
-                            <img v-if="product.image_path" :src="'/storage/' + product.image_path" :alt="product.name" class="w-full h-full object-contain drop-shadow-xl" />
-                            <ShoppingBagIcon v-else class="w-32 h-32 text-gray-300 dark:text-gray-700 drop-shadow-sm" />
+                            
+                            <div class="flex-grow flex items-center justify-center w-full relative mb-6 min-h-[300px] md:min-h-[450px]">
+                                <transition name="fade" mode="out-in">
+                                    <img :key="mainImage" v-if="mainImage" :src="'/storage/' + mainImage" :alt="product.name" class="w-full h-full max-h-[400px] md:max-h-[550px] object-contain drop-shadow-2xl" />
+                                    <ShoppingBagIcon v-else class="w-40 h-40 text-gray-300 dark:text-gray-700 drop-shadow-sm" />
+                                </transition>
+                            </div>
+
+                            <!-- Thumbnails -->
+                            <div v-if="product.images && product.images.length > 1" class="flex gap-3 overflow-x-auto pb-2 w-full max-w-full justify-center scrollbar-hide snap-x">
+                                <button v-for="img in product.images" :key="img.id" @click="mainImage = img.image_path"
+                                    class="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 snap-center focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                                    :class="mainImage === img.image_path ? 'border-red-500 shadow-md scale-105 opacity-100' : 'border-gray-200 dark:border-gray-700 hover:border-red-300 opacity-60 hover:opacity-100'">
+                                    <img :src="'/storage/' + img.image_path" class="w-full h-full object-cover bg-white" />
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Product Info Box -->

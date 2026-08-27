@@ -43,7 +43,7 @@ class ProductController extends Controller
             'category' => 'required|string|max:255',
             'is_active' => 'boolean',
             'is_preorder' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'variants' => 'required|string', // Frontend sends as JSON string due to FormData
         ]);
 
@@ -59,12 +59,7 @@ class ProductController extends Controller
             'decoded_variants.*.stock' => 'required|integer|min:0',
         ]);
 
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
-        }
-
-        DB::transaction(function () use ($validated, $variants, $imagePath) {
+        DB::transaction(function () use ($validated, $variants, $request) {
             $product = Product::create([
                 'name' => $validated['name'],
                 'slug' => Str::slug($validated['name']) . '-' . Str::random(5),
@@ -72,8 +67,18 @@ class ProductController extends Controller
                 'category' => $validated['category'],
                 'is_active' => $validated['is_active'] ?? true,
                 'is_preorder' => $validated['is_preorder'] ?? false,
-                'image_path' => $imagePath,
             ]);
+
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $file) {
+                    $path = $file->store('products', 'public');
+                    $product->images()->create([
+                        'image_path' => $path,
+                        'is_primary' => $index === 0, // First image is primary
+                        'sort_order' => $index,
+                    ]);
+                }
+            }
 
             foreach ($variants as $variantData) {
                 $product->variants()->create($variantData);
@@ -85,9 +90,14 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load('variants');
-        // Add full url for image preview if exists
+        $product->load(['variants', 'images']);
+        // Add full url for image preview if exists (legacy compatibility)
         $product->image_url = $product->image_path ? asset('storage/' . $product->image_path) : null;
+        
+        $product->images->transform(function ($img) {
+            $img->url = asset('storage/' . $img->image_path);
+            return $img;
+        });
         
         return Inertia::render('Admin/Products/CreateEdit', [
             'product' => $product,
@@ -102,7 +112,7 @@ class ProductController extends Controller
             'category' => 'required|string|max:255',
             'is_active' => 'boolean',
             'is_preorder' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'variants' => 'required|string', // Frontend sends as JSON string
         ]);
 
@@ -119,24 +129,31 @@ class ProductController extends Controller
             'decoded_variants.*.stock' => 'required|integer|min:0',
         ]);
 
-        $imagePath = $product->image_path;
-        if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($imagePath && \Illuminate\Support\Facades\Storage::disk('public')->exists($imagePath)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($imagePath);
-            }
-            $imagePath = $request->file('image')->store('products', 'public');
-        }
-
-        DB::transaction(function () use ($validated, $variants, $product, $imagePath) {
+        DB::transaction(function () use ($validated, $variants, $product, $request) {
             $product->update([
                 'name' => $validated['name'],
                 'description' => $validated['description'],
                 'category' => $validated['category'],
                 'is_active' => $validated['is_active'] ?? true,
                 'is_preorder' => $validated['is_preorder'] ?? false,
-                'image_path' => $imagePath,
             ]);
+
+            if ($request->hasFile('images')) {
+                $maxOrder = $product->images()->max('sort_order') ?? -1;
+                $hasPrimary = $product->images()->where('is_primary', true)->exists();
+
+                foreach ($request->file('images') as $index => $file) {
+                    $path = $file->store('products', 'public');
+                    $maxOrder++;
+                    
+                    $product->images()->create([
+                        'image_path' => $path,
+                        'is_primary' => (!$hasPrimary && $index === 0),
+                        'sort_order' => $maxOrder,
+                    ]);
+                    $hasPrimary = true;
+                }
+            }
 
             $existingVariantIds = $product->variants()->pluck('id')->toArray();
             $incomingVariantIds = array_filter(array_column($variants, 'id'));
@@ -172,5 +189,26 @@ class ProductController extends Controller
     {
         $product->delete();
         return redirect()->route('admin.products.index')->with('success', 'Produk berhasil dihapus.');
+    }
+
+    public function deleteImage(Product $product, $imageId)
+    {
+        $image = $product->images()->findOrFail($imageId);
+        
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($image->image_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($image->image_path);
+        }
+        
+        $wasPrimary = $image->is_primary;
+        $image->delete();
+
+        if ($wasPrimary) {
+            $firstImage = $product->images()->orderBy('sort_order')->first();
+            if ($firstImage) {
+                $firstImage->update(['is_primary' => true]);
+            }
+        }
+
+        return back()->with('success', 'Gambar berhasil dihapus.');
     }
 }

@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -30,21 +30,42 @@ const form = useForm({
     description: props.product?.description || '',
     is_active: props.product ? props.product.is_active : true,
     is_preorder: props.product ? props.product.is_preorder : false,
-    image: null,
+    images: [],
     variants: props.product?.variants?.length > 0 ? props.product.variants.map(v => ({...v, _ui_id: generateId()})) : [
         { _ui_id: generateId(), id: null, name: 'Default', sku: '', price: 0, stock: 0 }
     ],
 });
 
-const previewUrl = ref(props.product?.image_url || null);
+const existingImages = ref(props.product?.images || []);
+const previewUrls = ref([]);
 
 const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    form.image = file;
-    if (file) {
-        previewUrl.value = URL.createObjectURL(file);
-    } else {
-        previewUrl.value = props.product?.image_url || null;
+    const newFiles = Array.from(e.target.files);
+    if (newFiles.length === 0) return;
+    
+    form.images = [...form.images, ...newFiles];
+    
+    const newPreviewUrls = newFiles.map(file => URL.createObjectURL(file));
+    previewUrls.value = [...previewUrls.value, ...newPreviewUrls];
+    
+    // Clear input to allow re-selecting same file
+    e.target.value = null;
+};
+
+const removePreviewImage = (index) => {
+    form.images.splice(index, 1);
+    URL.revokeObjectURL(previewUrls.value[index]);
+    previewUrls.value.splice(index, 1);
+};
+
+const deleteExistingImage = (imageId) => {
+    if (confirm('Yakin ingin menghapus gambar ini?')) {
+        router.delete(route('admin.products.images.destroy', { product: props.product.id, image: imageId }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                existingImages.value = existingImages.value.filter(img => img.id !== imageId);
+            }
+        });
     }
 };
 
@@ -125,26 +146,40 @@ const submit = () => {
                                 <InputError class="mt-2" :message="form.errors.description" />
                             </div>
                             <div class="mt-4">
-                                <InputLabel value="Gambar Produk" />
-                                <div class="mt-2 flex items-center space-x-6">
-                                    <div class="shrink-0">
-                                        <img v-if="previewUrl" :src="previewUrl" alt="Product Image" class="h-24 w-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700">
-                                        <div v-else class="h-24 w-24 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700">
-                                            <span class="text-xs text-gray-400">Tidak ada gambar</span>
+                                <InputLabel value="Galeri Gambar Produk (Pilih Beberapa)" />
+                                
+                                <!-- Existing Images (if Edit Mode) -->
+                                <div v-if="isEdit && existingImages.length > 0" class="mt-3 mb-4">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Gambar Saat Ini:</p>
+                                    <div class="flex flex-wrap gap-4">
+                                        <div v-for="img in existingImages" :key="img.id" class="relative group h-24 w-24">
+                                            <img :src="img.url" alt="Product Image" class="h-24 w-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700">
+                                            <div v-if="img.is_primary" class="absolute top-1 left-1 bg-indigo-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">Utama</div>
+                                            <button type="button" @click="deleteExistingImage(img.id)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600">
+                                                <TrashIcon class="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
-                                    <label class="block">
-                                        <span class="sr-only">Pilih gambar produk</span>
-                                        <input type="file" @change="handleImageChange" accept="image/png, image/jpeg, image/jpg, image/webp" class="block w-full text-sm text-gray-500 dark:text-gray-400
-                                            file:mr-4 file:py-2 file:px-4
-                                            file:rounded-md file:border-0
-                                            file:text-sm file:font-semibold
-                                            file:bg-indigo-50 file:text-indigo-700
-                                            hover:file:bg-indigo-100
-                                            dark:file:bg-gray-700 dark:file:text-gray-300
-                                        "/>
+                                </div>
+
+                                <div class="mt-2 flex flex-wrap gap-4 items-start">
+                                    <!-- New Images Previews -->
+                                    <div v-for="(url, idx) in previewUrls" :key="'new-'+idx" class="relative group h-24 w-24">
+                                        <img :src="url" alt="Preview Image" class="h-24 w-24 object-cover rounded-lg border border-indigo-200 dark:border-indigo-700 shadow-sm">
+                                        <div v-if="idx === 0 && (!isEdit || existingImages.length === 0)" class="absolute top-1 left-1 bg-indigo-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">Utama</div>
+                                        <button type="button" @click="removePreviewImage(idx)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600">
+                                            <TrashIcon class="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Add Button -->
+                                    <label class="shrink-0 h-24 w-24 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg flex flex-col items-center justify-center border border-dashed border-gray-300 dark:border-gray-600 cursor-pointer transition-colors group">
+                                        <PlusIcon class="w-6 h-6 text-gray-400 group-hover:text-indigo-500 mb-1" />
+                                        <span class="text-[10px] text-gray-500 font-medium">Tambah Foto</span>
+                                        <input type="file" multiple @change="handleImageChange" accept="image/png, image/jpeg, image/jpg, image/webp" class="hidden" />
                                     </label>
                                 </div>
+                                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Anda dapat memilih lebih dari satu file secara bertahap (Max 2MB per file).</p>
                                 <InputError class="mt-2" :message="form.errors.image" />
                             </div>
 
