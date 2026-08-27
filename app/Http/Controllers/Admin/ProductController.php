@@ -14,7 +14,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with('variants');
+        $query = Product::with(['variants', 'images']);
 
         if ($request->has('search')) {
             $search = $request->input('search');
@@ -54,9 +54,12 @@ class ProductController extends Controller
         $request->validate([
             'decoded_variants' => 'required|array|min:1',
             'decoded_variants.*.name' => 'required|string|max:255',
-            'decoded_variants.*.sku' => 'nullable|string|max:255',
+            'decoded_variants.*.sku' => 'nullable|string|max:255|distinct|unique:product_variants,sku',
             'decoded_variants.*.price' => 'required|numeric|min:0',
             'decoded_variants.*.stock' => 'required|integer|min:0',
+        ], [
+            'decoded_variants.*.sku.unique' => 'SKU ini sudah digunakan oleh produk lain.',
+            'decoded_variants.*.sku.distinct' => 'SKU tidak boleh ada yang sama dalam satu produk.',
         ]);
 
         DB::transaction(function () use ($validated, $variants, $request) {
@@ -124,7 +127,26 @@ class ProductController extends Controller
             'decoded_variants' => 'required|array|min:1',
             'decoded_variants.*.id' => 'nullable|uuid',
             'decoded_variants.*.name' => 'required|string|max:255',
-            'decoded_variants.*.sku' => 'nullable|string|max:255',
+            'decoded_variants.*.sku' => [
+                'nullable',
+                'string',
+                'max:255',
+                'distinct',
+                function ($attribute, $value, $fail) use ($request) {
+                    if (!$value) return;
+                    $index = explode('.', $attribute)[1];
+                    $variantId = $request->input("decoded_variants.{$index}.id");
+                    
+                    $query = \App\Models\ProductVariant::where('sku', $value);
+                    if ($variantId) {
+                        $query->where('id', '!=', $variantId);
+                    }
+                    
+                    if ($query->exists()) {
+                        $fail("SKU '{$value}' sudah digunakan oleh produk/varian lain.");
+                    }
+                },
+            ],
             'decoded_variants.*.price' => 'required|numeric|min:0',
             'decoded_variants.*.stock' => 'required|integer|min:0',
         ]);

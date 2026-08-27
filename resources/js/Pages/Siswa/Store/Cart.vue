@@ -37,9 +37,15 @@ const updateQuantity = (item, newQuantity) => {
 };
 
 const removeItem = (item) => {
-    router.delete(route('siswa.store.cart.remove', item.id), {
-        preserveScroll: true,
-    });
+    router.delete(route('siswa.store.cart.remove', item.id), { preserveScroll: true });
+};
+
+const getMainImage = (product) => {
+    if (product.images && product.images.length > 0) {
+        const primary = product.images.find(img => img.is_primary);
+        return primary ? primary.image_path : product.images[0].image_path;
+    }
+    return product.image_path;
 };
 
 const checkoutForm = useForm({
@@ -102,7 +108,7 @@ const forceCheckout = () => {
                             <div v-if="items.length > 0" class="divide-y divide-gray-100 dark:divide-gray-700/60">
                                 <div v-for="item in items" :key="item.id" class="p-4 sm:p-6 md:p-8 flex flex-row gap-4 sm:gap-6 hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
                                     <div class="w-20 h-20 sm:w-32 sm:h-32 bg-gray-100 dark:bg-gray-900 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner p-2">
-                                        <img v-if="item.product.image_path" :src="'/storage/' + item.product.image_path" :alt="item.product.name" class="w-full h-full object-contain drop-shadow-sm" />
+                                        <img v-if="getMainImage(item.product)" :src="'/storage/' + getMainImage(item.product)" :alt="item.product.name" class="w-full h-full object-contain drop-shadow-sm" />
                                         <ShoppingBagIcon v-else class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
                                     </div>
                                     <div class="flex-grow flex flex-col justify-between">

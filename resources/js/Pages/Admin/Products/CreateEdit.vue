@@ -219,21 +219,22 @@ const submit = () => {
                                         <div>
                                             <InputLabel :for="'v_name_'+index" value="Nama Varian/Ukuran *" />
                                             <TextInput :id="'v_name_'+index" type="text" class="mt-1 block w-full text-sm" v-model="variant.name" required placeholder="Ex: Size M" />
-                                            <InputError class="mt-1" :message="form.errors[`variants.${index}.name`]" />
+                                            <InputError class="mt-1" :message="form.errors[`decoded_variants.${index}.name`]" />
                                         </div>
                                         <div>
                                             <InputLabel :for="'v_sku_'+index" value="SKU (Opsional)" />
                                             <TextInput :id="'v_sku_'+index" type="text" class="mt-1 block w-full text-sm" v-model="variant.sku" placeholder="Ex: JRSY-M-01" />
+                                            <InputError class="mt-1" :message="form.errors[`decoded_variants.${index}.sku`]" />
                                         </div>
                                         <div>
                                             <InputLabel :for="'v_price_'+index" value="Harga (Rp) *" />
                                             <TextInput :id="'v_price_'+index" type="number" class="mt-1 block w-full text-sm" v-model="variant.price" required min="0" />
-                                            <InputError class="mt-1" :message="form.errors[`variants.${index}.price`]" />
+                                            <InputError class="mt-1" :message="form.errors[`decoded_variants.${index}.price`]" />
                                         </div>
                                         <div>
                                             <InputLabel :for="'v_stock_'+index" value="Stok Gudang *" />
                                             <TextInput :id="'v_stock_'+index" type="number" class="mt-1 block w-full text-sm" v-model="variant.stock" required min="0" :disabled="form.is_preorder" />
-                                            <InputError class="mt-1" :message="form.errors[`variants.${index}.stock`]" />
+                                            <InputError class="mt-1" :message="form.errors[`decoded_variants.${index}.stock`]" />
                                         </div>
                                     </div>
                                 </div>

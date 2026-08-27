@@ -47,7 +47,7 @@ class StoreController extends Controller
 
     public function cart()
     {
-        $cart = Cart::with(['items.product', 'items.variant'])
+        $cart = Cart::with(['items.product.images', 'items.variant'])
             ->firstOrCreate(['user_id' => Auth::id()]);
 
         $siswas = Auth::user()->siswas;

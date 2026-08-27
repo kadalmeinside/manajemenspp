@@ -42,6 +42,14 @@ const getTotalStock = (variants) => {
     if (!variants || variants.length === 0) return 0;
     return variants.reduce((sum, v) => sum + parseInt(v.stock), 0);
 };
+
+const getMainImage = (product) => {
+    if (product.images && product.images.length > 0) {
+        const primary = product.images.find(img => img.is_primary);
+        return primary ? primary.image_path : product.images[0].image_path;
+    }
+    return product.image_path;
+};
 </script>
 
 <template>
@@ -96,7 +104,7 @@ const getTotalStock = (variants) => {
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 h-10 w-10">
-                                                <img v-if="product.image_path" :src="'/storage/' + product.image_path" alt="" class="h-10 w-10 rounded-md object-cover" />
+                                                <img v-if="getMainImage(product)" :src="'/storage/' + getMainImage(product)" alt="" class="h-10 w-10 rounded-md object-cover" />
                                                 <div v-else class="h-10 w-10 rounded-md bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                                                     <ShoppingBagIcon class="h-6 w-6 text-gray-400" />
                                                 </div>
@@ -165,7 +173,7 @@ const getTotalStock = (variants) => {
                         <div class="h-48 w-full bg-gray-50 dark:bg-gray-900 relative flex items-center justify-center p-4">
                             <span v-if="product.is_preorder" class="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow z-10">Pre-Order</span>
                             <span :class="product.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded shadow z-10">{{ product.is_active ? 'Aktif' : 'Non-Aktif' }}</span>
-                            <img v-if="product.image_path" :src="'/storage/' + product.image_path" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                            <img v-if="getMainImage(product)" :src="'/storage/' + getMainImage(product)" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
                             <ShoppingBagIcon v-else class="w-16 h-16 text-gray-300 dark:text-gray-700" />
                         </div>
                         

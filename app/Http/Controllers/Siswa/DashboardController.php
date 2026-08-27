@@ -101,18 +101,25 @@ class DashboardController extends Controller
 
         // Ambil 4 produk terbaru untuk ditampilkan di Banner Store Dashboard
         $featuredProducts = \App\Models\Product::where('is_active', true)
-            ->with(['variants' => function ($q) {
-                $q->orderBy('price', 'asc');
-            }])
+            ->with([
+                'variants' => function ($q) {
+                    $q->orderBy('price', 'asc');
+                },
+                'images'
+            ])
             ->latest()
             ->take(4)
             ->get()
             ->map(function ($product) {
                 $lowestPrice = $product->variants->first() ? $product->variants->first()->price : 0;
+                
+                $primaryImage = $product->images->firstWhere('is_primary', true) ?? $product->images->first();
+                $imagePath = $primaryImage ? $primaryImage->image_path : $product->image_path;
+                
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'image_url' => $product->image_path ? '/storage/' . $product->image_path : null,
+                    'image_url' => $imagePath ? '/storage/' . $imagePath : null,
                     'price_formatted' => 'Rp ' . number_format($lowestPrice, 0, ',', '.'),
                     'slug' => $product->slug,
                 ];
