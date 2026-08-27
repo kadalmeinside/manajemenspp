@@ -127,7 +127,7 @@ const handleScroll = () => {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
         showBottomNav.value = true;
-    }, 1500);
+    }, 600);
 };
 
 onMounted(() => {
