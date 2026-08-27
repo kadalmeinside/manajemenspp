@@ -253,12 +253,12 @@ const submitAgreement = () => {
                 </div>
 
                 <!-- Center: Student Selector -->
-                <div v-if="userSiswas.length > 0" class="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+                <div v-if="userSiswas.length > 0" class="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-auto h-[48px] flex items-center justify-center">
                     <Dropdown v-if="userSiswas.length > 1" align="center" width="48">
                         <template #trigger>
-                            <button class="flex items-center bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md px-3 py-2 rounded-2xl hover:bg-gray-800 transition-colors">
-                                <span class="text-white text-xs font-bold truncate max-w-[90px] xs:max-w-[110px]">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
-                                <ChevronDownIcon class="ml-1 h-4 w-4 text-gray-300" />
+                            <button class="flex items-center px-2 py-1 rounded-lg focus:outline-none group">
+                                <span class="text-white text-base font-extrabold tracking-wide drop-shadow-md truncate max-w-[100px] xs:max-w-[130px] group-hover:text-gray-200 transition-colors">{{ activeSiswa?.nama_siswa || 'Pilih Siswa' }}</span>
+                                <ChevronDownIcon class="ml-1 h-5 w-5 text-white drop-shadow-md group-hover:text-gray-200 transition-colors" />
                             </button>
                         </template>
                         <template #content>
@@ -275,8 +275,8 @@ const submitAgreement = () => {
                             </div>
                         </template>
                     </Dropdown>
-                    <div v-else class="flex items-center bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md px-3 py-2 rounded-2xl cursor-default">
-                        <span class="text-white text-xs font-bold truncate max-w-[90px] xs:max-w-[110px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
+                    <div v-else class="flex items-center px-2 py-1 cursor-default">
+                        <span class="text-white text-base font-extrabold tracking-wide drop-shadow-md truncate max-w-[100px] xs:max-w-[130px]">{{ activeSiswa?.nama_siswa || 'Siswa' }}</span>
                     </div>
                 </div>
 
