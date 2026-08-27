@@ -277,7 +277,7 @@ onUnmounted(() => {
             <!-- Non-Fixed Mobile Header (Scrolls Away) -->
             <div class="md:hidden pt-4 px-4 pb-2 flex items-center space-x-3">
                 <!-- Left: Logo Box -->
-                <div class="bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-xl py-2 px-3 flex items-center shrink-0">
+                <div class="bg-gray-900/70 backdrop-blur-lg border border-gray-700/50 shadow-md rounded-xl h-[52px] px-3 flex items-center shrink-0">
                     <Link :href="route('dashboard')" class="flex items-center">
                         <img v-if="appLogo" :src="`/storage/${appLogo}`" alt="App Logo" class="h-8 w-auto">
                         <ApplicationLogo v-else class="h-8 w-auto fill-current text-white" />
@@ -334,7 +334,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Mobile Page Title Slot -->
-            <div class="md:hidden px-4 pb-2">
+            <div class="md:hidden px-4 pt-6 pb-2">
                 <slot name="header" />
             </div>
 
