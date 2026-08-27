@@ -129,8 +129,13 @@ const addToCart = () => {
                             <span class="text-xs md:text-sm font-bold text-red-500 dark:text-red-400 mb-2 uppercase tracking-widest">{{ product.category }}</span>
                             <h1 class="text-2xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight">{{ product.name }}</h1>
                             
-                            <div class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 mb-6">
-                                {{ selectedVariant ? formatRupiah(selectedVariant.price) : 'Pilih Varian' }}
+                            <div class="mb-6">
+                                <span v-if="selectedVariant" class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
+                                    {{ formatRupiah(selectedVariant.price) }}
+                                </span>
+                                <span v-else class="text-lg font-bold text-gray-500 dark:text-gray-400">
+                                    Mulai dari <span class="text-xl text-gray-800 dark:text-gray-200">{{ formatRupiah(Math.min(...product.variants.map(v => v.price))) }}</span>
+                                </span>
                             </div>
 
                             <div v-if="product.description" class="prose prose-sm dark:prose-invert text-gray-600 dark:text-gray-400 mb-8">
