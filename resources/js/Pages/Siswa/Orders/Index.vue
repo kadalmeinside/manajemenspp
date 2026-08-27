@@ -27,6 +27,10 @@ const getStatusBadgeClass = (status) => {
             return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shadow-sm';
         case 'COMPLETED':
             return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 shadow-sm';
+        case 'CANCELLED':
+        case 'EXPIRED':
+        case 'FAILED':
+            return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border border-red-200 dark:border-red-800 shadow-sm';
         default:
             return 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-400 border border-gray-200 dark:border-gray-800 shadow-sm';
     }
@@ -53,6 +57,12 @@ const getStatusText = (status) => {
             return 'Menunggu Pembayaran';
         case 'COMPLETED':
             return 'Selesai (Sudah Diambil)';
+        case 'CANCELLED':
+            return 'Dibatalkan';
+        case 'EXPIRED':
+            return 'Kedaluwarsa';
+        case 'FAILED':
+            return 'Gagal';
         default:
             return status;
     }
