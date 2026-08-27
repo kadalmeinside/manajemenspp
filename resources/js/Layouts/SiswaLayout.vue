@@ -334,7 +334,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Mobile Page Title Slot -->
-            <div class="md:hidden px-4 pt-6 pb-2">
+            <div v-if="$slots.header" class="md:hidden px-4 pt-6 pb-2">
                 <slot name="header" />
             </div>
 
