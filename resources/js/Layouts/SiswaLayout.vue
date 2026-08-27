@@ -343,7 +343,7 @@ onUnmounted(() => {
                 <slot />
             </main>
             
-            <footer class="py-8 px-6 text-center text-sm text-gray-400 dark:text-gray-500 mt-auto">
+            <footer class="hidden md:block py-8 px-6 text-center text-sm text-gray-400 dark:text-gray-500 mt-auto">
                 <p class="font-medium text-gray-500 dark:text-gray-400">Copyright &copy; 2026 {{ appName }}</p>
                 <div class="mt-3 flex items-center justify-center space-x-4">
                     <Link :href="route('legal.terms')" class="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors">Syarat & Ketentuan</Link>
