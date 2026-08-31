@@ -161,6 +161,10 @@ const mutasiForm = useForm({
     start_month: '',
 });
 
+const availableKelasMutasi = computed(() => {
+    return props.allKelas.filter(k => k.id_kelas !== props.siswa.id_kelas);
+});
+
 const mutasiSppFormatted = computed({
     get() {
         const numberValue = parseFloat(mutasiForm.spp_baru);
@@ -188,7 +192,7 @@ const handleKelasMutasiChange = () => {
     }
     const selectedKelas = props.allKelas.find(k => k.id_kelas === mutasiForm.to_kelas_id);
     if (selectedKelas && selectedKelas.biaya_spp_default) {
-        mutasiForm.spp_baru = selectedKelas.biaya_spp_default;
+        mutasiForm.spp_baru = parseInt(selectedKelas.biaya_spp_default, 10);
     }
 };
 
@@ -1063,7 +1067,7 @@ const underDevelopmentAlert = () => {
                                 required
                             >
                                 <option value="" disabled>-- Pilih Kelas Baru --</option>
-                                <option v-for="kelas in allKelas" :key="kelas.id_kelas" :value="kelas.id_kelas">
+                                <option v-for="kelas in availableKelasMutasi" :key="kelas.id_kelas" :value="kelas.id_kelas">
                                     {{ kelas.nama_kelas }}
                                 </option>
                             </select>
