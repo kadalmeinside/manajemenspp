@@ -255,7 +255,7 @@ class SiswaController extends Controller
             'expiredInvoices' => $expiredInvoices->map(fn($invoice) => $this->formatInvoiceForDetail($invoice)),
             'filters' => ['tahun' => (int)$selectedTahun],
             'availableYears' => $availableYears,
-            'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']),
+            'allKelas' => Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas', 'biaya_spp_default']),
             'statusSiswaOptions' => ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar'],
             'legalAgreements' => $agreements->map(function($agreement) {
                 return [
