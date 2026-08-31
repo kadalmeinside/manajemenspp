@@ -30,7 +30,7 @@ class ProfileController extends Controller
         $siswa = $this->getActiveSiswa($user);
         
         if ($siswa) {
-            $siswa->load('kelas');
+            $siswa->load(['kelas', 'mutasiSiswas.fromKelas', 'mutasiSiswas.toKelas']);
         }
 
         // Handle jika akun user ini tidak terhubung dengan data siswa manapun
@@ -57,6 +57,17 @@ class ProfileController extends Controller
                     'biaya_spp_default_formatted' => $siswa->kelas->biaya_spp_default ? 'Rp ' . number_format($siswa->kelas->biaya_spp_default, 0, ',', '.') : '-',
                 ] : null,
             ],
+            'mutasiSiswas' => $siswa->mutasiSiswas->map(function($mutasi) {
+                return [
+                    'id' => $mutasi->id,
+                    'from_kelas' => $mutasi->fromKelas ? $mutasi->fromKelas->nama_kelas : '-',
+                    'to_kelas' => $mutasi->toKelas ? $mutasi->toKelas->nama_kelas : '-',
+                    'start_month' => \Carbon\Carbon::createFromFormat('Y-m', $mutasi->start_month)->isoFormat('MMMM YYYY'),
+                    'spp_baru' => $mutasi->spp_baru,
+                    'status' => $mutasi->status,
+                    'created_at' => $mutasi->created_at->isoFormat('D MMMM YYYY, HH:mm'),
+                ];
+            }),
             'pageTitle' => 'Profil Saya',
         ]);
     }

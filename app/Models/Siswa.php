@@ -148,4 +148,9 @@ class Siswa extends Model
     {
         return $this->hasMany(Order::class, 'siswa_id', 'id_siswa');
     }
+
+    public function mutasiSiswas()
+    {
+        return $this->hasMany(MutasiSiswa::class, 'siswa_id', 'id_siswa');
+    }
 }

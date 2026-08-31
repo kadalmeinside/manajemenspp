@@ -29,6 +29,7 @@ const props = defineProps({
     statusSiswaOptions: { type: Array, default: () => [] },
     resignationUrl: String,
     legalAgreements: { type: Array, default: () => [] },
+    mutasiSiswas: { type: Array, default: () => [] },
 });
 
 const downloadIdCard = async () => {
@@ -141,8 +142,83 @@ const closeModal = () => {
     isEditWaliOpen.value = false;
     isEditAkademikOpen.value = false;
     isEditKeuanganOpen.value = false;
+    isPreviewIdCardOpen.value = false;
+    isMutasiModalOpen.value = false;
     form.reset();
     form.clearErrors();
+    mutasiForm.reset();
+    mutasiForm.clearErrors();
+};
+
+const hasPendingMutasi = computed(() => {
+    return props.mutasiSiswas.some(m => m.status === 'PENDING' && !m.is_expired);
+});
+
+const isMutasiModalOpen = ref(false);
+const mutasiForm = useForm({
+    to_kelas_id: '',
+    spp_baru: null,
+    start_month: '',
+});
+
+const mutasiSppFormatted = computed({
+    get() {
+        const numberValue = parseFloat(mutasiForm.spp_baru);
+        if (isNaN(numberValue)) return '';
+        return new Intl.NumberFormat('id-ID').format(numberValue);
+    },
+    set(newValue) {
+        const numericString = newValue.replace(/[^0-9]/g, '');
+        mutasiForm.spp_baru = numericString ? parseInt(numericString, 10) : null;
+    }
+});
+
+const openMutasiModal = () => {
+    mutasiForm.reset();
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    mutasiForm.start_month = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    isMutasiModalOpen.value = true;
+};
+
+const handleKelasMutasiChange = () => {
+    if (!mutasiForm.to_kelas_id) {
+        mutasiForm.spp_baru = null;
+        return;
+    }
+    const selectedKelas = props.allKelas.find(k => k.id_kelas === mutasiForm.to_kelas_id);
+    if (selectedKelas && selectedKelas.biaya_spp_default) {
+        mutasiForm.spp_baru = selectedKelas.biaya_spp_default;
+    }
+};
+
+const submitMutasi = () => {
+    mutasiForm.post(route('admin.mutasi.store', props.siswa.id_siswa), {
+        preserveScroll: true,
+        onSuccess: () => closeModal(),
+    });
+};
+
+const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Link berhasil disalin ke clipboard!');
+    });
+};
+
+const regenerateMutasi = (mutasiId) => {
+    if (confirm('Anda yakin ingin memperbarui link mutasi ini?')) {
+        router.post(route('admin.mutasi.regenerate', mutasiId), {}, {
+            preserveScroll: true,
+        });
+    }
+};
+
+const cancelMutasi = (mutasiId) => {
+    if (confirm('Anda yakin ingin membatalkan permohonan mutasi ini?')) {
+        router.post(route('admin.mutasi.cancel', mutasiId), {}, {
+            preserveScroll: true,
+        });
+    }
 };
 
 const submitUpdate = () => {
@@ -401,6 +477,13 @@ const underDevelopmentAlert = () => {
                                 <DropdownLink v-if="!['Keluar', 'pending_payment'].includes(siswa.status_siswa)" :href="route('admin.leaves.index') + '?create_for=' + siswa.id_siswa" class="flex items-center text-gray-700 dark:text-gray-300">
                                     <CalendarIcon class="h-4 w-4 mr-2 text-indigo-500" /> Ajukan Cuti
                                 </DropdownLink>
+                                <!-- Shortcut: Pindah Cabang / Kelas -->
+                                <button v-if="siswa.status_siswa === 'Aktif'" @click="openMutasiModal" :disabled="hasPendingMutasi" :class="{'opacity-50 cursor-not-allowed': hasPendingMutasi}" class="w-full text-left block w-full px-4 py-2 text-sm leading-5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800 transition duration-150 ease-in-out flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4 mr-2 text-blue-500">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                    </svg>
+                                    {{ hasPendingMutasi ? 'Mutasi Pending...' : 'Pindah Cabang/Kelas' }}
+                                </button>
                                 
                                 <div class="border-t border-gray-100 dark:border-gray-700"></div>
 
@@ -649,6 +732,76 @@ const underDevelopmentAlert = () => {
                 </div>
             </div>
 
+            <!-- Riwayat Mutasi Cabang -->
+            <div v-if="mutasiSiswas && mutasiSiswas.length > 0" class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700 mb-6">
+                <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                    <h3 class="text-lg leading-6 font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2 text-blue-500">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                        </svg>
+                        Riwayat Pindah Cabang / Kelas
+                    </h3>
+                </div>
+                <div class="px-4 py-5 sm:p-6 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-800/50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tanggal Dibuat</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas Lama</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kelas Baru</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr v-for="mutasi in mutasiSiswas" :key="mutasi.id">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                    {{ mutasi.created_at }}<br>
+                                    <span class="text-xs">oleh {{ mutasi.created_by_name }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                    {{ mutasi.from_kelas }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                    {{ mutasi.to_kelas }}<br>
+                                    <span class="text-xs text-gray-500">Mulai: {{ mutasi.start_month }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                    <span v-if="mutasi.status === 'APPROVED'" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Disetujui</span>
+                                    <span v-else-if="mutasi.status === 'PENDING' && !mutasi.is_expired" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Menunggu</span>
+                                    <span v-else-if="mutasi.status === 'PENDING' && mutasi.is_expired" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Kedaluwarsa</span>
+                                    <span v-else-if="mutasi.status === 'EXPIRED'" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Kedaluwarsa</span>
+                                    <span v-else class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Dibatalkan</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                    <div v-if="mutasi.status === 'PENDING' && !mutasi.is_expired" class="flex items-center space-x-2">
+                                        <button @click="copyToClipboard(route('mutasi.show', mutasi.token))" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs" title="Copy Link Persetujuan">
+                                            Copy Link
+                                        </button>
+                                        <span class="text-gray-300">|</span>
+                                        <button @click="cancelMutasi(mutasi.id)" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs" title="Batalkan Permohonan">
+                                            Batal
+                                        </button>
+                                    </div>
+                                    <div v-else-if="mutasi.is_expired || mutasi.status === 'EXPIRED'">
+                                        <button @click="regenerateMutasi(mutasi.id)" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-xs" title="Regenerate Link">
+                                            Regenerate Link
+                                        </button>
+                                    </div>
+                                    <div v-else-if="mutasi.status === 'APPROVED'">
+                                        <span class="text-xs text-green-600">Disetujui oleh: {{ mutasi.agreed_by }}</span><br>
+                                        <span class="text-xs text-gray-500">{{ mutasi.agreed_at }}</span>
+                                    </div>
+                                    <div v-else>
+                                        -
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Riwayat Invoice -->
             <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
                  <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -879,6 +1032,80 @@ const underDevelopmentAlert = () => {
                     <div class="mt-6 flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                         <SecondaryButton @click="closeModal" type="button" :disabled="form.processing"> Batal </SecondaryButton>
                         <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing"> Simpan </PrimaryButton>
+                    </div>
+                </form>
+            </div>
+        </Modal>
+
+        <!-- Modal Pindah Cabang / Kelas (Mutasi) -->
+        <Modal :show="isMutasiModalOpen" @close="closeModal" maxWidth="md">
+            <div class="p-4 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6 border-b pb-3 dark:border-gray-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mr-2 text-blue-500">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>
+                    Pindah Cabang / Kelas
+                </h2>
+                
+                <form @submit.prevent="submitMutasi">
+                    <div class="space-y-4">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Fitur ini akan menghasilkan <strong>Link Persetujuan</strong> yang bisa dibagikan ke orang tua/wali siswa. Kepindahan siswa baru akan diproses setelah wali menyetujuinya.
+                        </p>
+                        
+                        <div>
+                            <InputLabel for="mutasi_to_kelas" value="Cabang / Kelas Baru" />
+                            <select
+                                id="mutasi_to_kelas"
+                                v-model="mutasiForm.to_kelas_id"
+                                @change="handleKelasMutasiChange"
+                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                required
+                            >
+                                <option value="" disabled>-- Pilih Kelas Baru --</option>
+                                <option v-for="kelas in allKelas" :key="kelas.id_kelas" :value="kelas.id_kelas">
+                                    {{ kelas.nama_kelas }}
+                                </option>
+                            </select>
+                            <InputError class="mt-2" :message="mutasiForm.errors.to_kelas_id" />
+                        </div>
+
+                        <div>
+                            <InputLabel for="mutasi_spp_baru" value="Nominal SPP Baru" />
+                            <div class="relative mt-1 rounded-md shadow-sm">
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span class="text-gray-500 dark:text-gray-400 sm:text-sm">Rp</span>
+                                </div>
+                                <TextInput
+                                    id="mutasi_spp_baru"
+                                    type="text"
+                                    class="mt-1 block w-full pl-10"
+                                    v-model="mutasiSppFormatted"
+                                    placeholder="Contoh: 350.000"
+                                />
+                            </div>
+                            <InputError class="mt-2" :message="mutasiForm.errors.spp_baru" />
+                            <p class="text-xs text-gray-500 mt-1">Otomatis terisi dari kelas terpilih. Bisa diubah (Custom).</p>
+                        </div>
+
+                        <div>
+                            <InputLabel for="mutasi_start_month" value="Mulai Berlaku SPP Baru (Bulan)" />
+                            <TextInput
+                                id="mutasi_start_month"
+                                type="month"
+                                class="mt-1 block w-full"
+                                v-model="mutasiForm.start_month"
+                                required
+                            />
+                            <InputError class="mt-2" :message="mutasiForm.errors.start_month" />
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <SecondaryButton @click="closeModal" type="button"> Batal </SecondaryButton>
+                        <PrimaryButton :class="{ 'opacity-25': mutasiForm.processing }" :disabled="mutasiForm.processing">
+                            Generate Link Mutasi
+                        </PrimaryButton>
                     </div>
                 </form>
             </div>

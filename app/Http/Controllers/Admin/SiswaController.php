@@ -241,6 +241,11 @@ class SiswaController extends Controller
             ->with('document')
             ->orderBy('agreed_at', 'desc')
             ->get();
+            
+        $mutasiSiswas = $siswa->mutasiSiswas()
+            ->with(['fromKelas', 'toKelas', 'creator'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('Admin/Siswa/Show', [
             'pageTitle' => 'Detail Siswa',
@@ -257,8 +262,25 @@ class SiswaController extends Controller
                     'id' => $agreement->id,
                     'document_name' => $agreement->document ? $agreement->document->name : 'Dokumen Tidak Diketahui',
                     'type' => $agreement->metadata['type'] ?? ($agreement->document ? $agreement->document->type : 'unknown'),
-                    'version' => $agreement->document ? $agreement->document->version : '-',
+                'version' => $agreement->document ? $agreement->document->version : '-',
                     'agreed_at' => $agreement->agreed_at->isoFormat('D MMMM YYYY, HH:mm'),
+                ];
+            }),
+            'mutasiSiswas' => $mutasiSiswas->map(function($mutasi) {
+                return [
+                    'id' => $mutasi->id,
+                    'from_kelas' => $mutasi->fromKelas ? $mutasi->fromKelas->nama_kelas : '-',
+                    'to_kelas' => $mutasi->toKelas ? $mutasi->toKelas->nama_kelas : '-',
+                    'start_month' => Carbon::createFromFormat('Y-m', $mutasi->start_month)->isoFormat('MMMM YYYY'),
+                    'spp_baru' => $mutasi->spp_baru,
+                    'status' => $mutasi->status,
+                    'token' => $mutasi->token,
+                    'expires_at' => $mutasi->expires_at->isoFormat('D MMMM YYYY, HH:mm'),
+                    'is_expired' => $mutasi->expires_at < now() && $mutasi->status === 'PENDING',
+                    'agreed_by' => $mutasi->agreed_by,
+                    'agreed_at' => $mutasi->agreed_at ? $mutasi->agreed_at->isoFormat('D MMMM YYYY, HH:mm') : null,
+                    'created_at' => $mutasi->created_at->isoFormat('D MMMM YYYY, HH:mm'),
+                    'created_by_name' => $mutasi->creator ? $mutasi->creator->name : '-',
                 ];
             }),
         ]);

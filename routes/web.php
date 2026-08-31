@@ -146,6 +146,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('siswa/{siswa}/mulai-spp', [SiswaController::class, 'setMulaiSpp'])->name('siswa.set_mulai_spp');
             Route::get('siswa/{siswa}/legal-pdf/{agreement}', [SiswaController::class, 'downloadLegalPdf'])->name('siswa.legal_pdf');
             Route::post('siswa/{siswa}/generate-resignation-url', [SiswaController::class, 'generateResignationUrl'])->name('siswa.generate_resignation_url');
+            
+            // Mutasi Siswa
+            Route::post('siswa/{siswa}/mutasi', [\App\Http\Controllers\Admin\MutasiSiswaController::class, 'store'])->name('mutasi.store');
+            Route::post('mutasi/{mutasi}/regenerate', [\App\Http\Controllers\Admin\MutasiSiswaController::class, 'regenerate'])->name('mutasi.regenerate');
+            Route::post('mutasi/{mutasi}/cancel', [\App\Http\Controllers\Admin\MutasiSiswaController::class, 'cancel'])->name('mutasi.cancel');
+            
             // Remove the delete route manually or let except(['destroy']) handle it
             Route::resource('siswa', SiswaController::class)->except(['destroy']);
             Route::get('invoices/export-paid', [InvoiceController::class, 'exportPaid'])->name('invoices.export_paid');
@@ -234,6 +240,10 @@ Route::controller(CekSppController::class)->group(function () {
 });
 
 Route::post('/cek-spp/agreements', [\App\Http\Controllers\UserAgreementController::class, 'storePublic'])->name('tagihan.spp.agreements.store');
+
+// Route Publik Mutasi Siswa
+Route::get('/mutasi/{token}', [\App\Http\Controllers\Public\MutasiController::class, 'show'])->name('mutasi.show');
+Route::post('/mutasi/{token}/approve', [\App\Http\Controllers\Public\MutasiController::class, 'approve'])->name('mutasi.approve');
 
 require __DIR__.'/auth.php';
 
