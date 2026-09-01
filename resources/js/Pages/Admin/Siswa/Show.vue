@@ -208,27 +208,48 @@ const isCopyModalOpen = ref(false);
 const currentMutasiLink = ref('');
 const hasCopiedLink = ref(false);
 
+const executeCopy = (text) => {
+    if (!navigator.clipboard) {
+        // Fallback for non-HTTPS context (like http://laravue.test)
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";  // Avoid scrolling to bottom
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            if (document.execCommand('copy')) {
+                hasCopiedLink.value = true;
+                setTimeout(() => { hasCopiedLink.value = false; }, 3000);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed', err);
+        }
+        document.body.removeChild(textArea);
+        return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+        hasCopiedLink.value = true;
+        setTimeout(() => {
+            hasCopiedLink.value = false;
+        }, 3000);
+    }).catch(err => {
+        console.error('Async copy failed', err);
+    });
+};
+
 const openCopyLinkModal = (text) => {
     currentMutasiLink.value = text;
     hasCopiedLink.value = false;
     isCopyModalOpen.value = true;
     
     // Auto-copy
-    navigator.clipboard.writeText(text).then(() => {
-        hasCopiedLink.value = true;
-        setTimeout(() => {
-            hasCopiedLink.value = false;
-        }, 3000);
-    });
+    executeCopy(text);
 };
 
 const manualCopyLink = () => {
-    navigator.clipboard.writeText(currentMutasiLink.value).then(() => {
-        hasCopiedLink.value = true;
-        setTimeout(() => {
-            hasCopiedLink.value = false;
-        }, 3000);
-    });
+    executeCopy(currentMutasiLink.value);
 };
 
 const regenerateMutasi = (mutasiId) => {
@@ -1194,7 +1215,7 @@ const underDevelopmentAlert = () => {
                 <div class="flex items-center space-x-2">
                     <TextInput 
                         readonly 
-                        :value="currentMutasiLink" 
+                        :modelValue="currentMutasiLink" 
                         class="block w-full text-sm text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400"
                         @focus="$event.target.select()"
                     />
