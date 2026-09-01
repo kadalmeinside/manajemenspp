@@ -2,7 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
-import { ArrowLeftIcon, PencilIcon, LinkIcon, BanknotesIcon, UserIcon, BookOpenIcon, CheckBadgeIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, CalendarDaysIcon, CurrencyDollarIcon, EnvelopeIcon, PhoneIcon, ChevronDownIcon, CalendarIcon, PlusIcon, ChatBubbleLeftEllipsisIcon, ArrowDownTrayIcon, ShareIcon, QrCodeIcon, ArrowRightOnRectangleIcon, ClipboardDocumentIcon } from '@heroicons/vue/20/solid';
+import { ArrowLeftIcon, PencilIcon, LinkIcon, BanknotesIcon, UserIcon, BookOpenIcon, CheckBadgeIcon, ExclamationTriangleIcon, DocumentArrowDownIcon, CalendarDaysIcon, CurrencyDollarIcon, EnvelopeIcon, PhoneIcon, ChevronDownIcon, CalendarIcon, PlusIcon, ChatBubbleLeftEllipsisIcon, ArrowDownTrayIcon, ShareIcon, QrCodeIcon, ArrowRightOnRectangleIcon, ClipboardDocumentIcon, XMarkIcon } from '@heroicons/vue/20/solid';
 import { debounce } from 'lodash';
 import axios from 'axios';
 import Modal from '@/Components/Modal.vue';
@@ -144,6 +144,7 @@ const closeModal = () => {
     isEditKeuanganOpen.value = false;
     isPreviewIdCardOpen.value = false;
     isMutasiModalOpen.value = false;
+    isCopyModalOpen.value = false;
     form.reset();
     form.clearErrors();
     mutasiForm.reset();
@@ -203,9 +204,30 @@ const submitMutasi = () => {
     });
 };
 
-const copyToClipboard = (text) => {
+const isCopyModalOpen = ref(false);
+const currentMutasiLink = ref('');
+const hasCopiedLink = ref(false);
+
+const openCopyLinkModal = (text) => {
+    currentMutasiLink.value = text;
+    hasCopiedLink.value = false;
+    isCopyModalOpen.value = true;
+    
+    // Auto-copy
     navigator.clipboard.writeText(text).then(() => {
-        alert('Link berhasil disalin ke clipboard!');
+        hasCopiedLink.value = true;
+        setTimeout(() => {
+            hasCopiedLink.value = false;
+        }, 3000);
+    });
+};
+
+const manualCopyLink = () => {
+    navigator.clipboard.writeText(currentMutasiLink.value).then(() => {
+        hasCopiedLink.value = true;
+        setTimeout(() => {
+            hasCopiedLink.value = false;
+        }, 3000);
     });
 };
 
@@ -779,12 +801,11 @@ const underDevelopmentAlert = () => {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                                     <div v-if="mutasi.status === 'PENDING' && !mutasi.is_expired" class="flex items-center space-x-2">
-                                        <button @click="copyToClipboard(route('mutasi.show', mutasi.token))" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs" title="Copy Link Persetujuan">
-                                            Copy Link
+                                        <button @click="openCopyLinkModal(route('mutasi.show', mutasi.token))" class="text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 p-1.5 rounded-md transition-colors" title="Copy Link Persetujuan">
+                                            <ClipboardDocumentIcon class="h-4 w-4" />
                                         </button>
-                                        <span class="text-gray-300">|</span>
-                                        <button @click="cancelMutasi(mutasi.id)" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-xs" title="Batalkan Permohonan">
-                                            Batal
+                                        <button @click="cancelMutasi(mutasi.id)" class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50 p-1.5 rounded-md transition-colors" title="Batalkan Permohonan">
+                                            <XMarkIcon class="h-4 w-4" />
                                         </button>
                                     </div>
                                     <div v-else-if="mutasi.is_expired || mutasi.status === 'EXPIRED'">
@@ -1118,12 +1139,22 @@ const underDevelopmentAlert = () => {
         <!-- Modal Konfirmasi Pembayaran Manual -->
         <Modal :show="showManualPayConfirmModal" @close="showManualPayConfirmModal = false" maxWidth="md">
             <div class="p-4 sm:p-6">
-                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                    <CurrencyDollarIcon class="h-6 w-6 mr-2 text-green-500" />
                     Konfirmasi Pembayaran Manual
                 </h2>
-                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Apakah Anda yakin ingin menandai invoice untuk <span class="font-semibold">{{ getShortDescription(invoiceToMarkAsPaid?.description) }}</span> sebagai LUNAS?
-                    <br><br>
+                <div class="bg-yellow-50 dark:bg-yellow-900 p-4 rounded-md border border-yellow-200 dark:border-yellow-700">
+                    <p class="text-sm text-yellow-700 dark:text-yellow-300 font-semibold mb-2">
+                        Anda akan menandai tagihan bulan <span class="font-bold underline">{{ invoiceToMarkAsPaid?.bulan }}</span> sebagai LUNAS.
+                    </p>
+                    <ul class="text-sm text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-1 mt-2">
+                        <li>Total yang dibayar: <span class="font-bold font-mono bg-yellow-100 dark:bg-yellow-800 px-1 rounded">{{ invoiceToMarkAsPaid?.total_tagihan_formatted }}</span></li>
+                        <li v-if="invoiceToMarkAsPaid?.spp_tagihan">Tagihan SPP: {{ invoiceToMarkAsPaid?.spp_tagihan_formatted }}</li>
+                        <li v-if="invoiceToMarkAsPaid?.admin_fee_tagihan">Admin Fee: {{ invoiceToMarkAsPaid?.admin_fee_tagihan_formatted }}</li>
+                    </ul>
+                </div>
+                
+                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
                     Aksi ini akan mencatat pembayaran sebagai transaksi manual (misal: tunai/transfer langsung) dan tidak dapat dibatalkan.
                 </p>
 
@@ -1144,6 +1175,38 @@ const underDevelopmentAlert = () => {
                     <PrimaryButton @click="markAsPaid" :class="{ 'opacity-25': manualPayForm.processing }" :disabled="manualPayForm.processing" class="bg-green-600 hover:bg-green-700 focus:ring-green-500">
                         Ya, Tandai Lunas
                     </PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Modal Copy Link Mutasi -->
+        <Modal :show="isCopyModalOpen" @close="closeModal" maxWidth="md">
+            <div class="p-4 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                    <LinkIcon class="h-5 w-5 mr-2 text-indigo-500" />
+                    Link Persetujuan Mutasi
+                </h2>
+                
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Kirimkan link ini ke orang tua/wali murid agar mereka dapat meninjau dan menyetujui mutasi cabang/kelas.
+                </p>
+
+                <div class="flex items-center space-x-2">
+                    <TextInput 
+                        readonly 
+                        :value="currentMutasiLink" 
+                        class="block w-full text-sm text-gray-500 bg-gray-50 dark:bg-gray-800 dark:text-gray-400"
+                        @focus="$event.target.select()"
+                    />
+                    <PrimaryButton @click="manualCopyLink" type="button" class="flex-shrink-0" :disabled="hasCopiedLink">
+                        <ClipboardDocumentIcon v-if="!hasCopiedLink" class="h-4 w-4 mr-2" />
+                        <CheckBadgeIcon v-else class="h-4 w-4 mr-2" />
+                        {{ hasCopiedLink ? 'Tersalin!' : 'Copy' }}
+                    </PrimaryButton>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <SecondaryButton @click="closeModal" type="button"> Tutup </SecondaryButton>
                 </div>
             </div>
         </Modal>
