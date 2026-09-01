@@ -79,7 +79,38 @@ class SiswaController extends Controller
 
         $allStatusSiswa = ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar'];
 
+        // --- Calculate Statistics ---
+        $statsQuery = Siswa::query();
+        if ($user->hasRole('admin_kelas')) {
+            $statsQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+        if ($request->filled('kelas_id') && $request->input('kelas_id') !== '') {
+            $statsQuery->where('id_kelas', $request->input('kelas_id'));
+        }
+
+        $now = Carbon::now();
+        $totalAktif = (clone $statsQuery)->where('status_siswa', 'Aktif')->count();
+        $totalNonAktif = (clone $statsQuery)->whereIn('status_siswa', ['Non-Aktif', 'Keluar', 'Lulus'])->count();
+        $totalBaru = (clone $statsQuery)->whereMonth('tanggal_bergabung', $now->month)
+                                        ->whereYear('tanggal_bergabung', $now->year)
+                                        ->count();
+        
+        $totalCuti = \App\Models\StudentLeave::where('month', $now->month)
+                        ->where('year', $now->year)
+                        ->where('status', 'approved')
+                        ->whereIn('id_siswa', (clone $statsQuery)->select('id_siswa'))
+                        ->count();
+
+        $statistics = [
+            'total_aktif' => $totalAktif,
+            'total_cuti' => $totalCuti,
+            'total_nonaktif' => $totalNonAktif,
+            'total_baru' => $totalBaru,
+        ];
+        // -----------------------------
+
         return Inertia::render('Admin/Siswa/Index', [
+            'statistics' => $statistics,
             'siswaList' => $siswaList->through(fn($siswa) => [
                 'id_siswa' => $siswa->id_siswa,
                 'nama_siswa' => $siswa->nama_siswa,

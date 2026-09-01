@@ -11,6 +11,7 @@ import TextInput from '@/Components/TextInput.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import Toast from '@/Components/Toast.vue';
 import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, Squares2X2Icon, Bars3Icon, FunnelIcon, XMarkIcon } from '@heroicons/vue/20/solid';
+import { UserGroupIcon, UserMinusIcon, SparklesIcon, PauseCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 import Pagination from '@/Components/Pagination.vue';
@@ -22,6 +23,7 @@ const filters = computed(() => page.props.filters || { search: '', kelas_id: '',
 const allKelas = computed(() => page.props.allKelas || []);
 const allStatusSiswa = computed(() => page.props.allStatusSiswa || ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar']);
 const can = computed(() => page.props.can || {});
+const statistics = computed(() => page.props.statistics || { total_aktif: 0, total_cuti: 0, total_nonaktif: 0, total_baru: 0 });
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
 
@@ -233,8 +235,57 @@ onMounted(() => {
 
         <Toast :message="flashMessage" :type="flashType" />
 
-        <div class="pb-12 pt-0 md:pt-4">
-            <div class="max-w-full mx-auto px-1 sm:px-0">
+        <!-- Stat Cards Section -->
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:mt-6 mb-2">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Aktif -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Aktif</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ statistics.total_aktif }}</p>
+                    </div>
+                    <div class="p-3 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-xl group-hover:scale-110 transition-transform">
+                        <UserGroupIcon class="h-6 w-6" />
+                    </div>
+                </div>
+                
+                <!-- Baru -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Baru (Bulan Ini)</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ statistics.total_baru }}</p>
+                    </div>
+                    <div class="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl group-hover:scale-110 transition-transform">
+                        <SparklesIcon class="h-6 w-6" />
+                    </div>
+                </div>
+
+                <!-- Cuti -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Sedang Cuti</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ statistics.total_cuti }}</p>
+                    </div>
+                    <div class="p-3 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-xl group-hover:scale-110 transition-transform">
+                        <PauseCircleIcon class="h-6 w-6" />
+                    </div>
+                </div>
+
+                <!-- Nonaktif / Keluar -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group hover:shadow-md transition-shadow">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Nonaktif/Keluar</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ statistics.total_nonaktif }}</p>
+                    </div>
+                    <div class="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl group-hover:scale-110 transition-transform">
+                        <UserMinusIcon class="h-6 w-6" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pb-12 pt-4 md:pt-4">
+            <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
                 <!-- MOBILE: Search & Info Card (Sticky) -->
                 <div class="sticky -top-4 z-10 bg-white dark:bg-gray-800 -mx-4 -mt-8 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
                     <div class="flex gap-2">
