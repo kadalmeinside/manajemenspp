@@ -24,14 +24,8 @@ class ReRegistrationController extends Controller
      */
     public function create()
     {
-        // Ambil dokumen legal berdasarkan name (UNIQUE di DB), bukan UUID hardcoded
-        // Fallback ke dokumen terms_and_conditions terbaru jika nama tidak ditemukan
-        $terms = LegalDocument::where('name', 'daftar-ulang-soccer-school')
-                              ->latest('published_at')
-                              ->first()
-                       ?? LegalDocument::where('type', 'terms_and_conditions')
-                              ->latest('published_at')
-                              ->first();
+        $docId = \App\Models\Setting::where('key', 'legal_doc_re_registration')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : null;
 
         return Inertia::render('Public/ReRegister', [
             'pageTitle'     => 'Formulir Daftar Ulang Siswa',
@@ -45,7 +39,7 @@ class ReRegistrationController extends Controller
         $academyClass = Kelas::where('nama_kelas', 'Persija Academy')->firstOrFail();
         
         $docId = \App\Models\Setting::where('key', 'legal_doc_registration_academy')->value('value');
-        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::where('type', 'terms_and_conditions')->latest('published_at')->first();
+        $terms = $docId ? LegalDocument::find($docId) : null;
 
         return Inertia::render('Public/ReRegisterAcademy', [
             'pageTitle'     => 'Formulir Daftar Ulang Siswa Academy',
@@ -57,7 +51,7 @@ class ReRegistrationController extends Controller
     public function createSs()
     {
         $docId = \App\Models\Setting::where('key', 'legal_doc_registration_ss')->value('value');
-        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::where('type', 'terms_and_conditions')->latest('published_at')->first();
+        $terms = $docId ? LegalDocument::find($docId) : null;
 
         return Inertia::render('Public/ReRegisterSs', [
             'pageTitle'     => 'Formulir Daftar Ulang Siswa Soccer School',
