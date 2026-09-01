@@ -109,7 +109,8 @@ class SettingsController extends Controller
             'legal_doc_registration_academy',
             'legal_doc_registration_ss',
             'legal_doc_re_registration',
-            'legal_doc_resignation'
+            'legal_doc_resignation',
+            'legal_doc_mutasi'
         ];
 
         foreach ($legalSettings as $key) {

@@ -22,7 +22,14 @@ class MutasiController extends Controller
             $mutasi->update(['status' => 'EXPIRED']);
         }
 
-        $document = LegalDocument::where('name', 'pindah-cabang-terms')->first();
+        $legalDocId = \App\Models\Setting::where('key', 'legal_doc_mutasi')->value('value');
+        $document = null;
+        if ($legalDocId) {
+            $document = LegalDocument::find($legalDocId);
+        } else {
+            // Fallback
+            $document = LegalDocument::where('name', 'pindah-cabang-terms')->first();
+        }
 
         return Inertia::render('Public/Mutasi/Show', [
             'mutasi' => $mutasi,

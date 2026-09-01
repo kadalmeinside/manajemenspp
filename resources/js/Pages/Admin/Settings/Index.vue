@@ -21,6 +21,7 @@ const flashType = computed(() => page.props.flash?.type || 'info');
 
 const registrationDocs = computed(() => props.legalDocuments.filter(doc => doc.type === 'terms_and_conditions'));
 const resignationDocs = computed(() => props.legalDocuments.filter(doc => doc.type === 'resignation'));
+const mutasiDocs = computed(() => props.legalDocuments.filter(doc => doc.type === 'mutasi'));
 
 const form = useForm({
     app_name: props.settings.app_name || '',
@@ -36,6 +37,7 @@ const form = useForm({
     legal_doc_registration_ss: props.settings.legal_doc_registration_ss || '',
     legal_doc_re_registration: props.settings.legal_doc_re_registration || '',
     legal_doc_resignation: props.settings.legal_doc_resignation || '',
+    legal_doc_mutasi: props.settings.legal_doc_mutasi || '',
 });
 
 const logoPreview = ref(props.settings.app_logo ? `/storage/${props.settings.app_logo}` : null);
@@ -232,6 +234,13 @@ function submit() {
                                     <select v-model="form.legal_doc_resignation" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
                                         <option value="">-- Pilih Dokumen --</option>
                                         <option v-for="doc in resignationDocs" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <InputLabel value="Pindah Cabang / Kelas" />
+                                    <select v-model="form.legal_doc_mutasi" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                                        <option value="">-- Pilih Dokumen --</option>
+                                        <option v-for="doc in mutasiDocs" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
                                     </select>
                                 </div>
                             </div>

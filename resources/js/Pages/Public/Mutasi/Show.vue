@@ -1,7 +1,6 @@
 <script setup>
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import PublicLayout from '@/Layouts/PublicLayout.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -43,8 +42,8 @@ const submit = () => {
 <template>
     <Head title="Persetujuan Pindah Cabang" />
 
-    <PublicLayout>
-        <div class="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto">
             
             <div class="text-center mb-8">
                 <ArrowsRightLeftIcon class="mx-auto h-12 w-12 text-indigo-600" />
@@ -178,5 +177,5 @@ const submit = () => {
             </div>
             
         </div>
-    </PublicLayout>
+    </div>
 </template>
