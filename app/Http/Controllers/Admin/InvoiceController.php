@@ -253,6 +253,8 @@ class InvoiceController extends Controller
 
         $siswaDiKelas = Siswa::where('id_kelas', $kelas->id_kelas)
                             ->where('status_siswa', 'Aktif')
+                            ->whereNotNull('mulai_spp_date')
+                            ->whereDate('mulai_spp_date', '<=', $periodeTagihan->toDateString())
                             ->whereDoesntHave('invoices', fn($q) => $q->where('type', 'spp')->whereDate('periode_tagihan', $periodeTagihan->toDateString()))
                             ->with('user')->get();
 
