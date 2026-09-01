@@ -338,7 +338,7 @@ const activeMenuName = computed(() => {
         <div v-if="mobileSidebarOpen" @click="mobileSidebarOpen = false" class="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity md:hidden" aria-hidden="true"></div>
 
         <aside :class="[
-                    'fixed inset-y-0 left-0 z-50 bg-gray-900 text-gray-300 transform transition-transform duration-300 ease-in-out md:sticky md:translate-x-0 md:flex md:flex-col',
+                    'fixed inset-y-0 left-0 z-50 bg-gray-900 text-gray-300 transform transition-transform duration-300 ease-in-out md:sticky md:translate-x-0 flex flex-col',
                     mobileSidebarOpen ? 'translate-x-0 w-64 sm:w-72' : '-translate-x-full w-64 sm:w-72',
                     desktopSidebarOpen ? 'md:w-64' : 'md:w-20'
                 ]">
