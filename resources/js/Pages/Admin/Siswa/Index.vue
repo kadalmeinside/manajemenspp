@@ -238,7 +238,7 @@ onMounted(() => {
         <Toast :message="flashMessage" :type="flashType" />
 
         <!-- Stat Cards Section -->
-        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:mt-6 mb-2">
+        <div class="pt-0 md:pt-4">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Statistik Siswa</h3>
                 <SecondaryButton @click="showAnalyticsModal = true" class="!px-3 !py-1.5 text-xs">
@@ -293,10 +293,10 @@ onMounted(() => {
             </div>
         </div>
 
-        <div class="pb-12 pt-4 md:pt-4">
-            <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
                 <!-- MOBILE: Search & Info Card (Sticky) -->
-                <div class="sticky -top-4 z-10 bg-white dark:bg-gray-800 -mx-4 -mt-8 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
+                <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
                     <div class="flex gap-2">
                         <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, kelas..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari Siswa"/>
                         <SecondaryButton @click="showMobileFilters = true" class="px-3 shrink-0 flex items-center justify-center relative">
