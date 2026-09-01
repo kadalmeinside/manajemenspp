@@ -63,7 +63,7 @@ class LegalDocumentController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:legal_documents,name',
-            'type' => 'required|string|in:terms_and_conditions,privacy_policy,refund_policy,resignation',
+            'type' => 'required|string|in:terms_and_conditions,privacy_policy,refund_policy,resignation,mutasi',
             'version' => 'required|string|max:50',
             'content' => 'required|string',
             'published_at' => 'nullable|date',
@@ -113,7 +113,7 @@ class LegalDocumentController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:legal_documents,name,' . $legalDocument->id,
-            'type' => 'required|string|in:terms_and_conditions,privacy_policy,refund_policy,resignation',
+            'type' => 'required|string|in:terms_and_conditions,privacy_policy,refund_policy,resignation,mutasi',
             'version' => 'required|string|max:50',
             'content' => 'required|string',
             'published_at' => 'nullable|date',
