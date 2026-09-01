@@ -26,9 +26,6 @@ class MutasiController extends Controller
         $document = null;
         if ($legalDocId) {
             $document = LegalDocument::find($legalDocId);
-        } else {
-            // Fallback
-            $document = LegalDocument::where('name', 'pindah-cabang-terms')->first();
         }
 
         return Inertia::render('Public/Mutasi/Show', [

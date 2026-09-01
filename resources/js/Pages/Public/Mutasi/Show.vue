@@ -121,7 +121,7 @@ const submit = () => {
                 </div>
 
                 <!-- Terms & Conditions -->
-                <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-8">
+                <div v-if="document" class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-8">
                     <div class="px-4 py-5 sm:px-6 bg-gray-50 dark:bg-gray-700/50 flex items-center">
                         <DocumentTextIcon class="h-5 w-5 text-gray-500 mr-2" />
                         <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Syarat & Ketentuan</h3>
@@ -131,8 +131,22 @@ const submit = () => {
                     </div>
                 </div>
 
+                <div v-else class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 p-4 mb-8 rounded-r-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <ExclamationTriangleIcon class="h-6 w-6 text-yellow-400" aria-hidden="true" />
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-300">Dokumen Persetujuan Belum Diatur</h3>
+                            <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+                                <p>Admin belum mengonfigurasi Dokumen Legal untuk Syarat dan Ketentuan Pindah Cabang. Anda tidak dapat menyetujui permohonan ini sebelum admin mengaturnya.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Form Persetujuan -->
-                <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+                <div v-if="document" class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
                     <div class="px-4 py-5 sm:p-6">
                         <form @submit.prevent="submit" class="space-y-6">
                             <div>
