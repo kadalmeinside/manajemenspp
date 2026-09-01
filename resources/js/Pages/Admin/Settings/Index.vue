@@ -38,6 +38,7 @@ const form = useForm({
     legal_doc_re_registration: props.settings.legal_doc_re_registration || '',
     legal_doc_resignation: props.settings.legal_doc_resignation || '',
     legal_doc_mutasi: props.settings.legal_doc_mutasi || '',
+    enable_parent_login: props.settings.enable_parent_login ?? '1',
 });
 
 const logoPreview = ref(props.settings.app_logo ? `/storage/${props.settings.app_logo}` : null);
@@ -195,6 +196,20 @@ function submit() {
                                 <p class="text-sm text-gray-500 italic mt-2">
                                     Catatan: Logo pada kop surat akan secara otomatis menggunakan "Logo Aplikasi" yang Anda unggah di bagian Umum.
                                 </p>
+                            </div>
+                        </div>
+
+                        <div class="border-b pb-4 mb-4">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Akses Publik</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <InputLabel for="enable_parent_login" value="Akses Login Orang Tua/Siswa" />
+                                    <select id="enable_parent_login" v-model="form.enable_parent_login" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                                        <option value="1">Aktif (Bisa Login)</option>
+                                        <option value="0">Nonaktif (Dialihkan ke Cek SPP)</option>
+                                    </select>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Jika dinonaktifkan, setiap percobaan mengakses halaman login publik akan dialihkan ke halaman Cek SPP tanpa login.</p>
+                                </div>
                             </div>
                         </div>
 

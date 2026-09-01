@@ -10,14 +10,19 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Setting;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
      */
-    public function create(): Response
+    public function create()
     {
+        $enableParentLogin = Setting::where('key', 'enable_parent_login')->value('value') ?? '1';
+        if ($enableParentLogin === '0') {
+            return redirect()->route('tagihan.spp.form');
+        }
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
@@ -29,6 +34,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        $enableParentLogin = Setting::where('key', 'enable_parent_login')->value('value') ?? '1';
+        if ($enableParentLogin === '0') {
+            return redirect()->route('tagihan.spp.form');
+        }
+
         $request->authenticate();
 
         $user = $request->user();
