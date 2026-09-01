@@ -9,7 +9,7 @@ import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { PencilSquareIcon, TrashIcon, PlusIcon, TagIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon, ShoppingBagIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/vue/24/outline';
 
-const viewMode = ref('list');
+const viewMode = ref('grid');
 
 const props = defineProps({
     products: Object,
@@ -60,17 +60,18 @@ const getMainImage = (product) => {
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Manajemen Produk / Merchandise</h2>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-full mx-auto px-1 sm:px-0">
                 
                 <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
-                    <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto flex-grow">
-                        <div class="relative w-full sm:w-80">
-                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            </div>
-                            <input type="search" v-model="search" class="block w-full p-3 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 shadow-sm" placeholder="Cari nama produk...">
+                    <div class="relative w-full sm:w-80">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
+                        <input type="search" v-model="search" class="block w-full p-3 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500 shadow-sm" placeholder="Cari nama produk...">
+                    </div>
+                    
+                    <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
                         <div class="flex items-center bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-700 shrink-0">
                             <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'" class="p-2 rounded-md transition-colors" title="List View">
                                 <ListBulletIcon class="w-5 h-5" />
@@ -79,11 +80,11 @@ const getMainImage = (product) => {
                                 <Squares2X2Icon class="w-5 h-5" />
                             </button>
                         </div>
+                        <Link :href="route('admin.products.create')" class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm shrink-0">
+                            <PlusIcon class="w-5 h-5 mr-2" />
+                            Tambah Produk
+                        </Link>
                     </div>
-                    <Link :href="route('admin.products.create')" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm shrink-0">
-                        <PlusIcon class="w-5 h-5 mr-2" />
-                        Tambah Produk
-                    </Link>
                 </div>
 
                 <div v-if="viewMode === 'list'" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
