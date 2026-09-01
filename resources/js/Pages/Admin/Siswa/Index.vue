@@ -60,6 +60,9 @@ const isLoading = ref(false);
 const viewMode = ref('grid');
 const showMobileFilters = ref(false);
 
+const isMobileSearchSticky = ref(false);
+const mobileSearchSentinel = ref(null);
+
 const activeFilterCount = computed(() => {
     let count = 0;
     if (selectedKelasId.value) count++;
@@ -224,6 +227,17 @@ onMounted(() => {
     selectedKelasId.value = urlParams.get('kelas_id') || (filters.value ? filters.value.kelas_id : '') || '';
     selectedStatusSiswa.value = urlParams.get('status_siswa') || (filters.value ? filters.value.status_siswa : '') || '';
     sppBelumDiset.value = urlParams.get('spp_belum_diset') === 'true' || (filters.value && (filters.value.spp_belum_diset === 'true' || filters.value.spp_belum_diset === true));
+
+    if (mobileSearchSentinel.value) {
+        const observer = new IntersectionObserver(
+            ([e]) => {
+                // If sentinel is not fully visible (scrolled past), it means the sticky element is stuck at top
+                isMobileSearchSticky.value = !e.isIntersecting && e.boundingClientRect.top < 0;
+            },
+            { threshold: [1] }
+        );
+        observer.observe(mobileSearchSentinel.value);
+    }
 });
 </script>
 
@@ -295,8 +309,14 @@ onMounted(() => {
 
         <div class="pb-12 pt-0 md:pt-4">
             <div class="max-w-full mx-auto px-1 sm:px-0">
+                <div ref="mobileSearchSentinel" class="h-px w-full absolute -mt-px pointer-events-none"></div>
                 <!-- MOBILE: Search & Info Card (Sticky) -->
-                <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 -mx-4 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
+                <div 
+                    :class="[
+                        'sticky top-0 z-10 bg-white dark:bg-gray-800 px-4 pt-4 pb-4 mb-4 border-b border-gray-200 dark:border-gray-700 shadow-sm lg:hidden mt-4 transition-all duration-200',
+                        isMobileSearchSticky ? 'rounded-b-2xl -mx-4 rounded-t-none border-t-0' : 'rounded-2xl border border-t mx-2 sm:mx-0' 
+                    ]"
+                >
                     <div class="flex gap-2">
                         <TextInput type="text" v-model="searchQuery" placeholder="Cari nama, kelas..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari Siswa"/>
                         <SecondaryButton @click="showMobileFilters = true" class="px-3 shrink-0 flex items-center justify-center relative">
