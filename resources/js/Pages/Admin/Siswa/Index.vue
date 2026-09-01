@@ -313,8 +313,8 @@ onMounted(() => {
                 <!-- MOBILE: Search & Info Card (Sticky) -->
                 <div 
                     :class="[
-                        'sticky top-0 z-10 bg-white dark:bg-gray-800 px-4 pt-4 pb-4 mb-4 border-b border-gray-200 dark:border-gray-700 shadow-sm lg:hidden mt-4 transition-all duration-200',
-                        isMobileSearchSticky ? 'rounded-b-2xl -mx-4 rounded-t-none border-t-0' : 'rounded-2xl border border-t mx-2 sm:mx-0' 
+                        'sticky top-0 z-10 bg-white dark:bg-gray-800 px-4 pt-4 pb-4 mb-4 border-b border-gray-200 dark:border-gray-700 lg:hidden mt-4 transition-all duration-200',
+                        isMobileSearchSticky ? 'rounded-b-2xl -mx-4 rounded-t-none border-t-0 shadow-md' : 'rounded-2xl border border-t mx-0 sm:mx-0 shadow-sm' 
                     ]"
                 >
                     <div class="flex gap-2">
