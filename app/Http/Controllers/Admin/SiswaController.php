@@ -107,10 +107,40 @@ class SiswaController extends Controller
             'total_nonaktif' => $totalNonAktif,
             'total_baru' => $totalBaru,
         ];
-        // -----------------------------
+        // --- Calculate Analytics Per Class ---
+        $analyticsPerClass = [];
+        $kelasQuery = Kelas::orderBy('nama_kelas');
+        if ($user->hasRole('admin_kelas')) {
+            $kelasQuery->whereIn('id_kelas', $managedKelasIds);
+        }
+        $kelasCollection = $kelasQuery->get();
+
+        foreach ($kelasCollection as $kelas) {
+            $q = Siswa::where('id_kelas', $kelas->id_kelas);
+            $aktif = (clone $q)->where('status_siswa', 'Aktif')->count();
+            $nonaktif = (clone $q)->whereIn('status_siswa', ['Non-Aktif', 'Keluar', 'Lulus'])->count();
+            $baru = (clone $q)->whereMonth('tanggal_bergabung', $now->month)
+                              ->whereYear('tanggal_bergabung', $now->year)->count();
+            $cuti = \App\Models\StudentLeave::where('month', $now->month)
+                        ->where('year', $now->year)
+                        ->where('status', 'approved')
+                        ->whereIn('id_siswa', (clone $q)->select('id_siswa'))
+                        ->count();
+            
+            $analyticsPerClass[] = [
+                'id_kelas' => $kelas->id_kelas,
+                'nama_kelas' => $kelas->nama_kelas,
+                'aktif' => $aktif,
+                'nonaktif' => $nonaktif,
+                'baru' => $baru,
+                'cuti' => $cuti,
+            ];
+        }
+        // -------------------------------------
 
         return Inertia::render('Admin/Siswa/Index', [
             'statistics' => $statistics,
+            'analytics_per_class' => $analyticsPerClass,
             'siswaList' => $siswaList->through(fn($siswa) => [
                 'id_siswa' => $siswa->id_siswa,
                 'nama_siswa' => $siswa->nama_siswa,

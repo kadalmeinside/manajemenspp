@@ -11,7 +11,7 @@ import TextInput from '@/Components/TextInput.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import Toast from '@/Components/Toast.vue';
 import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, Squares2X2Icon, Bars3Icon, FunnelIcon, XMarkIcon } from '@heroicons/vue/20/solid';
-import { UserGroupIcon, UserMinusIcon, SparklesIcon, PauseCircleIcon } from '@heroicons/vue/24/outline';
+import { UserGroupIcon, UserMinusIcon, SparklesIcon, PauseCircleIcon, ChartBarIcon } from '@heroicons/vue/24/outline';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 import Pagination from '@/Components/Pagination.vue';
@@ -24,12 +24,14 @@ const allKelas = computed(() => page.props.allKelas || []);
 const allStatusSiswa = computed(() => page.props.allStatusSiswa || ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar']);
 const can = computed(() => page.props.can || {});
 const statistics = computed(() => page.props.statistics || { total_aktif: 0, total_cuti: 0, total_nonaktif: 0, total_baru: 0 });
+const analyticsPerClass = computed(() => page.props.analytics_per_class || []);
 const flashMessage = computed(() => page.props.flash?.message);
 const flashType = computed(() => page.props.flash?.type || 'info');
 
 const statusSiswaOptions = ['Aktif', 'Non-Aktif', 'Lulus', 'Cuti', 'pending_payment', 'Keluar'];
 
 const showSiswaModal = ref(false);
+const showAnalyticsModal = ref(false);
 const isEditMode = ref(false);
 
 const form = useForm({
@@ -237,6 +239,13 @@ onMounted(() => {
 
         <!-- Stat Cards Section -->
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:mt-6 mb-2">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Statistik Siswa</h3>
+                <SecondaryButton @click="showAnalyticsModal = true" class="!px-3 !py-1.5 text-xs">
+                    <ChartBarIcon class="w-4 h-4 mr-1.5" />
+                    Detail Analitik
+                </SecondaryButton>
+            </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <!-- Aktif -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between group hover:shadow-md transition-shadow">
@@ -653,6 +662,68 @@ onMounted(() => {
                             Terapkan Filter
                         </PrimaryButton>
                     </div>
+                </div>
+            </div>
+        </Modal>
+
+        <Modal :show="showAnalyticsModal" @close="showAnalyticsModal = false" maxWidth="4xl">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                        <ChartBarIcon class="w-6 h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+                        Analitik Siswa Per Cabang/Kelas
+                    </h2>
+                    <button @click="showAnalyticsModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <XMarkIcon class="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800/50">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300">Cabang / Kelas</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300">Siswa Aktif</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300">Baru (Bulan Ini)</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300">Sedang Cuti</th>
+                                <th class="px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300">Nonaktif / Keluar</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                            <tr v-for="c in analyticsPerClass" :key="c.id_kelas" class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{{ c.nama_kelas }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                                        {{ c.aktif }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                        {{ c.baru }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">
+                                        {{ c.cuti }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                                        {{ c.nonaktif }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr v-if="analyticsPerClass.length === 0">
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    Belum ada data kelas yang tersedia.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <PrimaryButton @click="showAnalyticsModal = false">Tutup</PrimaryButton>
                 </div>
             </div>
         </Modal>
