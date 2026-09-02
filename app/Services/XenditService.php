@@ -112,12 +112,16 @@ class XenditService
 
     protected function getPaymentMethods()
     {
-        return [
-            // 'BCA', 'BNI', 'BRI', 'MANDIRI', 'PERMATA',
-            // 'CREDIT_CARD',
-            // 'OVO', 'DANA', 'LINKAJA', 'SHOPEEPAY',
-            'QRIS'
-        ];
+        $methods = ['QRIS'];
+
+        // Cek setting dari database, default '1' (Aktif)
+        $enableVa = \App\Models\Setting::where('key', 'enable_virtual_account')->value('value') ?? '1';
+
+        if ($enableVa === '1') {
+            $methods = array_merge($methods, ['BCA', 'BNI', 'BRI', 'MANDIRI', 'PERMATA']);
+        }
+
+        return $methods;
     }
 
     /**

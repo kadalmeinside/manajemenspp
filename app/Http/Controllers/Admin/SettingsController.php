@@ -59,10 +59,11 @@ class SettingsController extends Controller
             'kop_surat_alamat' => 'nullable|string',
             'kop_surat_kontak' => 'nullable|string',
             'enable_parent_login' => 'nullable|in:0,1',
+            'enable_virtual_account' => 'nullable|in:0,1',
         ]);
 
         // Simpan atau update pengaturan teks
-        $textSettings = ['app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak', 'enable_parent_login'];
+        $textSettings = ['app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak', 'enable_parent_login', 'enable_virtual_account'];
         foreach ($textSettings as $key) {
             if ($request->has($key)) {
                 Setting::updateOrCreate(

@@ -39,6 +39,7 @@ const form = useForm({
     legal_doc_resignation: props.settings.legal_doc_resignation || '',
     legal_doc_mutasi: props.settings.legal_doc_mutasi || '',
     enable_parent_login: props.settings.enable_parent_login ?? '1',
+    enable_virtual_account: props.settings.enable_virtual_account ?? '1',
 });
 
 const logoPreview = ref(props.settings.app_logo ? `/storage/${props.settings.app_logo}` : null);
@@ -156,6 +157,29 @@ function submit() {
                                         <input id="app_logo_cek_spp_input" type="file" @input="onLogoCekSppChange" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"/>
                                     </div>
                                     <InputError class="mt-2" :message="form.errors.app_logo_cek_spp" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-b pb-4 mb-4">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Pembayaran (Xendit)</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <InputLabel for="enable_virtual_account" value="Metode Pembayaran Virtual Account (VA)" />
+                                    <div class="mt-2 flex items-center space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" v-model="form.enable_virtual_account" value="1" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Aktifkan (Virtual Account + QRIS)</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" v-model="form.enable_virtual_account" value="0" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Nonaktifkan (Hanya QRIS)</span>
+                                        </label>
+                                    </div>
+                                    <InputError class="mt-2" :message="form.errors.enable_virtual_account" />
+                                    <p class="text-xs text-gray-500 italic mt-2">
+                                        Jika dinonaktifkan, siswa hanya bisa membayar menggunakan QRIS untuk menghindari biaya admin yang besar.
+                                    </p>
                                 </div>
                             </div>
                         </div>
