@@ -13,16 +13,16 @@ class FinanceController extends Controller
 {
     public function index(Request $request)
     {
-        // Metric 1: Total Pemasukan Kotor (Total paid invoices)
-        $totalGross = Invoice::where('status', 'PAID')->sum('total_amount');
+        // Metric 1: Total Pemasukan Kotor (Total paid invoices, top-level only)
+        $totalGross = Invoice::where('status', 'PAID')->whereNull('parent_payment_id')->sum('total_amount');
         
-        // Metric 2: Total Biaya Layanan (Total admin fees of paid invoices)
-        $totalFee = Invoice::where('status', 'PAID')->sum('admin_fee');
+        // Metric 2: Total Biaya Layanan (Total admin fees of paid invoices, top-level only)
+        $totalFee = Invoice::where('status', 'PAID')->whereNull('parent_payment_id')->sum('admin_fee');
         
-        // Metric 3: Total Pendapatan Bersih (Total net amounts)
+        // Metric 3: Total Pendapatan Bersih (Total net amounts, top-level only)
         // If amount represents net, use it, otherwise gross - fee
         // Let's rely on amount as the net
-        $totalNet = Invoice::where('status', 'PAID')->sum('amount');
+        $totalNet = Invoice::where('status', 'PAID')->whereNull('parent_payment_id')->sum('amount');
         
         // Metric 4: Total Penarikan (Total COMPLETED withdrawals)
         $totalWithdraw = Withdrawal::where('status', 'COMPLETED')->sum('amount');
@@ -41,6 +41,7 @@ class FinanceController extends Controller
                 $q->with('kelas');
             }])
             ->where('status', 'PAID')
+            ->whereNull('parent_payment_id')
             ->orderBy('paid_at', 'desc')
             ->paginate(15)
             ->withQueryString();
