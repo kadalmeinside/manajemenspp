@@ -41,18 +41,44 @@ class ImportXenditCsv extends Command
         $referenceIdx = array_search('Reference', $header); // we use Reference as xendit_disbursement_id
         $completedAtIdx = array_search('Actual Settlement Time', $header);
         $paymentTimeIdx = array_search('Payment Time', $header);
+        $feeIdx = array_search('Total Fee Amount', $header);
+        $vatIdx = array_search('Total VAT Amount', $header);
         $descriptionIdx = array_search('Description', $header);
 
-        $count = 0;
+        $countWithdrawals = 0;
+        $countInvoices = 0;
 
         while (($data = fgetcsv($handle)) !== false) {
-            // Hanya proses tipe WITHDRAWAL
-            if (!isset($data[$typeIdx]) || strtoupper($data[$typeIdx]) !== 'WITHDRAWAL') {
+            $type = strtoupper($data[$typeIdx] ?? '');
+            $referenceId = $data[$referenceIdx] ?? null;
+
+            if (!$referenceId) {
                 continue;
             }
 
-            $referenceId = $data[$referenceIdx] ?? null;
-            if (!$referenceId) {
+            // --- PROSES PAYMENT (INVOICES) ---
+            if ($type === 'PAYMENT') {
+                $fee = (int) ($data[$feeIdx] ?? 0);
+                $vat = (int) ($data[$vatIdx] ?? 0);
+                $totalFee = $fee + $vat;
+
+                if ($totalFee > 0) {
+                    // Update invoice biasa
+                    $updated = \App\Models\Invoice::where('external_id_xendit', $referenceId)
+                        ->where(function($q) {
+                            $q->whereNull('admin_fee')->orWhere('admin_fee', 0);
+                        })
+                        ->update(['admin_fee' => $totalFee]);
+                    
+                    if ($updated) {
+                        $countInvoices++;
+                    }
+                }
+                continue;
+            }
+
+            // --- PROSES WITHDRAWAL ---
+            if ($type !== 'WITHDRAWAL') {
                 continue;
             }
 
@@ -96,12 +122,12 @@ class ImportXenditCsv extends Command
                 ]
             );
 
-            $count++;
+            $countWithdrawals++;
         }
 
         fclose($handle);
 
-        $this->info("Successfully imported {$count} withdrawals from CSV.");
+        $this->info("Successfully imported {$countWithdrawals} withdrawals and synced admin fee for {$countInvoices} invoices from CSV.");
         return 0;
     }
 }
