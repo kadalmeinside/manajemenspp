@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use App\Models\Invoice;
+use App\Models\Withdrawal;
+use Illuminate\Support\Facades\DB;
+
+class FinanceController extends Controller
+{
+    public function index(Request $request)
+    {
+        // Metric 1: Total Pemasukan Kotor (Total paid invoices)
+        $totalGross = Invoice::where('status', 'PAID')->sum('total_amount');
+        
+        // Metric 2: Total Biaya Layanan (Total admin fees of paid invoices)
+        $totalFee = Invoice::where('status', 'PAID')->sum('admin_fee');
+        
+        // Metric 3: Total Pendapatan Bersih (Total net amounts)
+        // If amount represents net, use it, otherwise gross - fee
+        // Let's rely on amount as the net
+        $totalNet = Invoice::where('status', 'PAID')->sum('amount');
+        
+        // Metric 4: Total Penarikan (Total COMPLETED withdrawals)
+        $totalWithdraw = Withdrawal::where('status', 'COMPLETED')->sum('amount');
+        
+        // Metric 5: Dana Mengendap
+        $pendingBalance = $totalNet - $totalWithdraw;
+
+        // Query param for tabs (invoices vs withdrawals)
+        $tab = $request->input('tab', 'invoices');
+
+        $invoices = [];
+        $withdrawals = [];
+
+        if ($tab === 'invoices') {
+            $invoices = Invoice::with(['siswa' => function($q) {
+                $q->with('kelas');
+            }])
+            ->where('status', 'PAID')
+            ->orderBy('paid_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+        } else {
+            $withdrawals = Withdrawal::orderBy('created_at', 'desc')
+                ->paginate(15)
+                ->withQueryString();
+        }
+
+        return Inertia::render('Admin/Finance/Index', [
+            'metrics' => [
+                'total_gross' => $totalGross,
+                'total_fee' => $totalFee,
+                'total_net' => $totalNet,
+                'total_withdraw' => $totalWithdraw,
+                'pending_balance' => $pendingBalance,
+            ],
+            'invoices' => $invoices,
+            'withdrawals' => $withdrawals,
+            'currentTab' => $tab,
+        ]);
+    }
+}

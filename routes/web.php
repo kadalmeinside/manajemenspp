@@ -58,6 +58,7 @@ Route::post('/daftar-ulang', [ReRegistrationController::class, 'store'])->middle
 use App\Http\Controllers\Public\ResignationController;
 
 Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoiceCallback'])->name('webhooks.xendit.invoice');
+Route::post('/webhooks/xendit/disbursement', [\App\Http\Controllers\Api\XenditWebhookController::class, 'handleDisbursement'])->name('webhooks.xendit.disbursement');
 
 // Resignation Routes (Signed)
 Route::get('/pengunduran-diri/{siswa}', [ResignationController::class, 'showForm'])->name('public.resignation.form')->middleware('signed');
@@ -173,6 +174,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('laporan/aktivitas', [LaporanController::class, 'aktivitas'])->name('laporan.aktivitas');
             Route::get('laporan/aktivitas/export', [LaporanController::class, 'exportAktivitas'])->name('laporan.aktivitas.export');
             Route::get('laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
+            
+            // Laporan Keuangan & Kas
+            Route::get('finance', [\App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('finance.index')->middleware('permission:view_finance|view_laporan');
 
             // Notifications
             Route::get('notifications/unread', [NotificationController::class, 'getUnread'])->name('notifications.unread');

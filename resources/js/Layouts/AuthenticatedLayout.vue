@@ -13,7 +13,7 @@ import {
     HomeIcon, UsersIcon, UserCircleIcon, ShieldCheckIcon, Cog6ToothIcon, ArrowLeftStartOnRectangleIcon,
     XMarkIcon, ChevronDownIcon, BellIcon, BuildingOfficeIcon, UserGroupIcon, DocumentChartBarIcon, ChartBarIcon,
     ChevronRightIcon, CurrencyDollarIcon, CalendarDaysIcon, QueueListIcon, ArrowDownTrayIcon, CheckBadgeIcon,
-    BellSlashIcon, ClockIcon, TagIcon, ShoppingBagIcon
+    BellSlashIcon, ClockIcon, TagIcon, ShoppingBagIcon, BuildingLibraryIcon
 } from '@heroicons/vue/24/outline';
 
 const page = usePage();
@@ -304,7 +304,8 @@ const systemMenu = {
     current: 'admin.users.*,admin.roles.*,admin.permissions.*,admin.settings.*,admin.jobs.*,admin.activity.index',
     requiredPermission: 'manage users',
     children: [
-        { name: 'Dokumen Legal', route: 'admin.legal-documents.index', icon: DocumentChartBarIcon, current: 'admin.legal-documents.*', requiredPermission: 'manage application settings' },
+        { name: 'Legal Dokumen', route: 'admin.legal-documents.index', icon: DocumentChartBarIcon, current: 'admin.legal-documents.*', requiredPermission: 'manage application settings' },
+        { name: 'Laporan Keuangan', route: 'admin.finance.index', icon: BuildingLibraryIcon, current: 'admin.finance.*', requiredPermission: 'view_finance' },
         { name: 'Users', route: 'admin.users.index', icon: UsersIcon, current: 'admin.users.*', requiredPermission: 'manage users' },
         { name: 'Roles', route: 'admin.roles.index', icon: UserCircleIcon, current: 'admin.roles.*', requiredPermission: 'manage roles' },
         { name: 'Permissions', route: 'admin.permissions.index', icon: ShieldCheckIcon, current: 'admin.permissions.*', requiredPermission: 'manage permissions' },
