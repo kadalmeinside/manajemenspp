@@ -113,9 +113,9 @@ class XenditService
     protected function getPaymentMethods()
     {
         return [
-            'BCA', 'BNI', 'BRI', 'MANDIRI', 'PERMATA',
-            'CREDIT_CARD',
-            'OVO', 'DANA', 'LINKAJA', 'SHOPEEPAY',
+            // 'BCA', 'BNI', 'BRI', 'MANDIRI', 'PERMATA',
+            // 'CREDIT_CARD',
+            // 'OVO', 'DANA', 'LINKAJA', 'SHOPEEPAY',
             'QRIS'
         ];
     }
