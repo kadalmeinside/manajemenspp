@@ -32,7 +32,9 @@ class InvoiceController extends Controller
         }
 
         $user = $request->user();
-        $query = Invoice::with(['siswa.user', 'siswa.kelas'])->orderBy('created_at', 'desc');
+        $query = Invoice::with(['siswa.user', 'siswa.kelas'])
+            ->whereNotIn('type', ['pembayaran_gabungan', 'pembayaran_spp_gabungan'])
+            ->orderBy('created_at', 'desc');
 
         if ($user->hasRole('admin_kelas')) {
             $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');

@@ -28,6 +28,8 @@ class LegacyBulkHandler
                     'status'            => 'PAID',
                     'paid_at'           => $paidTimestamp,
                     'parent_payment_id' => $parentInvoice->id,
+                    'payment_method'    => $parentInvoice->payment_method,
+                    'payment_gateway'   => $parentInvoice->payment_gateway,
                 ]);
             }
         }
