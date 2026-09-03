@@ -265,10 +265,10 @@ class WebhookController extends Controller
 
                 // Delegasi khusus SPP Gabungan
                 if ($invoice->type === 'pembayaran_spp_gabungan') {
-                    $this->sppGabunganHandler->processPaidGabungan($invoice, $now);
+                    $this->sppGabunganHandler->handle($invoice, $now);
                 } 
                 else if ($invoice->type === 'pembayaran_gabungan') {
-                    $this->legacyBulkHandler->processPaidGabungan($invoice, $now);
+                    $this->legacyBulkHandler->handle($invoice, $now);
                 }
                 else {
                     // Update childs secara generik
