@@ -12,6 +12,7 @@ class Withdrawal extends Model
 
     protected $fillable = [
         'xendit_disbursement_id',
+        'payment_gateway',
         'amount',
         'bank_code',
         'account_name',

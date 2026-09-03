@@ -34,6 +34,7 @@ class Invoice extends Model
         'xendit_invoice_id',
         'xendit_payment_url',
         'external_id_xendit',
+        'payment_gateway',
         'xendit_callback_payload',
         'recreated_from_id',
         'parent_payment_id',
