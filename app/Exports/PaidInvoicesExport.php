@@ -47,7 +47,7 @@ class PaidInvoicesExport implements FromQuery, WithHeadings, WithMapping, Should
             'Sistem Pembayaran',
             'Kanal Pembayaran',
             'Tipe',
-            'Link Xendit / Referensi'
+            'Link / Referensi'
         ];
     }
 
@@ -55,11 +55,12 @@ class PaidInvoicesExport implements FromQuery, WithHeadings, WithMapping, Should
     {
         // Ambil dari parent jika tidak ada di child invoice (untuk pembayaran gabungan)
         $paymentMethod = $invoice->payment_method ?? $invoice->paymentParent?->payment_method ?? '';
+        $paymentGateway = $invoice->payment_gateway ?? $invoice->paymentParent?->payment_gateway ?? 'XENDIT';
         $xenditUrl = $invoice->xendit_payment_url ?? $invoice->paymentParent?->xendit_payment_url ?? '';
         $xenditId = $invoice->xendit_invoice_id ?? $invoice->paymentParent?->xendit_invoice_id ?? '-';
 
         $isManual = strtolower($paymentMethod) === 'manual';
-        $sistemPembayaran = $isManual ? 'MANUAL' : 'XENDIT';
+        $sistemPembayaran = $isManual ? 'MANUAL' : strtoupper($paymentGateway);
         
         $kanalPembayaran = '-';
         if ($isManual) {
@@ -67,7 +68,7 @@ class PaidInvoicesExport implements FromQuery, WithHeadings, WithMapping, Should
         } elseif (!empty($paymentMethod)) {
             $kanalPembayaran = strtoupper($paymentMethod);
         } else {
-            $kanalPembayaran = 'XENDIT (Tidak spesifik)';
+            $kanalPembayaran = strtoupper($paymentGateway) . ' (Tidak spesifik)';
         }
 
         return [
