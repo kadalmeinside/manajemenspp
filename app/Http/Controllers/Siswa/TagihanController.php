@@ -203,7 +203,7 @@ class TagihanController extends Controller
                     'total_amount'     => $totalAmount,
                     'due_date'         => now()->addDay(),
                     'status'           => 'PENDING',
-                    'external_id_xendit' => 'BULK-'.$siswa->id_siswa.'-'.strtoupper(Str::random(10)),
+                    'external_id_xendit' => 'BULK-'.substr($siswa->id_siswa, 0, 8).'-'.strtoupper(Str::random(8)),
                 ]);
 
                 // Hubungkan invoice induk dengan invoice anak

@@ -40,6 +40,10 @@ const form = useForm({
     legal_doc_mutasi: props.settings.legal_doc_mutasi || '',
     enable_parent_login: props.settings.enable_parent_login ?? '1',
     enable_virtual_account: props.settings.enable_virtual_account ?? '1',
+    active_payment_gateway: props.settings.active_payment_gateway ?? 'xendit',
+    midtrans_server_key: props.settings.midtrans_server_key || '',
+    midtrans_client_key: props.settings.midtrans_client_key || '',
+    midtrans_is_production: props.settings.midtrans_is_production ?? '0',
 });
 
 const logoPreview = ref(props.settings.app_logo ? `/storage/${props.settings.app_logo}` : null);
@@ -162,23 +166,71 @@ function submit() {
                         </div>
 
                         <div class="border-b pb-4 mb-4">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Pembayaran (Xendit)</h3>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Pembayaran (Gateway)</h3>
                             <div class="space-y-4">
                                 <div>
+                                    <InputLabel for="active_payment_gateway" value="Payment Gateway Aktif" />
+                                    <div class="mt-2 flex items-center space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" v-model="form.active_payment_gateway" value="xendit" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Xendit</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" v-model="form.active_payment_gateway" value="midtrans" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Midtrans</span>
+                                        </label>
+                                    </div>
+                                    <InputError class="mt-2" :message="form.errors.active_payment_gateway" />
+                                </div>
+
+                                <div v-if="form.active_payment_gateway === 'midtrans'" class="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                                    <h4 class="font-medium text-sm text-gray-700 dark:text-gray-300">Kredensial Midtrans</h4>
+                                    <div>
+                                        <InputLabel for="midtrans_is_production" value="Environment Midtrans" />
+                                        <select id="midtrans_is_production" v-model="form.midtrans_is_production" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                                            <option value="0">Sandbox (Testing)</option>
+                                            <option value="1">Production (Live)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <InputLabel for="midtrans_server_key" value="Server Key" />
+                                        <TextInput
+                                            id="midtrans_server_key"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            v-model="form.midtrans_server_key"
+                                            placeholder="Contoh: SB-Mid-server-xxx"
+                                        />
+                                        <InputError class="mt-2" :message="form.errors.midtrans_server_key" />
+                                    </div>
+                                    <div>
+                                        <InputLabel for="midtrans_client_key" value="Client Key" />
+                                        <TextInput
+                                            id="midtrans_client_key"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            v-model="form.midtrans_client_key"
+                                            placeholder="Contoh: SB-Mid-client-xxx"
+                                        />
+                                        <InputError class="mt-2" :message="form.errors.midtrans_client_key" />
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                                     <InputLabel for="enable_virtual_account" value="Metode Pembayaran Virtual Account (VA)" />
                                     <div class="mt-2 flex items-center space-x-4">
                                         <label class="inline-flex items-center">
                                             <input type="radio" v-model="form.enable_virtual_account" value="1" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Aktifkan (Virtual Account + QRIS)</span>
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Aktifkan (Virtual Account + QRIS / Gopay)</span>
                                         </label>
                                         <label class="inline-flex items-center">
                                             <input type="radio" v-model="form.enable_virtual_account" value="0" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Nonaktifkan (Hanya QRIS)</span>
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Nonaktifkan (Hanya QRIS / Gopay)</span>
                                         </label>
                                     </div>
                                     <InputError class="mt-2" :message="form.errors.enable_virtual_account" />
                                     <p class="text-xs text-gray-500 italic mt-2">
-                                        Jika dinonaktifkan, siswa hanya bisa membayar menggunakan QRIS untuk menghindari biaya admin yang besar.
+                                        Jika dinonaktifkan, siswa hanya bisa membayar menggunakan metode pembayaran non-VA untuk menghindari biaya admin bank yang besar.
                                     </p>
                                 </div>
                             </div>

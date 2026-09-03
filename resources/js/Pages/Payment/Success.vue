@@ -62,18 +62,33 @@ onMounted(() => {
                 </div>
                 
                 <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-3">
-                    Pembayaran Berhasil!
+                    <template v-if="invoice && invoice.status === 'PENDING'">
+                        Menunggu Pembayaran
+                    </template>
+                    <template v-else>
+                        Pembayaran Berhasil!
+                    </template>
                 </h1>
                 
                 <p class="text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-                    Terima kasih. Pembayaran Anda telah kami terima dan sedang diproses. Status tagihan Anda akan segera diperbarui.
+                    <template v-if="invoice && invoice.status === 'PENDING'">
+                        Tagihan Anda telah berhasil dibuat. Silakan selesaikan pembayaran sesuai instruksi.
+                    </template>
+                    <template v-else>
+                        Terima kasih. Pembayaran Anda telah kami terima dan tercatat di sistem.
+                    </template>
                 </p>
 
                 <!-- Receipt Details (If Invoice Exists) -->
                 <div v-if="invoice" class="mb-6 text-left bg-gray-50 dark:bg-gray-700/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
                     <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 dark:border-gray-600 border-dashed">
-                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Dibayar</span>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Tagihan</span>
                         <span class="text-lg font-extrabold text-teal-600 dark:text-teal-400">Rp {{ new Intl.NumberFormat('id-ID').format(invoice.total_amount) }}</span>
+                    </div>
+                    <div class="flex flex-col gap-1 mb-3 pb-3 border-b border-gray-200 dark:border-gray-600 border-dashed">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</span>
+                        <span v-if="invoice.status === 'PENDING'" class="text-sm font-bold text-amber-600 dark:text-amber-400">Belum Dibayar (Menunggu Pembayaran)</span>
+                        <span v-else class="text-sm font-bold text-green-600 dark:text-green-400">Lunas</span>
                     </div>
                     <div class="flex flex-col gap-1">
                         <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Keterangan Pembayaran</span>

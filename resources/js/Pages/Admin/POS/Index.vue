@@ -237,9 +237,9 @@ onBeforeUnmount(() => document.removeEventListener('click', closeDropdown));
                     </div>
                     <div v-if="page.props.flash?.payment_url" class="mt-3 ml-7">
                         <a :href="page.props.flash.payment_url" target="_blank" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-bold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-md">
-                            Buka Layar Pembayaran (Xendit) &rarr;
+                            Buka Layar Pembayaran (Online) &rarr;
                         </a>
-                        <p class="mt-1 text-xs text-green-800">Silakan klik tombol di atas untuk membuka QRIS / Halaman Pembayaran, atau arahkan siswa mengecek tagihan di portal/email mereka.</p>
+                        <p class="mt-1 text-xs text-green-800">Silakan klik tombol di atas untuk membuka pembayaran, atau arahkan siswa mengecek tagihan di portal/email mereka.</p>
                     </div>
                 </div>
                 <div v-if="page.props.flash?.error" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative flex items-center shadow-sm" role="alert">
@@ -408,11 +408,11 @@ onBeforeUnmount(() => document.removeEventListener('click', closeDropdown));
                                                 </div>
                                             </label>
                                             <label class="cursor-pointer">
-                                                <input type="radio" v-model="paymentMethod" value="XENDIT" class="peer sr-only" />
+                                                <input type="radio" v-model="paymentMethod" value="ONLINE" class="peer sr-only" />
                                                 <div class="p-2 text-center border rounded-md peer-checked:bg-indigo-50 peer-checked:border-indigo-500 peer-checked:text-indigo-700 dark:border-gray-600 dark:peer-checked:bg-indigo-900/30 dark:peer-checked:text-indigo-400 dark:text-gray-300 transition-colors h-full flex flex-col items-center justify-center">
                                                     <CreditCardIcon class="w-6 h-6 mb-1 text-indigo-600 dark:text-indigo-400" />
                                                     <span class="block font-bold text-sm">Transfer</span>
-                                                    <span class="text-[10px]">Via Tagihan Xendit</span>
+                                                    <span class="text-[10px]">Via Tagihan Online</span>
                                                 </div>
                                             </label>
                                         </div>

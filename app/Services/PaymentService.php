@@ -9,14 +9,16 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Contracts\PaymentGatewayInterface;
 
 class PaymentService
 {
-    protected XenditService $xenditService;
+    protected PaymentGatewayInterface $gateway;
 
-    public function __construct(XenditService $xenditService)
+    public function __construct()
     {
-        $this->xenditService = $xenditService;
+        // Secara dinamis memanggil gateway yang sedang aktif
+        $this->gateway = PaymentGatewayFactory::make();
     }
 
     /**
@@ -33,22 +35,27 @@ class PaymentService
         return DB::transaction(function () use ($periods, $siswa, $userId) {
             $periods = $periods->sort()->values();
 
-            // 1. Cek reuse invoice (Pencegahan Spam API Xendit)
+            // 1. Cek reuse invoice (Pencegahan Spam API Xendit/Midtrans)
             $oldParentInvoices = Invoice::where('id_siswa', $siswa->id_siswa)
                 ->where('type', 'pembayaran_spp_gabungan')
                 ->where('status', 'PENDING')
                 ->get();
 
+            $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+
             foreach ($oldParentInvoices as $oldParent) {
                 $savedPeriods = collect($oldParent->selected_periods)->sort()->values();
-                // Jika periode sama persis, gunakan kembali URL yang ada
-                if ($savedPeriods->diff($periods)->isEmpty() && $periods->diff($savedPeriods)->isEmpty() && $oldParent->xendit_payment_url) {
+                // Jika periode sama persis, dan gateway-nya sama, gunakan kembali URL yang ada
+                if ($savedPeriods->diff($periods)->isEmpty() && 
+                    $periods->diff($savedPeriods)->isEmpty() && 
+                    $oldParent->xendit_payment_url && 
+                    $oldParent->payment_gateway === $activeGateway) {
                     return $oldParent;
                 }
 
                 // Jika beda, expire-kan yang lama
                 if ($oldParent->xendit_invoice_id) {
-                    $this->xenditService->expireInvoice($oldParent->xendit_invoice_id);
+                    $this->gateway->expireInvoice($oldParent->xendit_invoice_id);
                 }
                 $oldParent->delete();
             }
@@ -122,17 +129,18 @@ class PaymentService
                 'total_amount'     => $totalAmount,
                 'due_date'         => now()->addDay(),
                 'status'           => 'PENDING',
-                'external_id_xendit' => 'UNIF-'.$siswa->id_siswa.'-'.strtoupper(Str::random(10)),
+                'external_id_xendit' => 'UNIF-'.substr($siswa->id_siswa, 0, 8).'-'.strtoupper(Str::random(8)),
+                'payment_gateway'    => config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit',
             ]);
 
-            // 6. Buat invoice di Xendit
+            // 6. Buat invoice di Gateway Aktif
             $payerInfo = [
                 'email' => $siswa->user?->email, 
                 'name' => $siswa->nama_siswa, 
                 'phone' => $siswa->nomor_telepon_wali
             ];
             
-            $xenditInvoiceData = $this->xenditService->createInvoice(
+            $pgInvoiceData = $this->gateway->createInvoice(
                 $totalSpp,
                 $adminFee,
                 $parentInvoice->description, 
@@ -143,13 +151,13 @@ class PaymentService
                 now()->addDay()
             );
 
-            if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
-                throw new \Exception('Gagal membuat link pembayaran gabungan di Xendit.');
+            if (!$pgInvoiceData || !isset($pgInvoiceData['invoice_url'])) {
+                throw new \Exception('Gagal membuat link pembayaran di Payment Gateway.');
             }
             
             $parentInvoice->update([
-                'xendit_invoice_id' => $xenditInvoiceData['id'],
-                'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
+                'xendit_invoice_id' => $pgInvoiceData['id'],
+                'xendit_payment_url' => $pgInvoiceData['invoice_url'],
             ]);
 
             return $parentInvoice;

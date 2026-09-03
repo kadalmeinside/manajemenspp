@@ -8,18 +8,19 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\StockMovement;
-use App\Services\XenditService;
+use App\Services\PaymentGatewayFactory;
+use App\Contracts\PaymentGatewayInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class StoreCheckoutController extends Controller
 {
-    protected $xenditService;
+    protected PaymentGatewayInterface $gateway;
 
-    public function __construct(XenditService $xenditService)
+    public function __construct()
     {
-        $this->xenditService = $xenditService;
+        $this->gateway = PaymentGatewayFactory::make();
     }
 
     public function checkout(Request $request)
@@ -85,13 +86,15 @@ class StoreCheckoutController extends Controller
             $totalAmount = 0;
             $orderNumber = 'ORD-WEB-' . date('Ymd') . '-' . strtoupper(Str::random(5));
             
+            $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+            
             $order = Order::create([
                 'user_id' => $user->id,
                 'siswa_id' => $request->siswa_id,
                 'order_number' => $orderNumber,
                 'total_amount' => 0, // Akan diupdate nanti
                 'status' => 'PENDING',
-                'payment_method' => 'XENDIT',
+                'payment_method' => strtoupper($activeGateway),
             ]);
 
             foreach ($cart->items as $item) {
@@ -147,7 +150,7 @@ class StoreCheckoutController extends Controller
                 'phone' => '081234567890' // Optional
             ];
 
-            $invoice = $this->xenditService->createInvoice(
+            $invoice = $this->gateway->createInvoice(
                 $totalAmount,
                 $feeAmount,
                 "Pembayaran Toko/Merchandise (Order: $orderNumber)",
@@ -159,12 +162,15 @@ class StoreCheckoutController extends Controller
             );
 
             if (!$invoice) {
-                throw new \Exception("Gagal membuat tagihan Xendit.");
+                throw new \Exception("Gagal membuat tagihan pembayaran.");
             }
+
+            $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
 
             $order->update([
                 'external_id' => $externalId,
                 'payment_url' => $invoice['invoice_url'],
+                'payment_method' => strtoupper($activeGateway),
             ]);
 
             // Kosongkan keranjang

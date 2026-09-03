@@ -421,7 +421,9 @@ class InvoiceController extends Controller
                 $recreatedInvoice->status = 'PENDING';
                 $recreatedInvoice->due_date = now()->addDays(3)->endOfDay();
                 $recreatedInvoice->description = $lockedInvoice->description;
-                $recreatedInvoice->external_id_xendit = 'RE-'.$lockedInvoice->external_id_xendit . '-' . strtoupper(Str::random(2));
+                // Limit total length to 50 for Midtrans
+                $baseId = substr($lockedInvoice->external_id_xendit, 0, 30); 
+                $recreatedInvoice->external_id_xendit = 'RE-'.$baseId . '-' . strtoupper(Str::random(4));
 
                 // Panggil Xendit
                 $payerInfo = ['email' => $lockedInvoice->siswa->user?->email, 'name' => $lockedInvoice->siswa->nama_siswa, 'phone' => $lockedInvoice->siswa->nomor_telepon_wali];

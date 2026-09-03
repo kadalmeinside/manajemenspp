@@ -229,7 +229,7 @@ class StudentLeaveController extends Controller
                 'total_amount' => $totalAmount,
                 'due_date' => $dueDate,
                 'status' => 'PENDING',
-                'external_id_xendit' => 'SPP-'.$siswa->id_siswa.'-'.$studentLeave->year.str_pad($studentLeave->month, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
+                'external_id_xendit' => 'SPP-'.substr($siswa->id_siswa, 0, 8).'-'.$studentLeave->year.str_pad($studentLeave->month, 2, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6)),
             ]);
 
             $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];

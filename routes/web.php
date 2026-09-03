@@ -59,6 +59,7 @@ use App\Http\Controllers\Public\ResignationController;
 
 Route::post('/webhooks/xendit/invoice', [WebhookController::class, 'handleInvoiceCallback'])->name('webhooks.xendit.invoice');
 Route::post('/webhooks/xendit/disbursement', [\App\Http\Controllers\Api\XenditWebhookController::class, 'handleDisbursement'])->name('webhooks.xendit.disbursement');
+Route::post('/webhooks/midtrans/invoice', [WebhookController::class, 'handleMidtransCallback'])->name('webhooks.midtrans.invoice');
 
 // Resignation Routes (Signed)
 Route::get('/pengunduran-diri/{siswa}', [ResignationController::class, 'showForm'])->name('public.resignation.form')->middleware('signed');

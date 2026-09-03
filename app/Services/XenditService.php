@@ -5,8 +5,9 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Contracts\PaymentGatewayInterface;
 
-class XenditService
+class XenditService implements PaymentGatewayInterface
 {
     protected $apiKey;
     protected $baseUrl;
@@ -110,7 +111,7 @@ class XenditService
         return null;
     }
 
-    protected function getPaymentMethods()
+    public function getPaymentMethods(): array
     {
         $methods = ['QRIS'];
 

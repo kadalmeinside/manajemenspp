@@ -268,7 +268,7 @@ class CekSppController extends Controller
     /**
      * Membuat pembayaran gabungan untuk siswa yang dipilih.
      */
-    public function createSppPayment(Request $request, Siswa $siswa, XenditService $xenditService)
+    public function createSppPayment(Request $request, Siswa $siswa)
     {
         if (session('verified_spp_siswa_id') !== $siswa->id_siswa) {
             return Redirect::route('tagihan.spp.form')->withErrors(['error' => 'Sesi tidak valid.']);
@@ -282,14 +282,29 @@ class CekSppController extends Controller
         $periods = collect($validated['periods'])->sort()->values();
 
         try {
-            $parentInvoice = DB::transaction(function () use ($periods, $siswa, $xenditService, $request) {
+            $parentInvoice = DB::transaction(function () use ($periods, $siswa, $request) {
+                $gateway = \App\Services\PaymentGatewayFactory::make();
                 
-                $oldParentInvoices = Invoice::where('id_siswa', $siswa->id_siswa)
+                $oldParentInvoices = \App\Models\Invoice::where('id_siswa', $siswa->id_siswa)
                     ->where('type', 'pembayaran_spp_gabungan')->where('status', 'PENDING')
                     ->get();
+                    
+                $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+                
                 foreach ($oldParentInvoices as $oldParent) {
+                    if ($oldParent->payment_gateway === $activeGateway) {
+                        // Jika ada tagihan pending di gateway yang SAMA, kita bisa pakai ulang
+                        return $oldParent;
+                    }
+                    
+                    // Expire old invoice if it's from a different gateway
                     if ($oldParent->xendit_invoice_id) {
-                        $xenditService->expireInvoice($oldParent->xendit_invoice_id);
+                        try {
+                            $oldGateway = \App\Services\PaymentGatewayFactory::make($oldParent->payment_gateway);
+                            $oldGateway->expireInvoice($oldParent->xendit_invoice_id);
+                        } catch (\Exception $e) {
+                            Log::error("Gagal expire tagihan lama (Ganti Gateway): " . $e->getMessage());
+                        }
                     }
                     $oldParent->delete();
                 }
@@ -315,30 +330,31 @@ class CekSppController extends Controller
                 $endPeriod = Carbon::parse($periods->last());
                 $description = "SPP Gabungan ({$periods->count()} Bulan: {$startPeriod->isoFormat('MMMM YYYY')} - {$endPeriod->isoFormat('MMMM YYYY')}) - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
 
-                $parentInvoice = Invoice::create([
+                $parentInvoice = \App\Models\Invoice::create([
                     'id_siswa'         => $siswa->id_siswa,
                     'user_id'          => $siswa->user?->id,
                     'type'             => 'pembayaran_spp_gabungan',
                     'description'      => $description,
                     'periode_tagihan'  => $startPeriod,
-                    'selected_periods' => $periods->toArray(), // Simpan daftar bulan yang dipilih untuk webhook
+                    'selected_periods' => $periods->toArray(),
                     'amount'           => $totalSpp,
                     'admin_fee'        => $adminFee,
                     'total_amount'     => $totalSpp + $adminFee,
                     'due_date'         => now()->addDay(),
                     'status'           => 'PENDING',
-                    'external_id_xendit' => 'UNIF-'.$siswa->id_siswa.'-'.strtoupper(Str::random(10)),
+                    'external_id_xendit' => 'UNIF-'.substr($siswa->id_siswa, 0, 8).'-'.strtoupper(Str::random(8)),
+                    'payment_gateway'  => $activeGateway,
                 ]);
                 
                 $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->user?->name ?? $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
                 $successUrl = route('tagihan.spp.success', ['siswa' => $siswa->id_siswa, 'invoice_id' => $parentInvoice->id]);
                 
-                $xenditInvoiceData = $xenditService->createInvoice($totalSpp, $adminFee, $parentInvoice->description, $payerInfo, $parentInvoice->external_id_xendit, $successUrl, route('payment.failure'), now()->addDay());
-                if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
-                    throw new \Exception('Gagal membuat link pembayaran gabungan di Xendit.');
+                $pgInvoiceData = $gateway->createInvoice($totalSpp, $adminFee, $parentInvoice->description, $payerInfo, $parentInvoice->external_id_xendit, $successUrl, route('payment.failure'), now()->addDay());
+                if (!$pgInvoiceData || !isset($pgInvoiceData['invoice_url'])) {
+                    throw new \Exception('Gagal membuat link pembayaran gabungan.');
                 }
                 
-                $parentInvoice->update(['xendit_invoice_id' => $xenditInvoiceData['id'], 'xendit_payment_url' => $xenditInvoiceData['invoice_url']]);
+                $parentInvoice->update(['xendit_invoice_id' => $pgInvoiceData['id'], 'xendit_payment_url' => $pgInvoiceData['invoice_url']]);
                 return $parentInvoice;
             });
 
@@ -346,7 +362,7 @@ class CekSppController extends Controller
 
         } catch (InsufficientSppDataException $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             Log::error('Gagal membuat pembayaran SPP: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Terjadi kesalahan sistem, silakan coba lagi nanti.']);
         }

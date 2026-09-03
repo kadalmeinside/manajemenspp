@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { 
     BanknotesIcon, 
@@ -27,8 +27,21 @@ const props = defineProps({
     currentTab: {
         type: String,
         default: 'invoices'
+    },
+    gateway: {
+        type: String,
+        default: ''
     }
 });
+
+const selectedGateway = ref(props.gateway || '');
+
+function filterGateway() {
+    router.get(route('admin.finance.index'), {
+        tab: 'invoices',
+        gateway: selectedGateway.value,
+    }, { preserveState: true });
+}
 
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
@@ -156,10 +169,22 @@ const statCards = computed(() => [
 
                 <!-- Tab Content: Invoices -->
                 <div v-if="currentTab === 'invoices'" class="p-0 sm:p-6">
+                    <div class="px-6 py-4 flex justify-end">
+                        <select 
+                            v-model="selectedGateway" 
+                            @change="filterGateway"
+                            class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm text-sm"
+                        >
+                            <option value="">Semua Gateway</option>
+                            <option value="xendit">Xendit</option>
+                            <option value="midtrans">Midtrans</option>
+                        </select>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gateway</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tanggal Bayar</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Siswa</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Kotor (Gross)</th>

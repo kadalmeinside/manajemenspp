@@ -60,11 +60,11 @@ class PosController extends Controller
     /**
      * Proses Checkout Kasir
      */
-    public function store(Request $request, XenditService $xenditService)
+    public function store(Request $request)
     {
         $request->validate([
             'siswa_id' => 'required|exists:siswa,id_siswa',
-            'payment_method' => 'required|in:CASH,XENDIT',
+            'payment_method' => 'required|in:CASH,ONLINE',
             'uang_diterima' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.variant_id' => 'required|exists:product_variants,id',
@@ -167,19 +167,22 @@ class PosController extends Controller
                 }
             }
 
-            // 4. Jika metode pembayaran XENDIT, buat invoice
-            if ($request->payment_method === 'XENDIT') {
+            // 4. Jika metode pembayaran ONLINE, buat invoice
+            if ($request->payment_method === 'ONLINE') {
                 $user = User::find($userId);
                 $payerInfo = [
                     'email' => $user->email,
                     'name' => $user->name,
                     'phone' => '081234567890'
                 ];
-                $feeAmount = 4500; // Standar biaya admin Xendit
+                $feeAmount = 4500; // Standar biaya admin
 
                 $externalId = 'STORE_INV_' . $order->id;
+                
+                $gateway = \App\Services\PaymentGatewayFactory::make();
+                $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
 
-                $xenditInvoice = $xenditService->createInvoice(
+                $invoice = $gateway->createInvoice(
                     (float) $totalAmount,
                     (float) $feeAmount,
                     'Pembelian di Toko Sekolah: ' . $order->order_number,
@@ -190,19 +193,20 @@ class PosController extends Controller
                     now()->addDays(1)
                 );
 
-                if (!$xenditInvoice) {
-                    throw new \Exception("Gagal membuat tagihan Xendit.");
+                if (!$invoice) {
+                    throw new \Exception("Gagal membuat tagihan pembayaran.");
                 }
 
                 $order->update([
-                    'external_id' => $xenditInvoice['id'],
-                    'payment_url' => $xenditInvoice['invoice_url'],
+                    'external_id' => $externalId, // Using the custom ID instead of Xendit generated ID for consistency
+                    'payment_url' => $invoice['invoice_url'],
+                    'payment_method' => strtoupper($activeGateway),
                 ]);
 
                 DB::commit();
                 return back()
-                    ->with('success', 'Tagihan Xendit berhasil dibuat.')
-                    ->with('payment_url', $xenditInvoice['invoice_url']);
+                    ->with('success', 'Tagihan pembayaran berhasil dibuat.')
+                    ->with('payment_url', $invoice['invoice_url']);
             }
 
             // Jika CASH, transaksi selesai.

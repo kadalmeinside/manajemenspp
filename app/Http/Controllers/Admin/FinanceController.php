@@ -36,15 +36,21 @@ class FinanceController extends Controller
         $invoices = [];
         $withdrawals = [];
 
+        $gateway = $request->input('gateway', '');
+
         if ($tab === 'invoices') {
-            $invoices = Invoice::with(['siswa' => function($q) {
+            $invoicesQuery = Invoice::with(['siswa' => function($q) {
                 $q->with('kelas');
             }])
             ->where('status', 'PAID')
             ->whereNull('parent_payment_id')
-            ->orderBy('paid_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+            ->orderBy('paid_at', 'desc');
+
+            if ($gateway) {
+                $invoicesQuery->where('payment_gateway', $gateway);
+            }
+
+            $invoices = $invoicesQuery->paginate(15)->withQueryString();
         } else {
             $withdrawals = Withdrawal::orderBy('created_at', 'desc')
                 ->paginate(15)
@@ -62,6 +68,7 @@ class FinanceController extends Controller
             'invoices' => $invoices,
             'withdrawals' => $withdrawals,
             'currentTab' => $tab,
+            'gateway' => $gateway,
         ]);
     }
 }

@@ -89,6 +89,12 @@ class WebhookController extends Controller
                 return response()->json(['message' => 'Invoice not found, skipping']);
             }
 
+            if ($invoice->payment_gateway !== 'xendit') {
+                DB::rollBack();
+                Log::warning('[Xendit Webhook] Invoice bukan dari Xendit.', ['external_id' => $externalId, 'gateway' => $invoice->payment_gateway]);
+                return response()->json(['message' => 'Not a Xendit invoice, skipping']);
+            }
+
             // === 5. IDEMPOTENCY CHECK ===
             if ($invoice->status === 'PAID') {
                 DB::rollBack();
@@ -178,5 +184,126 @@ class WebhookController extends Controller
             'type'    => 'payment_success',
             'url'     => $url,
         ], $siswa->id_kelas ?? null);
+    }
+
+    /**
+     * Menangani callback/webhook dari Midtrans.
+     */
+    public function handleMidtransCallback(Request $request)
+    {
+        $payload = $request->all();
+        $serverKey = config('midtrans.server_key') ?? \App\Models\Setting::where('key', 'midtrans_server_key')->value('value');
+        
+        $orderId = $payload['order_id'] ?? null;
+        $statusCode = $payload['status_code'] ?? null;
+        $grossAmount = $payload['gross_amount'] ?? null;
+        $signatureKey = $payload['signature_key'] ?? null;
+        
+        // Verifikasi Signature Key Midtrans
+        $calculatedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        
+        if ($signatureKey !== $calculatedSignature) {
+            Log::warning('[Midtrans Webhook] TOKEN VERIFICATION FAILED.', [
+                'ip' => $request->ip(),
+                'expected' => $calculatedSignature,
+                'received' => $signatureKey
+            ]);
+            return response()->json(['message' => 'Invalid signature key'], 403);
+        }
+
+        $transactionStatus = $payload['transaction_status'] ?? '';
+        $payloadStatus = in_array($transactionStatus, ['settlement', 'capture']) ? 'PAID' : strtoupper($transactionStatus);
+
+        if (!$orderId) {
+            return response()->json(['message' => 'Missing order_id'], 400);
+        }
+
+        // Delegasi Handler seperti Xendit
+        if (str_starts_with($orderId, 'PREG-')) {
+            return $this->pendaftaranHandler->handlePendingRegistration($orderId, $payload, $payloadStatus);
+        }
+        if (str_starts_with($orderId, 'STORE_INV_')) {
+            return $this->storeOrderHandler->handleStoreOrder($orderId, $payload, $payloadStatus);
+        }
+
+        // PROSES INVOICE BIASA
+        DB::beginTransaction();
+        try {
+            // Note: external_id_xendit refers to our order_id logically. (Bisa direname nanti)
+            $invoice = Invoice::with(['siswa', 'childInvoices'])
+                ->where('external_id_xendit', $orderId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$invoice) {
+                DB::rollBack();
+                Log::warning('[Midtrans Webhook] Invoice tidak ditemukan.', ['order_id' => $orderId]);
+                return response()->json(['message' => 'Invoice not found, skipping']);
+            }
+
+            if ($invoice->payment_gateway !== 'midtrans') {
+                DB::rollBack();
+                Log::warning('[Midtrans Webhook] Invoice bukan dari Midtrans.', ['order_id' => $orderId, 'gateway' => $invoice->payment_gateway]);
+                return response()->json(['message' => 'Not a Midtrans invoice, skipping']);
+            }
+
+            if ($invoice->status === 'PAID') {
+                DB::rollBack();
+                return response()->json(['message' => 'Already processed, skipping']);
+            }
+
+            // Jika belum lunas dan status dari webhook adalah PAID
+            if ($payloadStatus === 'PAID') {
+                $now = Carbon::now();
+
+                // LUNASKAN INVOICE INDUK
+                $invoice->status = 'PAID';
+                $invoice->paid_at = $now;
+                // Kita simpan metode pembayaran jika ada
+                $invoice->payment_method = strtoupper($payload['payment_type'] ?? 'MIDTRANS'); 
+                $invoice->payment_channel = $payload['bank'] ?? $payload['store'] ?? 'MIDTRANS';
+                $invoice->save();
+
+                // Delegasi khusus SPP Gabungan
+                if ($invoice->type === 'pembayaran_spp_gabungan') {
+                    $this->sppGabunganHandler->processPaidGabungan($invoice, $now);
+                } 
+                else if ($invoice->type === 'pembayaran_gabungan') {
+                    $this->legacyBulkHandler->processPaidGabungan($invoice, $now);
+                }
+                else {
+                    // Update childs secara generik
+                    foreach ($invoice->childInvoices as $child) {
+                        if ($child->status !== 'PAID') {
+                            $child->status = 'PAID';
+                            $child->paid_at = $now;
+                            $child->save();
+                        }
+                    }
+                }
+
+                DB::commit();
+
+                // Kiri Notifikasi
+                try {
+                    NotificationService::sendPaymentSuccessNotification($invoice);
+                } catch (Throwable $e) {
+                    Log::error('[Midtrans Webhook] Gagal mengirim notifikasi.', ['error' => $e->getMessage()]);
+                }
+
+                return response()->json(['message' => 'Midtrans Webhook processed successfully (PAID)']);
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Midtrans Webhook processed, status: ' . $payloadStatus]);
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+            Log::error('[Midtrans Webhook] GAGAL memproses.', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Internal Server Error'], 500);
+        }
     }
 }

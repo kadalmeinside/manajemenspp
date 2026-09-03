@@ -153,6 +153,14 @@ const completeOrder = (order) => {
                                         >
                                             Selesaikan
                                         </PrimaryButton>
+                                        <a 
+                                            v-else-if="order.status === 'PENDING' && order.payment_url"
+                                            :href="order.payment_url"
+                                            target="_blank"
+                                            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                        >
+                                            Bayar
+                                        </a>
                                         <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
                                     </td>
                                 </tr>
