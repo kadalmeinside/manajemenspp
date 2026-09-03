@@ -261,7 +261,6 @@ class WebhookController extends Controller
                 $invoice->paid_at = $now;
                 // Kita simpan metode pembayaran jika ada
                 $invoice->payment_method = strtoupper($payload['payment_type'] ?? 'MIDTRANS'); 
-                $invoice->payment_channel = $payload['bank'] ?? $payload['store'] ?? 'MIDTRANS';
                 $invoice->save();
 
                 // Delegasi khusus SPP Gabungan
