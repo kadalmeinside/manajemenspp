@@ -114,7 +114,8 @@ class InvoiceController extends Controller
                     'description' => $invoice->description,
                     'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
                     'status' => $invoice->status,
-                    'payment_method' => $invoice->payment_method, // 'manual' atau null (xendit)
+                    'payment_method' => $invoice->payment_method,
+                    'payment_gateway' => $invoice->payment_gateway,
                     'due_date_formatted' => Carbon::parse($invoice->due_date)->isoFormat('D MMM YY'),
                     'paid_at_formatted' => $invoice->paid_at ? Carbon::parse($invoice->paid_at)->isoFormat('D MMM YY') : null,
                     'xendit_payment_url' => $invoice->xendit_payment_url,

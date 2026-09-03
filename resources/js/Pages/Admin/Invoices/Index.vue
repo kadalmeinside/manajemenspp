@@ -392,7 +392,9 @@ const formatDescription = (desc) => {
                                     <!-- Kolom Metode Bayar -->
                                     <td class="px-6 py-4 text-sm">
                                         <span v-if="invoice.payment_method === 'manual'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Manual</span>
-                                        <span v-else-if="invoice.status === 'PAID'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200">Xendit</span>
+                                        <span v-else-if="invoice.status === 'PAID'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 capitalize">
+                                            {{ invoice.payment_gateway || 'Xendit' }}
+                                        </span>
                                         <span v-else class="text-gray-400 text-xs">—</span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.created_at_formatted }}</td>
