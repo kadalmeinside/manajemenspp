@@ -158,9 +158,19 @@ class GapuraService implements PaymentGatewayInterface
             'ORIGIN'        => rtrim(config('app.url'), '/'),
         ];
 
-        Log::info('[Gapura] Mengirim API Create Order ke DANA', ['payload' => $payload]);
-
         $baseUrl = $isProduction ? 'https://api.dana.id' : 'https://api.sandbox.dana.id';
+
+        Log::info('[Gapura] Mengirim API Create Order ke DANA', [
+            'url' => $baseUrl . $relativeUrl,
+            'headers' => [
+                'X-PARTNER-ID' => $headers['X-PARTNER-ID'],
+                'ORIGIN' => $headers['ORIGIN'],
+                'X-TIMESTAMP' => $headers['X-TIMESTAMP'],
+                // JANGAN log signature atau private key secara utuh untuk keamanan, cukup potongannya saja
+                'X-SIGNATURE' => substr($headers['X-SIGNATURE'], 0, 10) . '...'
+            ],
+            'payload' => $payload
+        ]);
         
         $responseHttp = Http::withHeaders($headers)->post($baseUrl . $relativeUrl, $payload);
             
