@@ -155,7 +155,7 @@ class GapuraService implements PaymentGatewayInterface
             'X-EXTERNAL-ID' => $externalId,
             'X-SIGNATURE'   => $signature,
             'CHANNEL-ID'    => 'WEB',
-            'ORIGIN'        => config('app.url'),
+            'ORIGIN'        => rtrim(config('app.url'), '/'),
         ];
 
         Log::info('[Gapura] Mengirim API Create Order ke DANA', ['payload' => $payload]);
