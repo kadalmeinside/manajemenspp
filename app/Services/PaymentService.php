@@ -30,9 +30,15 @@ class PaymentService
      * @return Invoice
      * @throws \Exception
      */
-    public function createUnifiedPayment(Siswa $siswa, Collection $periods, ?int $userId = null): Invoice
+    public function createUnifiedPayment(
+        Siswa $siswa, 
+        Collection $periods, 
+        ?int $userId = null,
+        ?string $paymentType = null,
+        ?string $bankCode = ''
+    ): Invoice
     {
-        return DB::transaction(function () use ($periods, $siswa, $userId) {
+        return DB::transaction(function () use ($periods, $siswa, $userId, $paymentType, $bankCode) {
             $periods = $periods->sort()->values();
 
             // 1. Cek reuse invoice (Pencegahan Spam API Xendit/Midtrans)
@@ -45,12 +51,22 @@ class PaymentService
 
             foreach ($oldParentInvoices as $oldParent) {
                 $savedPeriods = collect($oldParent->selected_periods)->sort()->values();
-                // Jika periode sama persis, dan gateway-nya sama, gunakan kembali URL yang ada
+                // Jika periode sama persis, dan gateway-nya sama, gunakan kembali
+                // Catatan: Jika gapura (Custom Checkout), kita abaikan xendit_payment_url karena url tidak ada
                 if ($savedPeriods->diff($periods)->isEmpty() && 
                     $periods->diff($savedPeriods)->isEmpty() && 
-                    $oldParent->xendit_payment_url && 
                     $oldParent->payment_gateway === $activeGateway) {
-                    return $oldParent;
+                    
+                    if ($activeGateway === 'gapura') {
+                        // Untuk gapura, pastikan paymentType-nya sama, jika ya return lama. Jika tidak, hapus dan buat baru.
+                        $oldCheckoutData = $oldParent->checkout_data ?? [];
+                        if (($oldCheckoutData['payment_type'] ?? '') === $paymentType && 
+                            ($oldCheckoutData['bank_code'] ?? '') === $bankCode) {
+                            return $oldParent;
+                        }
+                    } else if ($oldParent->xendit_payment_url) {
+                        return $oldParent;
+                    }
                 }
 
                 // Jika beda, expire-kan yang lama
@@ -130,7 +146,7 @@ class PaymentService
                 'due_date'         => now()->addDay(),
                 'status'           => 'PENDING',
                 'external_id_xendit' => 'UNIF-'.substr($siswa->id_siswa, 0, 8).'-'.strtoupper(Str::random(8)),
-                'payment_gateway'    => config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit',
+                'payment_gateway'    => $activeGateway,
             ]);
 
             // 6. Buat invoice di Gateway Aktif
@@ -140,25 +156,47 @@ class PaymentService
                 'phone' => $siswa->nomor_telepon_wali
             ];
             
-            $pgInvoiceData = $this->gateway->createInvoice(
-                $totalSpp,
-                $adminFee,
-                $parentInvoice->description, 
-                $payerInfo,
-                $parentInvoice->external_id_xendit, 
-                route('payment.success'), 
-                route('payment.failure'), 
-                now()->addDay()
-            );
+            if ($activeGateway === 'gapura' && $paymentType) {
+                $pgInvoiceData = $this->gateway->createCustomPayment(
+                    $totalSpp,
+                    $adminFee,
+                    $parentInvoice->description, 
+                    $payerInfo,
+                    $parentInvoice->external_id_xendit, 
+                    now()->addDay(),
+                    $paymentType,
+                    $bankCode
+                );
 
-            if (!$pgInvoiceData || !isset($pgInvoiceData['invoice_url'])) {
-                throw new \Exception('Gagal membuat link pembayaran di Payment Gateway.');
+                if (!$pgInvoiceData) {
+                    throw new \Exception('Gagal membuat tagihan Gapura DANA.');
+                }
+                
+                $parentInvoice->update([
+                    'xendit_invoice_id' => $pgInvoiceData['id'],
+                    'checkout_data' => $pgInvoiceData,
+                ]);
+            } else {
+                $pgInvoiceData = $this->gateway->createInvoice(
+                    $totalSpp,
+                    $adminFee,
+                    $parentInvoice->description, 
+                    $payerInfo,
+                    $parentInvoice->external_id_xendit, 
+                    route('payment.success'), 
+                    route('payment.failure'), 
+                    now()->addDay()
+                );
+
+                if (!$pgInvoiceData || !isset($pgInvoiceData['invoice_url'])) {
+                    throw new \Exception('Gagal membuat link pembayaran di Payment Gateway.');
+                }
+                
+                $parentInvoice->update([
+                    'xendit_invoice_id' => $pgInvoiceData['id'],
+                    'xendit_payment_url' => $pgInvoiceData['invoice_url'],
+                ]);
             }
-            
-            $parentInvoice->update([
-                'xendit_invoice_id' => $pgInvoiceData['id'],
-                'xendit_payment_url' => $pgInvoiceData['invoice_url'],
-            ]);
 
             return $parentInvoice;
         });

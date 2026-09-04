@@ -33,6 +33,30 @@ interface PaymentGatewayInterface
     );
 
     /**
+     * Membuat tagihan/invoice dengan Custom Checkout (terutama untuk Gapura).
+     *
+     * @param float $baseAmount Jumlah pokok tagihan.
+     * @param float $feeAmount Biaya admin.
+     * @param string $description Deskripsi tagihan.
+     * @param array $payerInfo Informasi pembayar ['email', 'name', 'phone'].
+     * @param string $externalId ID referensi unik.
+     * @param Carbon $expiryDate Kapan tagihan expired.
+     * @param string $paymentType Tipe pembayaran (misal 'VA', 'QRIS').
+     * @param string $bankCode Kode bank (jika VA, misal 'BCA').
+     * @return array|null Mengembalikan data instruksi pembayaran (VA number / QR string).
+     */
+    public function createCustomPayment(
+        float $baseAmount,
+        float $feeAmount,
+        string $description,
+        array $payerInfo,
+        string $externalId,
+        Carbon $expiryDate,
+        string $paymentType,
+        string $bankCode = ''
+    );
+
+    /**
      * Membatalkan/expire invoice yang sedang aktif.
      *
      * @param string $invoiceId ID dari Payment Gateway (bukan ID lokal).

@@ -82,6 +82,7 @@ class TagihanController extends Controller
                 'mulai_spp_date' => $siswa->mulai_spp_date ? $siswa->mulai_spp_date->format('Y-m-d') : null,
             ],
             'pageTitle' => 'Tagihan SPP',
+            'active_gateway' => config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit',
         ]);
     }
 
@@ -246,23 +247,53 @@ class TagihanController extends Controller
         $validated = $request->validate([
             'periods' => 'required|array|min:1',
             'periods.*' => 'required|date_format:Y-m-d',
+            'paymentType' => 'nullable|string',
+            'bankCode' => 'nullable|string',
         ]);
 
         $siswa = $this->getActiveSiswa($request->user());
         $periods = collect($validated['periods'])->sort()->values();
+        $paymentType = $validated['paymentType'] ?? null;
+        $bankCode = $validated['bankCode'] ?? null;
 
         try {
             // Gunakan PaymentService (refactored dari kode yang duplicate)
-            $parentInvoice = $paymentService->createUnifiedPayment($siswa, $periods, $request->user()->id);
+            $parentInvoice = $paymentService->createUnifiedPayment($siswa, $periods, $request->user()->id, $paymentType, $bankCode);
 
-            // Arahkan siswa ke halaman pembayaran Xendit
+            $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+            
+            if ($activeGateway === 'gapura') {
+                return Inertia::location(route('tagihan.spp.custom_pay', ['invoice' => $parentInvoice->id]));
+            }
+
+            // Arahkan siswa ke halaman pembayaran Xendit/Midtrans
             return Inertia::location($parentInvoice->xendit_payment_url);
 
         } catch (\App\Exceptions\InsufficientSppDataException $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         } catch (\Throwable $e) {
             Log::error('Gagal membuat pembayaran terpadu: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return back()->withErrors(['error' => 'Terjadi kesalahan sistem, silakan coba lagi nanti.']);
+            return back()->withErrors(['error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()]);
         }
+    }
+
+    public function customPay(Request $request, Invoice $invoice)
+    {
+        // Pastikan invoice ini gapura dan punya checkout_data
+        if ($invoice->payment_gateway !== 'gapura' || empty($invoice->checkout_data)) {
+            // redirect to appropriate page
+            if (auth()->check() && auth()->user()->hasRole(['siswa', 'siswa_wali'])) {
+                return redirect()->route('siswa.invoices.index')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk tagihan ini.']);
+            }
+            return redirect()->route('tagihan.spp.form')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk tagihan ini.']);
+        }
+
+        $invoice->load(['siswa.kelas', 'childInvoices']);
+
+        return Inertia::render('Public/CustomPay', [
+            'invoice' => $invoice,
+            'checkoutData' => $invoice->checkout_data,
+            'pageTitle' => 'Pembayaran Tagihan',
+        ]);
     }
 }

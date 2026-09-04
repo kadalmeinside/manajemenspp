@@ -158,4 +158,17 @@ class MidtransService implements PaymentGatewayInterface
 
         return $methods;
     }
+
+    public function createCustomPayment(
+        float $baseAmount,
+        float $feeAmount,
+        string $description,
+        array $payerInfo,
+        string $externalId,
+        \Carbon\Carbon $expiryDate,
+        string $paymentType,
+        string $bankCode = ''
+    ) {
+        throw new \Exception("MidtransService does not support createCustomPayment yet.");
+    }
 }

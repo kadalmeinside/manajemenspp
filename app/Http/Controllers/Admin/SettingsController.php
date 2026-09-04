@@ -60,17 +60,23 @@ class SettingsController extends Controller
             'kop_surat_kontak' => 'nullable|string',
             'enable_parent_login' => 'nullable|in:0,1',
             'enable_virtual_account' => 'nullable|in:0,1',
-            'active_payment_gateway' => 'nullable|in:xendit,midtrans',
+            'active_payment_gateway' => 'nullable|in:xendit,midtrans,gapura',
             'midtrans_server_key' => 'nullable|string|max:255',
             'midtrans_client_key' => 'nullable|string|max:255',
             'midtrans_is_production' => 'nullable|in:0,1',
+            'gapura_client_id' => 'nullable|string|max:255',
+            'gapura_client_secret' => 'nullable|string|max:255',
+            'gapura_merchant_id' => 'nullable|string|max:255',
+            'gapura_private_key' => 'nullable|string',
+            'gapura_dana_public_key' => 'nullable|string',
         ]);
 
         // Simpan atau update pengaturan teks
         $textSettings = [
             'app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak', 
             'enable_parent_login', 'enable_virtual_account',
-            'active_payment_gateway', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production'
+            'active_payment_gateway', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production',
+            'gapura_client_id', 'gapura_client_secret', 'gapura_merchant_id', 'gapura_private_key', 'gapura_dana_public_key'
         ];
         foreach ($textSettings as $key) {
             if ($request->has($key)) {

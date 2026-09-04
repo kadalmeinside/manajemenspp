@@ -39,6 +39,7 @@ class Invoice extends Model
         'recreated_from_id',
         'parent_payment_id',
         'bukti_pembayaran',
+        'checkout_data',
     ];
 
     protected $casts = [
@@ -50,6 +51,7 @@ class Invoice extends Model
         'total_amount'            => 'decimal:2',
         'selected_periods'        => 'array',  // Auto serialize/deserialize JSON
         'xendit_callback_payload' => 'array',
+        'checkout_data'           => 'array',
     ];
 
     /**

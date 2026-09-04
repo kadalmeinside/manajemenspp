@@ -120,7 +120,9 @@ class InvoiceController extends Controller
                     'payment_gateway' => $invoice->payment_gateway,
                     'due_date_formatted' => Carbon::parse($invoice->due_date)->isoFormat('D MMM YY'),
                     'paid_at_formatted' => $invoice->paid_at ? Carbon::parse($invoice->paid_at)->isoFormat('D MMM YY') : null,
-                    'xendit_payment_url' => $invoice->xendit_payment_url,
+                    'xendit_payment_url' => $invoice->payment_gateway === 'gapura' 
+                                            ? route('tagihan.spp.custom_pay', ['invoice' => $invoice->id]) 
+                                            : $invoice->xendit_payment_url,
                     'created_at_formatted' => $invoice->created_at->isoFormat('D MMM YY, HH:mm'),
                     'recreated_from_id' => $invoice->recreated_from_id,
                 ];

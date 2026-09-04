@@ -193,4 +193,17 @@ class XenditService implements PaymentGatewayInterface
 
         return null;
     }
+
+    public function createCustomPayment(
+        float $baseAmount,
+        float $feeAmount,
+        string $description,
+        array $payerInfo,
+        string $externalId,
+        \Carbon\Carbon $expiryDate,
+        string $paymentType,
+        string $bankCode = ''
+    ) {
+        throw new \Exception("XenditService does not support createCustomPayment yet.");
+    }
 }

@@ -44,6 +44,11 @@ const form = useForm({
     midtrans_server_key: props.settings.midtrans_server_key || '',
     midtrans_client_key: props.settings.midtrans_client_key || '',
     midtrans_is_production: props.settings.midtrans_is_production ?? '0',
+    gapura_client_id: props.settings.gapura_client_id || '',
+    gapura_client_secret: props.settings.gapura_client_secret || '',
+    gapura_merchant_id: props.settings.gapura_merchant_id || '',
+    gapura_private_key: props.settings.gapura_private_key || '',
+    gapura_dana_public_key: props.settings.gapura_dana_public_key || '',
 });
 
 const logoPreview = ref(props.settings.app_logo ? `/storage/${props.settings.app_logo}` : null);
@@ -179,8 +184,68 @@ function submit() {
                                             <input type="radio" v-model="form.active_payment_gateway" value="midtrans" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
                                             <span class="ml-2 text-gray-700 dark:text-gray-300">Midtrans</span>
                                         </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" v-model="form.active_payment_gateway" value="gapura" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Gapura DANA</span>
+                                        </label>
                                     </div>
                                     <InputError class="mt-2" :message="form.errors.active_payment_gateway" />
+                                </div>
+
+                                <div v-if="form.active_payment_gateway === 'gapura'" class="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                                    <h4 class="font-medium text-sm text-gray-700 dark:text-gray-300">Kredensial Gapura DANA</h4>
+                                    <div>
+                                        <InputLabel for="gapura_client_id" value="Client ID" />
+                                        <TextInput
+                                            id="gapura_client_id"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            v-model="form.gapura_client_id"
+                                        />
+                                        <InputError class="mt-2" :message="form.errors.gapura_client_id" />
+                                    </div>
+                                    <div>
+                                        <InputLabel for="gapura_client_secret" value="Client Secret" />
+                                        <TextInput
+                                            id="gapura_client_secret"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            v-model="form.gapura_client_secret"
+                                        />
+                                        <InputError class="mt-2" :message="form.errors.gapura_client_secret" />
+                                    </div>
+                                    <div>
+                                        <InputLabel for="gapura_merchant_id" value="Merchant ID" />
+                                        <TextInput
+                                            id="gapura_merchant_id"
+                                            type="text"
+                                            class="mt-1 block w-full"
+                                            v-model="form.gapura_merchant_id"
+                                        />
+                                        <InputError class="mt-2" :message="form.errors.gapura_merchant_id" />
+                                        
+                                        <InputLabel for="gapura_private_key" value="Private Key (PKCS#1)" />
+                                        <textarea
+                                            id="gapura_private_key"
+                                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                            v-model="form.gapura_private_key"
+                                            rows="5"
+                                            placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----"
+                                        ></textarea>
+                                        <InputError class="mt-2" :message="form.errors.gapura_private_key" />
+                                    </div>
+                                    <div>
+                                        <InputLabel for="gapura_dana_public_key" value="DANA Public Key (PEM)" />
+                                        <p class="text-xs text-gray-500 mb-1">Digunakan untuk memverifikasi Webhook otomatis dari sistem DANA.</p>
+                                        <textarea
+                                            id="gapura_dana_public_key"
+                                            class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                            v-model="form.gapura_dana_public_key"
+                                            rows="5"
+                                            placeholder="-----BEGIN PUBLIC KEY-----&#10;...&#10;-----END PUBLIC KEY-----"
+                                        ></textarea>
+                                        <InputError class="mt-2" :message="form.errors.gapura_dana_public_key" />
+                                    </div>
                                 </div>
 
                                 <div v-if="form.active_payment_gateway === 'midtrans'" class="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">

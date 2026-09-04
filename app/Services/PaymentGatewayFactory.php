@@ -11,12 +11,16 @@ class PaymentGatewayFactory
      *
      * @return PaymentGatewayInterface
      */
-    public static function make(): PaymentGatewayInterface
+    public static function make(?string $forcedGateway = null): PaymentGatewayInterface
     {
-        $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+        $activeGateway = $forcedGateway ?? config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
 
-        if ($activeGateway === 'midtrans') {
+        if (strtolower($activeGateway) === 'midtrans') {
             return new MidtransService();
+        }
+
+        if (strtolower($activeGateway) === 'gapura') {
+            return new GapuraService();
         }
 
         // Default to Xendit

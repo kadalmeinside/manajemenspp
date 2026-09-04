@@ -241,6 +241,7 @@ Route::controller(CekSppController::class)->group(function () {
     Route::get('/cek-spp/{siswa}', 'showTagihan')->name('tagihan.spp.show');
     Route::post('/cek-spp/{siswa}/create-user', 'createUserAndLink')->middleware('throttle:10,1')->name('tagihan.spp.create_user');
     Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->middleware('throttle:20,1')->name('tagihan.spp.pay');
+    Route::get('/cek-spp/checkout/{invoice}', [\App\Http\Controllers\Siswa\TagihanController::class, 'customPay'])->name('tagihan.spp.custom_pay');
     Route::get('/cek-spp/sukses/{siswa}', 'showSuccess')->name('tagihan.spp.success');
 });
 
@@ -249,6 +250,9 @@ Route::post('/cek-spp/agreements', [\App\Http\Controllers\UserAgreementControlle
 // Route Publik Mutasi Siswa
 Route::get('/mutasi/{token}', [\App\Http\Controllers\Public\MutasiController::class, 'show'])->name('mutasi.show');
 Route::post('/mutasi/{token}/approve', [\App\Http\Controllers\Public\MutasiController::class, 'approve'])->name('mutasi.approve');
+
+// Webhook Gapura (DANA Finish Notify)
+Route::post('/v1.0/debit/notify', [\App\Http\Controllers\Api\GapuraWebhookController::class, 'handleFinishNotify']);
 
 require __DIR__.'/auth.php';
 

@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'webhooks/xendit/*', 
             'webhooks/midtrans/*', 
+            'v1.0/debit/notify',
         ]);
 
         $middleware->trustProxies(at: '*');

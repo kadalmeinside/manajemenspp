@@ -393,14 +393,14 @@ const formatDescription = (desc) => {
                                     <td class="px-6 py-4 text-sm">
                                         <span v-if="invoice.payment_method === 'manual'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Manual</span>
                                         <span v-else-if="invoice.status === 'PAID'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 capitalize">
-                                            {{ invoice.payment_gateway || 'Xendit' }}
+                                            {{ invoice.payment_gateway ? invoice.payment_gateway.toUpperCase() : 'Menunggu' }}
                                         </span>
                                         <span v-else class="text-gray-400 text-xs">—</span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.created_at_formatted }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end space-x-2">
-                                            <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-blue-600 hover:text-blue-900 p-1" title="Lihat Invoice Xendit"><EyeIcon class="h-5 w-5" /></a>
+                                            <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-blue-600 hover:text-blue-900 p-1" title="Lihat Link Pembayaran"><EyeIcon class="h-5 w-5" /></a>
                                             
                                             <button v-if="invoice.status === 'PENDING' && can?.create_invoice" @click="confirmCancelInvoice(invoice)" class="text-gray-400 hover:text-red-600 p-1" title="Batalkan Invoice"><XCircleIcon class="h-5 w-5" /></button>
                                             
@@ -446,7 +446,7 @@ const formatDescription = (desc) => {
                                     </div>
                                 </div>
                                 <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
-                                    <a v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" :href="invoice.invoice_url" target="_blank" class="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100" title="Buka Link Xendit">
+                                    <a v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" :href="invoice.invoice_url" target="_blank" class="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100" title="Buka Link Pembayaran">
                                         <ArrowTopRightOnSquareIcon class="h-4 w-4" />
                                     </a>
                                     <button v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" @click="copyToClipboard(invoice.invoice_url)" class="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-200" title="Copy Link Pembayaran">
