@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { CheckCircleIcon, DocumentCheckIcon } from '@heroicons/vue/24/outline';
+import { CheckCircleIcon, ClockIcon, DocumentCheckIcon } from '@heroicons/vue/24/outline';
 import { computed, onMounted, ref } from 'vue';
 
 const page = usePage();
@@ -55,9 +55,18 @@ onMounted(() => {
 
                 <!-- Icon Container with Animation -->
                 <div class="relative mx-auto w-24 h-24 mb-8">
-                    <div class="absolute inset-0 bg-green-100 dark:bg-green-900/30 rounded-full scale-150 animate-ping opacity-20"></div>
-                    <div class="relative flex items-center justify-center w-full h-full bg-gradient-to-br from-green-400 to-teal-500 rounded-full shadow-lg shadow-green-500/30 transform transition-transform duration-700" :class="showContent ? 'scale-100 rotate-0' : 'scale-0 -rotate-180'">
-                        <CheckCircleIcon class="w-12 h-12 text-white" />
+                    <!-- Base ping circle -->
+                    <div class="absolute inset-0 rounded-full scale-150 animate-ping opacity-20"
+                         :class="invoice && invoice.status === 'PENDING' ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'"></div>
+                    
+                    <!-- Solid circle -->
+                    <div class="relative flex items-center justify-center w-full h-full rounded-full shadow-lg transform transition-transform duration-700" 
+                         :class="[
+                            showContent ? 'scale-100 rotate-0' : 'scale-0 -rotate-180',
+                            invoice && invoice.status === 'PENDING' ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30' : 'bg-gradient-to-br from-green-400 to-teal-500 shadow-green-500/30'
+                         ]">
+                        <ClockIcon v-if="invoice && invoice.status === 'PENDING'" class="w-12 h-12 text-white" />
+                        <CheckCircleIcon v-else class="w-12 h-12 text-white" />
                     </div>
                 </div>
                 

@@ -12,6 +12,7 @@ import InputError from '@/Components/InputError.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import BankLogo from '@/Components/BankLogo.vue';
 
 const props = defineProps({
     pageTitle: String,
@@ -555,14 +556,28 @@ const formatPeriod = (dateStr) => {
                 <div v-if="selectedSiswa && selectedPeriods.length > 0" class="fixed bottom-0 left-0 right-0 px-2 sm:px-6 pb-6 pt-6 z-50 flex justify-center bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
                     <div class="w-full max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-3xl p-4 sm:p-5 flex flex-col gap-4 transform transition-all hover:scale-[1.02]">
                         
-                        <!-- Pilihan Metode Pembayaran Gapura -->
-                        <div v-if="active_gateway === 'gapura'" class="w-full pb-2 border-b border-gray-100 dark:border-gray-700">
-                            <p class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran (Gapura)</p>
-                            <div class="flex flex-wrap gap-2">
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">BCA VA</button>
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">Mandiri VA</button>
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">BNI VA</button>
-                                <button type="button" @click="paymentForm.paymentType = 'QRIS'; paymentForm.bankCode = ''" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'QRIS' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">QRIS</button>
+                        <!-- Pilihan Metode Pembayaran Gapura / Midtrans Custom -->
+                        <div v-if="active_gateway === 'gapura' || active_gateway === 'midtrans_custom'" class="w-full pb-2 border-b border-gray-100 dark:border-gray-700">
+                            <p class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran ({{ active_gateway === 'midtrans_custom' ? 'Midtrans Custom' : 'Gapura' }})</p>
+                            <div class="flex flex-wrap gap-3">
+                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
+                                    <BankLogo bank="BCA" class="h-6 w-16" />
+                                </button>
+                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
+                                    <BankLogo bank="MANDIRI" class="h-6 w-16" />
+                                </button>
+                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
+                                    <BankLogo bank="BNI" class="h-6 w-16" />
+                                </button>
+                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
+                                    <BankLogo bank="BRI" class="h-6 w-16" />
+                                </button>
+                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
+                                    <BankLogo bank="PERMATA" class="h-6 w-16" />
+                                </button>
+                                <button type="button" @click="paymentForm.paymentType = 'QRIS'; paymentForm.bankCode = ''" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'QRIS' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
+                                    <BankLogo bank="QRIS" class="h-6 w-16" />
+                                </button>
                             </div>
                         </div>
 
