@@ -169,6 +169,128 @@ class MidtransService implements PaymentGatewayInterface
         string $paymentType,
         string $bankCode = ''
     ) {
-        throw new \Exception("MidtransService does not support createCustomPayment yet.");
+        $encodedServerKey = base64_encode($this->serverKey . ':');
+        $totalAmount = $baseAmount + $feeAmount;
+
+        $payload = [
+            'transaction_details' => [
+                'order_id' => $externalId,
+                'gross_amount' => (int) $totalAmount,
+            ],
+            'customer_details' => [
+                'first_name' => $payerInfo['name'] ?? 'Siswa',
+                'email' => $payerInfo['email'] ?? null,
+                'phone' => $payerInfo['phone'] ?? null,
+            ],
+            'item_details' => [
+                [
+                    'id' => 'SPP',
+                    'price' => (int) $baseAmount,
+                    'quantity' => 1,
+                    'name' => 'Pembayaran SPP'
+                ]
+            ],
+            'custom_expiry' => [
+                'expiry_duration' => max(5, $expiryDate->isFuture() ? (int) now()->diffInMinutes($expiryDate) : 5),
+                'unit' => 'minute'
+            ],
+        ];
+
+        if ($feeAmount > 0) {
+            $payload['item_details'][] = [
+                'id' => 'ADMIN_FEE',
+                'price' => (int) $feeAmount,
+                'quantity' => 1,
+                'name' => 'Biaya Admin'
+            ];
+        }
+
+        if ($paymentType === 'VA') {
+            $bank = strtolower($bankCode);
+            if ($bank === 'mandiri') {
+                $payload['payment_type'] = 'echannel';
+                $payload['echannel'] = [
+                    'bill_info1' => 'Payment For:',
+                    'bill_info2' => 'Tagihan SPP'
+                ];
+            } else {
+                $payload['payment_type'] = 'bank_transfer';
+                $payload['bank_transfer'] = [
+                    'bank' => $bank
+                ];
+            }
+        } elseif ($paymentType === 'QRIS') {
+            $payload['payment_type'] = 'qris';
+        } else {
+            throw new \Exception("Tipe pembayaran tidak didukung oleh Midtrans Custom Checkout.");
+        }
+
+        $coreApiUrl = $this->isProduction 
+            ? 'https://api.midtrans.com/v2/charge' 
+            : 'https://api.sandbox.midtrans.com/v2/charge';
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Basic ' . $encodedServerKey,
+            'Content-Type'  => 'application/json',
+            'Accept'        => 'application/json',
+        ])
+        ->connectTimeout(10)
+        ->timeout(30)
+        ->post($coreApiUrl, $payload);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            
+            // Extract VA Number or QRIS String
+            $vaNumber = null;
+            $qrisString = null;
+
+            if ($paymentType === 'VA') {
+                if (strtolower($bankCode) === 'mandiri') {
+                    // For Mandiri Bill Payment, VA number is combination of biller_code and bill_key
+                    $vaNumber = ($data['biller_code'] ?? '') . ($data['bill_key'] ?? '');
+                } elseif (isset($data['va_numbers']) && is_array($data['va_numbers'])) {
+                    $vaNumber = $data['va_numbers'][0]['va_number'] ?? null;
+                } elseif (isset($data['permata_va_number'])) {
+                    $vaNumber = $data['permata_va_number'];
+                }
+            } elseif ($paymentType === 'QRIS') {
+                // For QRIS, we extract from actions where name == 'generate-qr-code'
+                if (isset($data['actions']) && is_array($data['actions'])) {
+                    foreach ($data['actions'] as $action) {
+                        if (($action['name'] ?? '') === 'generate-qr-code') {
+                            $qrisString = $action['url'] ?? null;
+                            break;
+                        }
+                    }
+                }
+                
+                // Fallback for newer QRIS formats (like GoPay QRIS)
+                if (!$qrisString && isset($data['qr_string'])) {
+                    $qrisString = $data['qr_string'];
+                }
+            }
+
+            return [
+                'id' => $externalId, 
+                'external_id' => $externalId,
+                'payment_type' => $paymentType,
+                'bank_code' => $bankCode,
+                'amount' => $totalAmount,
+                'status' => 'PENDING',
+                'va_number' => $vaNumber,
+                'qris_string' => $qrisString,
+                'raw_response' => $data
+            ];
+        }
+
+        Log::error('Midtrans Core API Creation Failed', [
+            'external_id' => $externalId,
+            'status' => $response->status(),
+            'body' => $response->body(),
+            'sent_payload' => $payload
+        ]);
+        
+        return null;
     }
 }

@@ -280,7 +280,7 @@ class TagihanController extends Controller
     public function customPay(Request $request, Invoice $invoice)
     {
         // Pastikan invoice ini gapura dan punya checkout_data
-        if ($invoice->payment_gateway !== 'gapura' || empty($invoice->checkout_data)) {
+        if (!in_array($invoice->payment_gateway, ['gapura', 'midtrans_custom']) || empty($invoice->checkout_data)) {
             // redirect to appropriate page
             if (auth()->check() && auth()->user()->hasRole(['siswa', 'siswa_wali'])) {
                 return redirect()->route('siswa.invoices.index')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk tagihan ini.']);

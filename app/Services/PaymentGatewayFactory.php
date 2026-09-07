@@ -15,7 +15,7 @@ class PaymentGatewayFactory
     {
         $activeGateway = $forcedGateway ?? config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
 
-        if (strtolower($activeGateway) === 'midtrans') {
+        if (in_array(strtolower($activeGateway), ['midtrans', 'midtrans_custom'])) {
             return new MidtransService();
         }
 

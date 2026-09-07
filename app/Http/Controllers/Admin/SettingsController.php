@@ -60,7 +60,7 @@ class SettingsController extends Controller
             'kop_surat_kontak' => 'nullable|string',
             'enable_parent_login' => 'nullable|in:0,1',
             'enable_virtual_account' => 'nullable|in:0,1',
-            'active_payment_gateway' => 'nullable|in:xendit,midtrans,gapura',
+            'active_payment_gateway' => 'nullable|in:xendit,midtrans,midtrans_custom,gapura',
             'midtrans_server_key' => 'nullable|string|max:255',
             'midtrans_client_key' => 'nullable|string|max:255',
             'midtrans_is_production' => 'nullable|in:0,1',

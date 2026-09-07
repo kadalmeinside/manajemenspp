@@ -291,7 +291,7 @@ class CekSppController extends Controller
 
             $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
             
-            if ($activeGateway === 'gapura') {
+            if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && $paymentType) {
                 return Inertia::location(route('tagihan.spp.custom_pay', ['invoice' => $parentInvoice->id]));
             }
 

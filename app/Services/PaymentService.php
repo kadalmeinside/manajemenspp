@@ -57,8 +57,8 @@ class PaymentService
                     $periods->diff($savedPeriods)->isEmpty() && 
                     $oldParent->payment_gateway === $activeGateway) {
                     
-                    if ($activeGateway === 'gapura') {
-                        // Untuk gapura, pastikan paymentType-nya sama, jika ya return lama. Jika tidak, hapus dan buat baru.
+                    if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && $paymentType) {
+                        // Untuk gapura/midtrans custom checkout, pastikan paymentType-nya sama, jika ya return lama. Jika tidak, hapus dan buat baru.
                         $oldCheckoutData = $oldParent->checkout_data ?? [];
                         if (($oldCheckoutData['payment_type'] ?? '') === $paymentType && 
                             ($oldCheckoutData['bank_code'] ?? '') === $bankCode) {
@@ -156,7 +156,7 @@ class PaymentService
                 'phone' => $siswa->nomor_telepon_wali
             ];
             
-            if ($activeGateway === 'gapura' && $paymentType) {
+            if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && $paymentType) {
                 $pgInvoiceData = $this->gateway->createCustomPayment(
                     $totalSpp,
                     $adminFee,
@@ -165,11 +165,11 @@ class PaymentService
                     $parentInvoice->external_id_xendit, 
                     now()->addDay(),
                     $paymentType,
-                    $bankCode
+                    $bankCode ?? ''
                 );
 
                 if (!$pgInvoiceData) {
-                    throw new \Exception('Gagal membuat tagihan Gapura DANA.');
+                    throw new \Exception("Gagal membuat tagihan {$activeGateway} DANA/Midtrans.");
                 }
                 
                 $parentInvoice->update([

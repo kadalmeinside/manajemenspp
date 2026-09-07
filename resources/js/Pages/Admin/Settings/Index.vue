@@ -180,11 +180,15 @@ function submit() {
                                             <input type="radio" v-model="form.active_payment_gateway" value="xendit" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
                                             <span class="ml-2 text-gray-700 dark:text-gray-300">Xendit</span>
                                         </label>
-                                        <label class="inline-flex items-center">
+                                        <label class="flex items-center space-x-3 cursor-pointer">
                                             <input type="radio" v-model="form.active_payment_gateway" value="midtrans" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Midtrans</span>
+                                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Midtrans (Hosted / Snap)</span>
                                         </label>
-                                        <label class="inline-flex items-center">
+                                        <label class="flex items-center space-x-3 cursor-pointer">
+                                            <input type="radio" v-model="form.active_payment_gateway" value="midtrans_custom" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Midtrans (Custom Checkout)</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3 cursor-pointer">
                                             <input type="radio" v-model="form.active_payment_gateway" value="gapura" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
                                             <span class="ml-2 text-gray-700 dark:text-gray-300">Gapura DANA</span>
                                         </label>
@@ -248,7 +252,7 @@ function submit() {
                                     </div>
                                 </div>
 
-                                <div v-if="form.active_payment_gateway === 'midtrans'" class="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                                <div v-if="form.active_payment_gateway === 'midtrans' || form.active_payment_gateway === 'midtrans_custom'" class="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
                                     <h4 class="font-medium text-sm text-gray-700 dark:text-gray-300">Kredensial Midtrans</h4>
                                     <div>
                                         <InputLabel for="midtrans_is_production" value="Environment Midtrans" />
