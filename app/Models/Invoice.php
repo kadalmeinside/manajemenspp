@@ -7,10 +7,37 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PaymentSuccessMail;
 
 class Invoice extends Model
 {
     use HasFactory, HasUuids, LogsActivity;
+
+    protected static function booted()
+    {
+        static::updated(function ($invoice) {
+            // Kirim email kuitansi saat invoice berubah menjadi PAID, dengan kondisi:
+            // 1. Bukan tipe 'pendaftaran' (sudah diurus oleh RegistrationSuccess email)
+            // 2. Bukan invoice ANAK dari gabungan (parent_payment_id tidak null)
+            //    → Email cukup dikirim 1x dari invoice induk gabungan, bukan dari tiap anak
+            // 3. User & email wali tersedia
+            if (
+                $invoice->isDirty('status') &&
+                $invoice->status === 'PAID' &&
+                $invoice->type !== 'pendaftaran' &&
+                is_null($invoice->parent_payment_id)
+            ) {
+                // Load relasi siswa->user jika belum ada (hindari null)
+                $siswa = $invoice->siswa ?? $invoice->load('siswa')->siswa;
+                $user  = $siswa?->user ?? $siswa?->load('user')->user;
+
+                if ($user && $user->email) {
+                    Mail::to($user->email)->queue(new PaymentSuccessMail($invoice));
+                }
+            }
+        });
+    }
 
     protected $table = 'invoices';
     public $incrementing = false;

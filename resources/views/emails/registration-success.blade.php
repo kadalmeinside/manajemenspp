@@ -28,8 +28,18 @@
 <body>
     <div class="container">
 
+        @php
+            $appLogo = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value')
+                    ?? \App\Models\Setting::where('key', 'app_logo')->value('value');
+            $appName = \App\Models\Setting::where('key', 'app_name')->value('value') ?? config('app.name');
+        @endphp
+
         <div class="logo-container">
-            <img src="https://siswa.persijadevelopment.id/images/logo-black.png" alt="Persija Development" style="height: 48px; width: auto;">
+            @if($appLogo)
+                <img src="{{ url('storage/' . $appLogo) }}" alt="{{ $appName }}" style="height: 56px; width: auto;">
+            @else
+                <strong style="font-size: 20px; color: #28a745;">{{ $appName }}</strong>
+            @endif
         </div>
 
         <div class="header">Pendaftaran Berhasil!</div>

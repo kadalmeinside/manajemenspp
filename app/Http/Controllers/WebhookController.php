@@ -263,15 +263,16 @@ class WebhookController extends Controller
                 $invoice->payment_method = strtoupper($payload['payment_type'] ?? 'MIDTRANS'); 
                 $invoice->save();
 
-                // Delegasi khusus SPP Gabungan
+                // Delegasi khusus berdasarkan tipe invoice
                 if ($invoice->type === 'pembayaran_spp_gabungan') {
                     $this->sppGabunganHandler->handle($invoice, $now);
-                } 
-                else if ($invoice->type === 'pembayaran_gabungan') {
+                } elseif ($invoice->type === 'pembayaran_gabungan') {
                     $this->legacyBulkHandler->handle($invoice, $now);
-                }
-                else {
-                    // Update childs secara generik
+                } elseif ($invoice->type === 'pendaftaran') {
+                    // Aktifkan siswa dari status pending_payment -> Aktif (sama seperti Xendit)
+                    $this->pendaftaranHandler->handleInvoicePendaftaran($invoice);
+                } else {
+                    // Update childs secara generik (spp individual, dll)
                     foreach ($invoice->childInvoices as $child) {
                         if ($child->status !== 'PAID') {
                             $child->status = 'PAID';
