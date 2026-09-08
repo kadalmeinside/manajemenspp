@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('queue:work database --stop-when-empty --tries=3 --timeout=60')
     ->everyMinute()
     ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/worker.log'))
     ->runInBackground();
 
 // 2. Jalankan otomatis setiap tanggal 25 jam 00:00 (Generate tagihan SPP bulanan)
