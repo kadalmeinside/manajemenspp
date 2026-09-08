@@ -3,7 +3,7 @@
 import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
-import { CreditCardIcon, ArrowPathIcon, UserIcon, CheckCircleIcon, BanknotesIcon, CalendarIcon, DocumentTextIcon, ClockIcon } from '@heroicons/vue/24/outline';
+import { CreditCardIcon, ArrowPathIcon, UserIcon, CheckCircleIcon, BanknotesIcon, CalendarIcon, DocumentTextIcon, ClockIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { XCircleIcon } from '@heroicons/vue/20/solid';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -61,6 +61,7 @@ const createUserForm = useForm({
 });
 
 const selectedPeriods = ref([]);
+const isPaymentModalOpen = ref(false);
 
 // --- State Cuti ---
 const showLeaveModal = ref(false);
@@ -385,22 +386,22 @@ const formatPeriod = (dateStr) => {
                 <div v-if="selectedSiswa" class="w-full animate-fade-in pb-8">
                 
                 <!-- Dashboard Header Card (Student Info & Cuti) -->
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-lg border border-gray-200 dark:border-gray-700 rounded-3xl p-6 md:p-8 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-5 md:p-6 mb-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6 relative overflow-hidden">
                     <!-- Decorative bg -->
                     <div class="absolute -right-10 -top-10 bg-emerald-500/10 w-40 h-40 rounded-full blur-3xl"></div>
                     
-                    <div class="flex items-center gap-5 relative z-10">
-                        <div class="h-16 w-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-inner font-bold text-2xl">
+                    <div class="flex items-center gap-4 sm:gap-5 relative z-10">
+                        <div class="h-12 w-12 sm:h-16 sm:w-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-inner font-bold text-xl sm:text-2xl">
                             {{ selectedSiswa.nama_siswa.charAt(0) }}
                         </div>
                         <div>
-                            <h3 class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">{{ selectedSiswa.nama_siswa }}</h3>
+                            <h3 class="text-lg sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">{{ selectedSiswa.nama_siswa }}</h3>
                             <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                                     NIS: {{ selectedSiswa.nis }}
                                 </span>
                                 <span class="hidden sm:inline text-gray-300 dark:text-gray-600">&bull;</span>
-                                <Link :href="route('tagihan.spp.form')" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
+                                <Link :href="route('tagihan.spp.form')" class="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
                                     Ganti Nomor
                                 </Link>
                             </div>
@@ -478,10 +479,10 @@ const formatPeriod = (dateStr) => {
 
                     <!-- TAB: Tagihan Aktif (cards pilih bayar) -->
                     <div v-show="activeTab === 'tagihan'">
-                        <div v-if="displayList.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        <div v-if="displayList.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             <div v-for="(item, index) in displayList" :key="item.id"
                                 @click="!isItemDisabled(index) && updateSelection(item, !selectedPeriods.includes(item.periode_tagihan))" 
-                                class="relative overflow-hidden rounded-2xl transition-all duration-300 p-5 flex items-start space-x-4 cursor-pointer group"
+                                class="relative overflow-hidden rounded-xl transition-all duration-300 p-4 flex items-start space-x-3 cursor-pointer group"
                                 :class="{ 
                                     'bg-gradient-to-r from-white from-50% via-emerald-50 via-75% to-emerald-500 text-white shadow-xl shadow-emerald-500/30 border-2 border-emerald-100 dark:border-emerald-500/30 scale-[1.02]': selectedPeriods.includes(item.periode_tagihan), 
                                     'bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md hover:shadow-lg border-2 border-white dark:border-gray-600': !isItemDisabled(index) && !selectedPeriods.includes(item.periode_tagihan), 
@@ -489,29 +490,29 @@ const formatPeriod = (dateStr) => {
                                 }">
                                 <!-- Aksen Background Icon Uang -->
                                 <div v-if="selectedPeriods.includes(item.periode_tagihan)" class="absolute -bottom-8 -right-4 transform -rotate-12 pointer-events-none z-0">
-                                    <BanknotesIcon class="w-36 h-36 text-white/20" />
+                                    <BanknotesIcon class="w-32 h-32 text-white/20" />
                                 </div>
                                 
-                                <div class="pt-1 z-10">
+                                <div class="pt-0.5 z-10">
                                     <Checkbox 
                                         :checked="selectedPeriods.includes(item.periode_tagihan)" 
                                         @click.stop
                                         @update:checked="updateSelection(item, $event)" 
                                         :disabled="isItemDisabled(index)" 
-                                        class="h-5 w-5 rounded transition duration-200 cursor-pointer"
+                                        class="h-4 w-4 rounded transition duration-200 cursor-pointer"
                                         :class="selectedPeriods.includes(item.periode_tagihan) ? 'border-emerald-400 text-emerald-600 focus:ring-emerald-500 bg-white/60' : 'border-gray-300 text-emerald-600 focus:ring-emerald-600'" />
                                 </div>
                                 <div class="flex-1 z-10">
-                                    <p class="font-bold text-lg leading-tight mb-1 transition-colors"
+                                    <p class="font-bold text-base leading-tight mb-1 transition-colors"
                                        :class="selectedPeriods.includes(item.periode_tagihan) ? 'text-emerald-900 drop-shadow-sm' : 'text-gray-900 dark:text-white'">
                                         {{ formatPeriod(item.periode_tagihan) }}
                                     </p>
-                                    <p class="text-sm font-semibold transition-colors"
+                                    <p class="text-xs font-semibold transition-colors"
                                        :class="selectedPeriods.includes(item.periode_tagihan) ? 'text-emerald-800' : 'text-emerald-600 dark:text-emerald-400'">
                                         {{ item.total_amount_formatted }}
                                     </p>
                                 </div>
-                                <span class="px-3 py-1 text-[11px] font-bold tracking-wider uppercase rounded-full shadow-sm z-10" 
+                                <span class="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-full shadow-sm z-10" 
                                       :class="selectedPeriods.includes(item.periode_tagihan) ? 'bg-white/20 text-white border border-white/20' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'">
                                     SPP
                                 </span>
@@ -531,7 +532,7 @@ const formatPeriod = (dateStr) => {
                         </div>
                         <div v-else class="space-y-3">
                             <div v-for="invoice in historyInvoices" :key="invoice.id"
-                                 class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                 class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
                                 <div class="flex-grow">
                                     <p class="font-bold text-gray-900 dark:text-white">{{ formatPeriod(invoice.periode_tagihan) }}</p>
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ invoice.description }}</p>
@@ -553,60 +554,78 @@ const formatPeriod = (dateStr) => {
                 </div>
             <!-- Floating Payment Bar -->
             <transition enter-active-class="transition ease-out duration-500" enter-from-class="transform opacity-0 translate-y-full scale-95" enter-to-class="transform opacity-100 translate-y-0 scale-100" leave-active-class="transition ease-in duration-300" leave-from-class="transform opacity-100 translate-y-0 scale-100" leave-to-class="transform opacity-0 translate-y-full scale-95">
-                <div v-if="selectedSiswa && selectedPeriods.length > 0" class="fixed bottom-0 left-0 right-0 px-2 sm:px-6 pb-6 pt-6 z-50 flex justify-center bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-                    <div class="w-full max-w-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl rounded-3xl p-4 sm:p-5 flex flex-col gap-4 transform transition-all hover:scale-[1.02]">
-                        
-                        <!-- Pilihan Metode Pembayaran Gapura / Midtrans Custom -->
-                        <div v-if="active_gateway === 'gapura' || active_gateway === 'midtrans_custom'" class="w-full pb-2 border-b border-gray-100 dark:border-gray-700">
-                            <p class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran ({{ active_gateway === 'midtrans_custom' ? 'Midtrans Custom' : 'Gapura' }})</p>
-                            <div class="flex flex-wrap gap-3">
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
-                                    <BankLogo bank="BCA" class="h-6 w-16" />
-                                </button>
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
-                                    <BankLogo bank="MANDIRI" class="h-6 w-16" />
-                                </button>
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
-                                    <BankLogo bank="BNI" class="h-6 w-16" />
-                                </button>
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
-                                    <BankLogo bank="BRI" class="h-6 w-16" />
-                                </button>
-                                <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
-                                    <BankLogo bank="PERMATA" class="h-6 w-16" />
-                                </button>
-                                <button type="button" @click="paymentForm.paymentType = 'QRIS'; paymentForm.bankCode = ''" :class="['p-2 rounded-xl border transition-all', paymentForm.paymentType === 'QRIS' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white opacity-70 hover:opacity-100 dark:border-gray-700 dark:bg-gray-800']">
-                                    <BankLogo bank="QRIS" class="h-6 w-16" />
-                                </button>
+                <div v-if="selectedSiswa && selectedPeriods.length > 0" class="fixed bottom-0 left-0 right-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-4 z-50 flex justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-lg border-t border-gray-200/50 dark:border-gray-800/50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+                    <div class="w-full max-w-2xl flex flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 flex items-center justify-center flex-shrink-0 border border-green-300/50 dark:border-green-600/50 shadow-inner">
+                                <span class="text-emerald-600 dark:text-emerald-400 font-bold text-lg sm:text-xl">{{ selectedPeriods.length }}</span>
+                            </div>
+                            <div>
+                                <p class="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Total Tagihan</p>
+                                <p class="text-lg sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
+                                    {{ totalSelectedAmountFormatted }}
+                                </p>
                             </div>
                         </div>
 
-                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
-                            <div class="flex items-center gap-4 w-full sm:w-auto">
-                                <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 flex items-center justify-center flex-shrink-0 border border-green-300/50 dark:border-green-600/50 shadow-inner">
-                                    <span class="text-emerald-600 dark:text-emerald-400 font-bold text-xl">{{ selectedPeriods.length }}</span>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Total Tagihan</p>
-                                    <p class="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
-                                        {{ totalSelectedAmountFormatted }}
-                                    </p>
-                                </div>
+                        <button @click="isPaymentModalOpen = true" :disabled="paymentForm.processing" class="relative group overflow-hidden rounded-xl sm:rounded-2xl p-[2px] flex-shrink-0">
+                            <span class="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-xl sm:rounded-2xl opacity-70 group-hover:opacity-100 blur transition-opacity duration-300"></span>
+                            <div class="relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-[10px] sm:rounded-[14px] flex items-center justify-center transition-all shadow-inner border border-white/20 text-sm sm:text-base">
+                                <CreditCardIcon v-if="!paymentForm.processing" class="h-4 w-4 sm:h-5 sm:w-5 mr-2 group-hover:animate-pulse" />
+                                <span class="tracking-wide">Bayar</span>
                             </div>
-
-                            <button @click="submitPayment" :disabled="paymentForm.processing" class="w-full sm:w-auto relative group overflow-hidden rounded-2xl p-[2px]">
-                                <span class="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-2xl opacity-70 group-hover:opacity-100 blur transition-opacity duration-300"></span>
-                                <div class="relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold px-8 py-3.5 rounded-[14px] flex items-center justify-center transition-all shadow-inner border border-white/20">
-                                    <CreditCardIcon v-if="!paymentForm.processing" class="h-5 w-5 mr-2 group-hover:animate-pulse" />
-                                    <svg v-else class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                    <span class="tracking-wide">{{ paymentForm.processing ? 'Memproses...' : 'Bayar Sekarang' }}</span>
-                                </div>
-                            </button>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </transition>
         </main>
+
+        <!-- Modal Pilihan Pembayaran -->
+        <Modal :show="isPaymentModalOpen" @close="isPaymentModalOpen = false" maxWidth="md">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">Pilih Metode Pembayaran</h2>
+                    <button @click="isPaymentModalOpen = false" class="text-gray-400 hover:text-gray-500">
+                        <XMarkIcon class="h-6 w-6" />
+                    </button>
+                </div>
+                
+                <div v-if="active_gateway === 'gapura' || active_gateway === 'midtrans_custom'" class="w-full">
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <BankLogo bank="BCA" class="h-6 w-auto max-w-[80px]" />
+                        </button>
+                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <BankLogo bank="MANDIRI" class="h-6 w-auto max-w-[80px]" />
+                        </button>
+                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
+                        </button>
+                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
+                        </button>
+                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
+                        </button>
+                        <button type="button" @click="paymentForm.paymentType = 'QRIS'; paymentForm.bankCode = ''" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'QRIS' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <BankLogo bank="QRIS" class="h-6 w-auto max-w-[80px]" />
+                        </button>
+                    </div>
+
+                    <button @click="submitPayment" :disabled="paymentForm.processing" class="w-full relative group overflow-hidden rounded-2xl p-[2px]">
+                        <span class="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-2xl opacity-70 group-hover:opacity-100 blur transition-opacity duration-300"></span>
+                        <div class="relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold px-8 py-3.5 rounded-[14px] flex items-center justify-center transition-all shadow-inner border border-white/20">
+                            <CreditCardIcon v-if="!paymentForm.processing" class="h-5 w-5 mr-2 group-hover:animate-pulse" />
+                            <svg v-else class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span class="tracking-wide">{{ paymentForm.processing ? 'Memproses...' : 'Lanjutkan Pembayaran' }}</span>
+                        </div>
+                    </button>
+                </div>
+                <div v-else class="text-center py-6 text-gray-500">
+                    Sistem pembayaran sedang tidak tersedia.
+                </div>
+            </div>
+        </Modal>
 
         <footer class="w-full max-w-4xl mx-auto mt-8 text-center text-sm text-gray-600 dark:text-gray-400 relative transition-all duration-700 pb-8">
             <p>Contact Center: 0811-2626-323</p>

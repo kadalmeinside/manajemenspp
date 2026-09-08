@@ -312,12 +312,12 @@ const activeTab = ref(0);
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8 selection:bg-indigo-500 selection:text-white">
         <div class="max-w-2xl mx-auto">
             <!-- Header -->
-            <div class="text-center mb-8">
-                <div class="inline-block mb-4 sm:mb-6">
-                    <img v-if="appLogo" :src="appLogo" alt="App Logo" class="h-10 sm:h-12 w-auto mx-auto drop-shadow-sm">
-                    <ApplicationLogo v-else class="h-10 sm:h-12 w-auto mx-auto text-gray-900 dark:text-white" />
+            <div class="text-center mb-6">
+                <div class="inline-block mb-3 sm:mb-5">
+                    <img v-if="appLogo" :src="appLogo" alt="App Logo" class="h-8 sm:h-10 w-auto mx-auto drop-shadow-sm">
+                    <ApplicationLogo v-else class="h-8 sm:h-10 w-auto mx-auto text-gray-900 dark:text-white" />
                 </div>
-                <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Selesaikan Pembayaran</h1>
+                <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Selesaikan Pembayaran</h1>
                 <p class="mt-2 text-gray-600 dark:text-gray-400">Silakan ikuti instruksi pembayaran di bawah ini.</p>
             </div>
 
@@ -383,7 +383,7 @@ const activeTab = ref(0);
                         </div>
                         
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total yang harus dibayar</p>
-                        <h2 class="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
+                        <h2 class="text-3xl sm:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300">
                             {{ amountFormatted }}
                         </h2>
                         
@@ -394,25 +394,25 @@ const activeTab = ref(0);
                     </div>
 
                     <!-- Instruksi VA -->
-                    <div v-if="paymentType === 'VA'" class="p-6 sm:p-8 bg-gray-50 dark:bg-gray-800/50">
-                        <div class="flex items-center gap-4 mb-6">
-                            <div class="h-10 px-3 bg-white border border-gray-200 rounded-xl flex items-center justify-center dark:bg-white flex-shrink-0 shadow-sm">
-                                <BankLogo :bank="bankCode" class="h-6 w-auto" />
+                    <div v-if="paymentType === 'VA'" class="p-4 sm:p-6 bg-gray-50 dark:bg-gray-800/50">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="h-8 px-2 bg-white border border-gray-200 rounded-lg flex items-center justify-center dark:bg-white flex-shrink-0 shadow-sm">
+                                <BankLogo :bank="bankCode" class="h-4 w-auto" />
                             </div>
                             <div>
                                 <p class="text-sm font-bold text-gray-900 dark:text-white uppercase">{{ bankCode }} Virtual Account</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Gunakan nomor VA di bawah untuk membayar</p>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400">Gunakan nomor VA di bawah untuk membayar</p>
                             </div>
                         </div>
 
-                        <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-4 sm:p-6 mb-2 shadow-sm">
-                            <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Nomor Virtual Account</p>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                <p class="text-xl sm:text-2xl font-mono font-black text-gray-900 dark:text-white tracking-wide break-all">
+                        <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-2 shadow-sm">
+                            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nomor Virtual Account</p>
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <p class="text-lg sm:text-xl font-mono font-black text-gray-900 dark:text-white tracking-wide break-all">
                                     {{ vaNumber }}
                                 </p>
-                                <button @click="copyToClipboard(vaNumber)" class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl font-bold hover:bg-indigo-100 transition-colors shadow-sm dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50">
-                                    <DocumentDuplicateIcon class="w-5 h-5 mr-2" />
+                                <button @click="copyToClipboard(vaNumber)" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-bold text-sm hover:bg-indigo-100 transition-colors shadow-sm dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50">
+                                    <DocumentDuplicateIcon class="w-4 h-4 mr-1.5" />
                                     {{ copySuccess ? 'Tersalin!' : 'Salin' }}
                                 </button>
                             </div>
@@ -444,29 +444,38 @@ const activeTab = ref(0);
                     </div>
                 </div>
 
+                <div class="text-center px-4 py-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">
+                        Pembayaran akan terverifikasi secara otomatis.<br/>Anda juga bisa menekan tombol di bawah untuk mengecek status.
+                    </p>
+                    <button @click="checkStatus" class="w-full sm:w-auto inline-flex justify-center items-center px-6 py-2.5 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
+                        Cek Status Pembayaran
+                    </button>
+                </div>
+
                 <!-- Cara Pembayaran Accordion -->
-                <div v-if="paymentInstructions" class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <button @click="openInstructions = !openInstructions" class="w-full flex items-center justify-between px-6 py-4 sm:px-8 sm:py-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none">
-                        <div class="flex items-center gap-4">
-                            <div class="h-10 w-10 flex items-center justify-center rounded-xl flex-shrink-0" :class="paymentInstructions.icon === 'phone' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/50 dark:text-pink-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'">
-                                <DevicePhoneMobileIcon v-if="paymentInstructions.icon === 'phone'" class="w-6 h-6" />
-                                <BuildingLibraryIcon v-else-if="paymentInstructions.icon === 'bank'" class="w-6 h-6" />
+                <div v-if="paymentInstructions" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <button @click="openInstructions = !openInstructions" class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left focus:outline-none">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 flex items-center justify-center rounded-lg flex-shrink-0" :class="paymentInstructions.icon === 'phone' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/50 dark:text-pink-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'">
+                                <DevicePhoneMobileIcon v-if="paymentInstructions.icon === 'phone'" class="w-5 h-5" />
+                                <BuildingLibraryIcon v-else-if="paymentInstructions.icon === 'bank'" class="w-5 h-5" />
                             </div>
                             <div>
                                 <p class="text-sm font-bold text-gray-900 dark:text-white">{{ paymentInstructions.title }}</p>
-                                <p class="text-xs text-gray-400 dark:text-gray-500">Lihat panduan langkah demi langkah</p>
+                                <p class="text-[10px] text-gray-400 dark:text-gray-500">Lihat panduan langkah demi langkah</p>
                             </div>
                         </div>
                         <ChevronDownIcon class="w-5 h-5 text-gray-400 transition-transform duration-300" :class="{'rotate-180': openInstructions}" />
                     </button>
                     
                     <div v-show="openInstructions" class="border-t border-gray-100 dark:border-gray-700">
-                        <div class="px-6 py-4 sm:px-8 sm:py-6 bg-gray-50/50 dark:bg-gray-800/30">
+                        <div class="px-5 py-4 bg-gray-50/50 dark:bg-gray-800/30">
                             <!-- Tabs Navigation -->
-                            <div class="flex overflow-x-auto space-x-2 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4 hide-scrollbar">
+                            <div class="flex overflow-x-auto space-x-2 border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 hide-scrollbar">
                                 <button v-for="(tab, index) in paymentInstructions.tabs" :key="index"
                                     @click="activeTab = index"
-                                    class="whitespace-nowrap px-4 py-2 text-sm font-semibold rounded-lg transition-colors focus:outline-none"
+                                    class="whitespace-nowrap px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors focus:outline-none"
                                     :class="activeTab === index ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'">
                                     {{ tab.name }}
                                 </button>
@@ -474,9 +483,9 @@ const activeTab = ref(0);
                             
                             <!-- Tab Content -->
                             <div class="py-2">
-                                <ol class="space-y-4">
-                                    <li v-for="(step, sIndex) in paymentInstructions.tabs[activeTab].steps" :key="sIndex" class="flex items-start text-sm text-gray-600 dark:text-gray-300">
-                                        <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400 font-bold text-xs mr-3 mt-0.5">
+                                <ol class="space-y-3">
+                                    <li v-for="(step, sIndex) in paymentInstructions.tabs[activeTab].steps" :key="sIndex" class="flex items-start text-xs text-gray-600 dark:text-gray-300">
+                                        <span class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400 font-bold text-[10px] mr-2 mt-0.5">
                                             {{ sIndex + 1 }}
                                         </span>
                                         <span class="leading-relaxed">{{ step }}</span>
@@ -485,15 +494,6 @@ const activeTab = ref(0);
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="text-center px-4 pt-2 pb-6">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Pembayaran akan terverifikasi secara otomatis.<br/>Anda juga bisa menekan tombol di bawah untuk mengecek status.
-                    </p>
-                    <button @click="checkStatus" class="mt-4 w-full sm:w-auto inline-flex justify-center items-center px-8 py-3.5 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
-                        Cek Status Pembayaran
-                    </button>
                 </div>
             </div>
         </div>
