@@ -64,10 +64,17 @@
     <div class="email-wrapper">
 
         @php
-            $appLogo    = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value')
-                       ?? \App\Models\Setting::where('key', 'app_logo')->value('value');
-            $appName    = \App\Models\Setting::where('key', 'app_name')->value('value') ?? config('app.name');
-            $kopNama    = \App\Models\Setting::where('key', 'kop_surat_nama')->value('value') ?? $appName;
+            $appLogoValue = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value');
+            if (empty($appLogoValue)) {
+                $appLogoValue = \App\Models\Setting::where('key', 'app_logo')->value('value');
+            }
+            $appLogo = !empty($appLogoValue) ? $appLogoValue : null;
+
+            $appNameValue = \App\Models\Setting::where('key', 'app_name')->value('value');
+            $appName = !empty($appNameValue) ? $appNameValue : config('app.name');
+
+            $kopNamaValue = \App\Models\Setting::where('key', 'kop_surat_nama')->value('value');
+            $kopNama = !empty($kopNamaValue) ? $kopNamaValue : $appName;
         @endphp
 
         <!-- Logo Bar -->

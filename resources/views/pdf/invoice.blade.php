@@ -85,13 +85,22 @@
 <div class="page">
 
     @php
-        $appLogo     = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value')
-                    ?? \App\Models\Setting::where('key', 'app_logo')->value('value');
-        $kopNama     = \App\Models\Setting::where('key', 'kop_surat_nama')->value('value')
-                    ?? \App\Models\Setting::where('key', 'app_name')->value('value')
-                    ?? config('app.name');
-        $kopAlamat   = \App\Models\Setting::where('key', 'kop_surat_alamat')->value('value') ?? '-';
-        $kopKontak   = \App\Models\Setting::where('key', 'kop_surat_kontak')->value('value') ?? '-';
+        $appLogoValue = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value');
+        if (empty($appLogoValue)) {
+            $appLogoValue = \App\Models\Setting::where('key', 'app_logo')->value('value');
+        }
+        $appLogo = !empty($appLogoValue) ? $appLogoValue : null;
+
+        $kopNamaValue = \App\Models\Setting::where('key', 'kop_surat_nama')->value('value');
+        $appNameValue = \App\Models\Setting::where('key', 'app_name')->value('value');
+        $kopNama = !empty($kopNamaValue) ? $kopNamaValue : (!empty($appNameValue) ? $appNameValue : config('app.name'));
+
+        $kopAlamatValue = \App\Models\Setting::where('key', 'kop_surat_alamat')->value('value');
+        $kopAlamat = !empty($kopAlamatValue) ? $kopAlamatValue : '-';
+
+        $kopKontakValue = \App\Models\Setting::where('key', 'kop_surat_kontak')->value('value');
+        $kopKontak = !empty($kopKontakValue) ? $kopKontakValue : '-';
+
         $invoiceNumber = strtoupper(substr($invoice->id, 0, 8));
         $paidAt      = $invoice->paid_at ? $invoice->paid_at->format('d F Y, H:i') : now()->format('d F Y, H:i');
     @endphp
