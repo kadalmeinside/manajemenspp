@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\StockMovement;
+use App\Models\Siswa;
 use App\Services\PaymentGatewayFactory;
 use App\Contracts\PaymentGatewayInterface;
 use Illuminate\Support\Facades\Auth;
@@ -32,11 +33,11 @@ class StoreCheckoutController extends Controller
         ]);
 
         $user = Auth::user();
-
         $force = $request->boolean('force');
 
         // Validasi Anti-Hoarding: Cek apakah user masih punya pesanan PENDING
-        $pendingOrders = Order::with('items.variant')->where('user_id', $user->id)
+        $pendingOrders = Order::with('items.variant')
+            ->where('user_id', $user->id)
             ->where('status', 'PENDING')
             ->get();
 
@@ -50,16 +51,16 @@ class StoreCheckoutController extends Controller
                             if ($variant && !$item->product->is_preorder) {
                                 $previousStock = $variant->stock;
                                 $variant->increment('stock', $item->quantity);
-                                
+
                                 StockMovement::create([
                                     'product_variant_id' => $variant->id,
-                                    'type' => 'returned',
-                                    'quantity' => $item->quantity,
-                                    'previous_stock' => $previousStock,
-                                    'new_stock' => $previousStock + $item->quantity,
-                                    'reference_id' => $pendingOrder->order_number,
-                                    'user_id' => $pendingOrder->user_id,
-                                    'notes' => 'Stok dikembalikan karena pesanan dibatalkan (Override by user).'
+                                    'type'               => 'returned',
+                                    'quantity'           => $item->quantity,
+                                    'previous_stock'     => $previousStock,
+                                    'new_stock'          => $previousStock + $item->quantity,
+                                    'reference_id'       => $pendingOrder->order_number,
+                                    'user_id'            => $pendingOrder->user_id,
+                                    'notes'              => 'Stok dikembalikan karena pesanan dibatalkan (Override by user).',
                                 ]);
                             }
                         }
@@ -69,12 +70,14 @@ class StoreCheckoutController extends Controller
             } else {
                 return back()->with([
                     'pending_order_conflict' => true,
-                    'error' => 'Anda masih memiliki pesanan toko yang menunggu pembayaran. Harap selesaikan atau batalkan pesanan tersebut sebelum membuat pesanan baru.'
+                    'error'                  => 'Anda masih memiliki pesanan toko yang menunggu pembayaran. Harap selesaikan atau batalkan pesanan tersebut sebelum membuat pesanan baru.',
                 ]);
             }
         }
 
-        $cart = Cart::with(['items.product', 'items.variant'])->where('user_id', $user->id)->first();
+        $cart = Cart::with(['items.product', 'items.variant'])
+            ->where('user_id', $user->id)
+            ->first();
 
         if (!$cart || $cart->items->count() === 0) {
             return back()->with('error', 'Keranjang Anda kosong.');
@@ -83,17 +86,19 @@ class StoreCheckoutController extends Controller
         try {
             DB::beginTransaction();
 
+            // Ambil gateway & siswa sekali saja di awal
+            $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+            $siswa         = Siswa::find($request->siswa_id);
+
             $totalAmount = 0;
             $orderNumber = 'ORD-WEB-' . date('Ymd') . '-' . strtoupper(Str::random(5));
-            
-            $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
-            
+
             $order = Order::create([
-                'user_id' => $user->id,
-                'siswa_id' => $request->siswa_id,
-                'order_number' => $orderNumber,
-                'total_amount' => 0, // Akan diupdate nanti
-                'status' => 'PENDING',
+                'user_id'        => $user->id,
+                'siswa_id'       => $request->siswa_id,
+                'order_number'   => $orderNumber,
+                'total_amount'   => 0, // Akan diupdate nanti
+                'status'         => 'PENDING',
                 'payment_method' => strtoupper($activeGateway),
             ]);
 
@@ -106,48 +111,49 @@ class StoreCheckoutController extends Controller
                     if ($variant->stock < $item->quantity) {
                         throw new \Exception("Stok tidak mencukupi untuk " . $product->name . " varian " . $variant->name);
                     }
-                    
+
                     $previousStock = $variant->stock;
-                    // Kurangi stok
                     $variant->decrement('stock', $item->quantity);
-                    
-                    \App\Models\StockMovement::create([
+
+                    StockMovement::create([
                         'product_variant_id' => $variant->id,
-                        'type' => 'sale',
-                        'quantity' => -$item->quantity,
-                        'previous_stock' => $previousStock,
-                        'new_stock' => $previousStock - $item->quantity,
-                        'reference_id' => $orderNumber,
-                        'user_id' => $user->id,
+                        'type'               => 'sale',
+                        'quantity'           => -$item->quantity,
+                        'previous_stock'     => $previousStock,
+                        'new_stock'          => $previousStock - $item->quantity,
+                        'reference_id'       => $orderNumber,
+                        'user_id'            => $user->id,
                     ]);
                 }
 
-                $subtotal = $variant->price * $item->quantity;
+                $subtotal     = $variant->price * $item->quantity;
                 $totalAmount += $subtotal;
 
                 OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'product_variant_id' => $variant->id,
-                    'quantity' => $item->quantity,
-                    'unit_price' => $variant->price,
-                    'subtotal' => $subtotal,
+                    'order_id'          => $order->id,
+                    'product_id'        => $product->id,
+                    'product_variant_id'=> $variant->id,
+                    'quantity'          => $item->quantity,
+                    'unit_price'        => $variant->price,
+                    'subtotal'          => $subtotal,
                 ]);
             }
 
-            // Tambahkan biaya admin Xendit (misal Rp 4.500 jika dibebankan ke user, atau 0 jika sekolah menanggung)
-            // Untuk amannya, kita anggap biaya 4500 (atau sesuai logic SPP).
-            $feeAmount = 4500;
-            $grandTotal = $totalAmount + $feeAmount;
+            $order->update(['total_amount' => $totalAmount]);
 
-            $order->update(['total_amount' => $totalAmount]); // Harga barang saja
+            // Ambil admin fee dari pengaturan siswa atau default global
+            $feeAmount = $siswa ? (float) ($siswa->admin_fee_custom ?? 0) : 0;
+            if ($feeAmount === 0.0) {
+                $feeAmount = (float) (\App\Models\Setting::where('key', 'default_admin_fee')->value('value') ?? 0);
+            }
 
-            $externalId = 'STORE_INV_' . $order->id;
-            
+            // External ID menggunakan prefix UNIF- yang konsisten dengan webhook
+            $externalId = 'UNIF-' . substr($siswa->id_siswa ?? $order->id, 0, 8) . '-' . strtoupper(Str::random(8));
+
             $payerInfo = [
                 'email' => $user->email,
-                'name' => $user->name,
-                'phone' => '081234567890' // Optional
+                'name'  => $user->name,
+                'phone' => $siswa?->nomor_telepon_wali ?? '081234567890',
             ];
 
             $invoice = $this->gateway->createInvoice(
@@ -165,11 +171,11 @@ class StoreCheckoutController extends Controller
                 throw new \Exception("Gagal membuat tagihan pembayaran.");
             }
 
-            $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+            $paymentUrl = $invoice['invoice_url'] ?? null;
 
             $order->update([
-                'external_id' => $externalId,
-                'payment_url' => $invoice['invoice_url'],
+                'external_id'    => $externalId,
+                'payment_url'    => $paymentUrl,
                 'payment_method' => strtoupper($activeGateway),
             ]);
 
@@ -178,7 +184,14 @@ class StoreCheckoutController extends Controller
 
             DB::commit();
 
-            return \Inertia\Inertia::location($invoice['invoice_url']);
+            // Redirect berdasarkan gateway yang aktif
+            // Midtrans Custom / Gapura → halaman custom checkout
+            if (in_array($activeGateway, ['midtrans_custom', 'gapura']) && !empty($invoice['checkout_data'])) {
+                return \Inertia\Inertia::location(route('tagihan.spp.custom_pay', ['invoice' => $order->id]));
+            }
+
+            // Xendit / Midtrans Snap → langsung redirect ke payment URL
+            return \Inertia\Inertia::location($paymentUrl);
 
         } catch (\Exception $e) {
             DB::rollBack();
