@@ -65,6 +65,7 @@ class UpdateSiswaRequest extends FormRequest
             'admin_fee_custom' => 'nullable|numeric|min:0',
             'user_name' => 'required|string|max:255',
             'user_password' => ['nullable', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+            'mulai_spp_date' => 'nullable|date_format:Y-m',
         ];
     }
     protected function prepareForValidation()

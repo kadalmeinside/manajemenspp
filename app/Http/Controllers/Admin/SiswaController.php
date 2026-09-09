@@ -417,11 +417,17 @@ class SiswaController extends Controller
                 }
             }
 
-            $siswa->update($request->only([
+            $updateData = $request->only([
                 'nis','nama_siswa', 'tanggal_lahir', 'status_siswa', 'id_kelas',
                 'email_wali', 'nomor_telepon_wali', 'tanggal_bergabung',
                 'jumlah_spp_custom', 'admin_fee_custom'
-            ]));
+            ]);
+            
+            if ($request->has('mulai_spp_date')) {
+                $updateData['mulai_spp_date'] = $request->mulai_spp_date ? $request->mulai_spp_date . '-01' : null;
+            }
+
+            $siswa->update($updateData);
         });
 
         // Pengecekan setelah update untuk membatalkan invoice PENDING
