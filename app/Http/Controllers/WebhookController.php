@@ -70,7 +70,10 @@ class WebhookController extends Controller
         if (str_starts_with($externalId, 'PREG-')) {
             return $this->pendaftaranHandler->handlePendingRegistration($externalId, $payload, $payloadStatus);
         }
-        if (str_starts_with($externalId, 'UNIF-')) {
+
+        // Cek apakah ini Order Toko (Store)
+        $isStoreOrder = \App\Models\Order::where('external_id', $externalId)->exists();
+        if ($isStoreOrder) {
             return $this->storeOrderHandler->handleStoreOrder($externalId, $payload, $payloadStatus);
         }
 

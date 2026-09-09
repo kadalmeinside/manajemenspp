@@ -15,11 +15,9 @@ class StoreOrderHandler
      */
     public function handleStoreOrder(string $externalId, array $payload, string $payloadStatus)
     {
-        $orderId = str_replace('STORE_INV_', '', $externalId);
-        
         DB::beginTransaction();
         try {
-            $order = Order::with('items.variant')->lockForUpdate()->find($orderId);
+            $order = Order::with('items.variant')->where('external_id', $externalId)->lockForUpdate()->first();
 
             if (!$order) {
                 DB::rollBack();
