@@ -247,11 +247,12 @@ class CekSppController extends Controller
         $user->assignRole('siswa');
 
         $dataForEmail = [
-            'nama_wali' => $user->name,
+            'nama_wali'  => $user->name,
             'nama_siswa' => $siswa->nama_siswa,
-            'nis' => $siswa->nis,
-            'login_url' => route('login'),
+            'nis'        => $siswa->nis,
+            'login_url'  => route('login'),
             'email_wali' => $user->email,
+            'kelas'      => $siswa->kelas->nama_kelas ?? null,
         ];
 
         try {

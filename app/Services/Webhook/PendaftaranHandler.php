@@ -147,7 +147,8 @@ class PendaftaranHandler
                     'nis'        => $siswa->nis,
                     'email_wali' => $user->email,
                     'password'   => $passwordPlain,
-                ]));
+                    'kelas'      => $siswa->kelas->nama_kelas ?? null,
+                ], $invoice));
             } catch (\Exception $e) {
                 Log::error('[Webhook PendingReg] Gagal kirim email.', ['error' => $e->getMessage()]);
             }

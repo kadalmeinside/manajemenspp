@@ -147,10 +147,11 @@ class ReRegistrationController extends Controller
                 ]);
 
                 $dataForEmail = [
-                    'nis' => $newNis,
+                    'nis'        => $newNis,
                     'nama_siswa' => $validated['nama_siswa'],
-                    'nama_wali' => $validated['user_name'],
+                    'nama_wali'  => $validated['user_name'],
                     'email_wali' => $validated['email_wali'],
+                    'kelas'      => null,
                 ];
                 try {
                     Mail::to($validated['email_wali'])->send(new RegistrationSuccess($dataForEmail));
