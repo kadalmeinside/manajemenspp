@@ -253,6 +253,14 @@ const submitPayment = () => {
     paymentForm.post(route('tagihan.spp.pay', props.selectedSiswa.id_siswa)); 
 };
 
+const handleBayarClick = () => {
+    if (props.active_gateway === 'gapura' || props.active_gateway === 'midtrans_custom') {
+        isPaymentModalOpen.value = true;
+    } else {
+        submitPayment();
+    }
+};
+
 // --- State tab di halaman tagihan utama ---
 const activeTab = ref('tagihan'); // 'tagihan' | 'riwayat'
 
@@ -568,7 +576,7 @@ const formatPeriod = (dateStr) => {
                             </div>
                         </div>
 
-                        <button @click="isPaymentModalOpen = true" :disabled="paymentForm.processing" class="relative group overflow-hidden rounded-xl sm:rounded-2xl p-[2px] flex-shrink-0">
+                        <button @click="handleBayarClick" :disabled="paymentForm.processing" class="relative group overflow-hidden rounded-xl sm:rounded-2xl p-[2px] flex-shrink-0">
                             <span class="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-xl sm:rounded-2xl opacity-70 group-hover:opacity-100 blur transition-opacity duration-300"></span>
                             <div class="relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-[10px] sm:rounded-[14px] flex items-center justify-center transition-all shadow-inner border border-white/20 text-sm sm:text-base">
                                 <CreditCardIcon v-if="!paymentForm.processing" class="h-4 w-4 sm:h-5 sm:w-5 mr-2 group-hover:animate-pulse" />

@@ -8,6 +8,9 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Mail\Mailables\Attachment;
+use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class RegistrationSuccess extends Mailable implements ShouldQueue
 {
@@ -20,14 +23,22 @@ class RegistrationSuccess extends Mailable implements ShouldQueue
     public $registrationData;
 
     /**
+     * Data invoice pendaftaran.
+     * @var Invoice|null
+     */
+    public $invoice;
+
+    /**
      * Create a new message instance.
      *
      * @param array $registrationData
+     * @param Invoice|null $invoice
      * @return void
      */
-    public function __construct(array $registrationData)
+    public function __construct(array $registrationData, Invoice $invoice = null)
     {
         $this->registrationData = $registrationData;
+        $this->invoice = $invoice;
     }
 
     /**
@@ -57,6 +68,15 @@ class RegistrationSuccess extends Mailable implements ShouldQueue
      */
     public function attachments(): array
     {
-        return [];
+        $attachments = [];
+        
+        if ($this->invoice) {
+            $pdf = Pdf::loadView('pdf.invoice', ['invoice' => $this->invoice]);
+            $attachments[] = Attachment::fromData(fn () => $pdf->output(), 'Invoice_Pendaftaran.pdf')
+                                ->withMime('application/pdf');
+        }
+
+        return $attachments;
     }
 }
+
