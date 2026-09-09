@@ -161,6 +161,7 @@
             </div>
             @endif
 
+            @isset($invoice)
             @if($invoice)
             <div class="attachment-box">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="#3182ce" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -168,6 +169,7 @@
                 File kuitansi pembayaran pendaftaran telah kami lampirkan pada email ini. Simpan sebagai bukti pembayaran resmi Anda.
             </div>
             @endif
+            @endisset
 
             <div class="cta-wrap">
                 <a href="{{ url('/login') }}" class="cta-btn">Masuk ke Portal Wali</a>
