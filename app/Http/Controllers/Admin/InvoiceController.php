@@ -33,8 +33,26 @@ class InvoiceController extends Controller
 
         $user = $request->user();
         $query = Invoice::with(['siswa.user', 'siswa.kelas'])
-            ->whereNotIn('type', ['pembayaran_gabungan', 'pembayaran_spp_gabungan'])
-            ->orderBy('created_at', 'desc');
+            ->whereNotIn('type', ['pembayaran_gabungan', 'pembayaran_spp_gabungan']);
+
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'created_desc');
+        switch ($sort) {
+            case 'created_asc':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'paid_desc':
+                // Null paid_at (belum bayar) akan ada di bawah (atau atas bergantung DB, kita usahakan yg ada tanggalnya di atas)
+                $query->orderByRaw('paid_at IS NULL ASC, paid_at DESC');
+                break;
+            case 'due_asc':
+                $query->orderBy('due_date', 'asc');
+                break;
+            case 'created_desc':
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
 
         if ($user->hasRole('admin_kelas')) {
             $managedKelasIds = $user->managedClasses()->pluck('kelas.id_kelas');

@@ -21,7 +21,7 @@ const page = usePage();
 
 // Computed props
 const invoiceList = computed(() => page.props.invoiceList || { data: [], links: [], current_page: 1, total: 0, per_page: 10, from: 0, to: 0 });
-const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status: '', type: '', periode_bulan: '', periode_tahun: '' });
+const filters = computed(() => page.props.filters || { search: '', kelas_id: '', status: '', type: '', periode_bulan: '', periode_tahun: '', sort: '' });
 const allSiswa = computed(() => page.props.allSiswa || []);
 const allKelas = computed(() => page.props.allKelas || []);
 const allStatus = computed(() => page.props.allStatus || []);
@@ -119,6 +119,7 @@ const selectedStatus = ref(filters.value.status || '');
 const selectedType = ref(filters.value.type || '');
 const selectedPeriodeBulan = ref(filters.value.periode_bulan || '');
 const selectedPeriodeTahun = ref(filters.value.periode_tahun || '');
+const selectedSort = ref(filters.value.sort || 'created_desc');
 
 const submitFilters = () => {
     router.get(route('admin.invoices.index'), {
@@ -128,13 +129,14 @@ const submitFilters = () => {
         type: selectedType.value,
         periode_bulan: selectedPeriodeBulan.value,
         periode_tahun: selectedPeriodeTahun.value,
+        sort: selectedSort.value,
         page: 1,
     }, {
         preserveState: true, preserveScroll: true, replace: true,
         only: ['invoiceList', 'filters'],
     });
 };
-watch([searchQuery, selectedKelasId, selectedStatus, selectedType, selectedPeriodeBulan, selectedPeriodeTahun], debounce(submitFilters, 300));
+watch([searchQuery, selectedKelasId, selectedStatus, selectedType, selectedPeriodeBulan, selectedPeriodeTahun, selectedSort], debounce(submitFilters, 300));
 
 
 const openCreateIndividualModal = () => { formIndividual.reset(); showIndividualModal.value = true; };
@@ -229,6 +231,7 @@ onMounted(() => {
     selectedStatus.value = urlParams.get('status') || filters.value.status || '';
     selectedPeriodeBulan.value = urlParams.get('periode_bulan') || filters.value.periode_bulan || '';
     selectedPeriodeTahun.value = urlParams.get('periode_tahun') || filters.value.periode_tahun || '';
+    selectedSort.value = urlParams.get('sort') || filters.value.sort || 'created_desc';
 });
 
 // Helper Function
@@ -302,7 +305,7 @@ const formatDescription = (desc) => {
 
                 <!-- DESKTOP: Filter & Search Card -->
                 <div class="hidden lg:block mb-6 p-4 bg-white dark:bg-gray-800 shadow-md sm:rounded-lg">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 items-end">
                         <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full lg:col-span-2" aria-label="Cari invoice"/>
                         <select v-model="selectedKelasId" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter kelas">
                             <option value="">Semua Kelas</option>
@@ -320,6 +323,12 @@ const formatDescription = (desc) => {
                         <select v-model="selectedPeriodeTahun" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Filter tahun periode">
                             <option value="">Semua Tahun</option>
                             <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                        </select>
+                        <select v-model="selectedSort" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Urutkan berdasarkan">
+                            <option value="created_desc">Paling Baru Dibuat</option>
+                            <option value="created_asc">Paling Lama Dibuat</option>
+                            <option value="paid_desc">Paling Baru Dibayar</option>
+                            <option value="due_asc">Jatuh Tempo Terdekat</option>
                         </select>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
@@ -806,6 +815,15 @@ const formatDescription = (desc) => {
                         <select v-model="selectedPeriodeTahun" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
                             <option value="">Semua Tahun</option>
                             <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <InputLabel value="Urutkan Berdasarkan" />
+                        <select v-model="selectedSort" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                            <option value="created_desc">Paling Baru Dibuat</option>
+                            <option value="created_asc">Paling Lama Dibuat</option>
+                            <option value="paid_desc">Paling Baru Dibayar</option>
+                            <option value="due_asc">Jatuh Tempo Terdekat</option>
                         </select>
                     </div>
                     <div class="pt-4 border-t dark:border-gray-700">
