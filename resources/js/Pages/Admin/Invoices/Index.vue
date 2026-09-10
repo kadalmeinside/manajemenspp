@@ -327,10 +327,10 @@ const formatDescription = (desc) => {
                             <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
                         </select>
                         <select v-model="selectedSort" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Urutkan berdasarkan">
-                            <option value="created_desc">↓ Paling Baru Dibuat (Default)</option>
-                            <option value="created_asc">↑ Paling Lama Dibuat</option>
-                            <option value="paid_desc">↓ Paling Baru Dibayar</option>
-                            <option value="due_asc">↑ Jatuh Tempo Terdekat</option>
+                            <option value="created_desc">Urutkan: Paling Baru (Default)</option>
+                            <option value="created_asc">Urutkan: Paling Lama</option>
+                            <option value="paid_desc">Urutkan: Baru Dibayar</option>
+                            <option value="due_asc">Urutkan: Jatuh Tempo Terdekat</option>
                         </select>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
@@ -822,10 +822,10 @@ const formatDescription = (desc) => {
                     <div>
                         <InputLabel value="Urutkan Berdasarkan" />
                         <select v-model="selectedSort" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
-                            <option value="created_desc">↓ Paling Baru Dibuat (Default)</option>
-                            <option value="created_asc">↑ Paling Lama Dibuat</option>
-                            <option value="paid_desc">↓ Paling Baru Dibayar</option>
-                            <option value="due_asc">↑ Jatuh Tempo Terdekat</option>
+                            <option value="created_desc">Urutkan: Paling Baru (Default)</option>
+                            <option value="created_asc">Urutkan: Paling Lama</option>
+                            <option value="paid_desc">Urutkan: Baru Dibayar</option>
+                            <option value="due_asc">Urutkan: Jatuh Tempo Terdekat</option>
                         </select>
                     </div>
                     <div class="pt-4 border-t dark:border-gray-700">
