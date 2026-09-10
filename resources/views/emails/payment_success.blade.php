@@ -6,77 +6,121 @@
     <title>Konfirmasi Pembayaran</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #f0f4f8; font-family: Arial, sans-serif; padding: 24px 16px; color: #2d3748; }
+        body { background-color: #f5f5f5; font-family: Arial, sans-serif; padding: 24px 16px; color: #1a1a1a; }
         .email-wrapper { max-width: 620px; margin: 0 auto; }
 
-        .logo-bar { background: #ffffff; border-radius: 12px 12px 0 0; padding: 24px 36px; text-align: center; border-bottom: 3px solid #e53e3e; }
+        /* Logo Bar */
+        .logo-bar { background: #ffffff; border-radius: 12px 12px 0 0; padding: 22px 36px; text-align: center; border-bottom: 3px solid #e8600a; }
         .logo-bar img { height: 56px; width: auto; }
-        .logo-bar .app-name { font-size: 20px; font-weight: 800; color: #e53e3e; letter-spacing: -0.5px; }
-        .logo-bar .app-tagline { font-size: 11px; color: #718096; margin-top: 3px; }
+        .logo-bar .app-name { font-size: 20px; font-weight: 800; color: #e8600a; }
+        .logo-bar .app-tagline { font-size: 11px; color: #888888; margin-top: 3px; }
 
-        .success-banner { background: linear-gradient(135deg, #1e3a8a, #1a56db); padding: 28px 36px; text-align: center; }
-        .success-banner .banner-icon { margin-bottom: 10px; }
-        .success-banner h1 { color: #fff; font-size: 20px; font-weight: 700; }
-        .success-banner p { color: #bfdbfe; font-size: 13px; margin-top: 5px; }
+        /* Banner */
+        .success-banner { background: #ffffff; padding: 32px 36px; text-align: center; border-bottom: 1px solid #eeeeee; }
+        .success-banner h1 { color: #1a1a1a; font-size: 20px; font-weight: 800; margin-top: 14px; }
+        .success-banner p { color: #555555; font-size: 13px; margin-top: 6px; }
 
+        /* Animated Check Icon */
+        .check-circle-wrap { display: inline-block; margin-bottom: 4px; }
+        .check-bg { fill: #22c55e; }
+        .check-ring { fill: none; stroke: rgba(255,255,255,0.4); stroke-width: 3; }
+        .check-path {
+            fill: none;
+            stroke: #ffffff;
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 40;
+            stroke-dashoffset: 40;
+            animation: drawCheck 0.6s ease 0.3s forwards;
+        }
+        @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+        .check-circle-anim {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform-origin: center;
+            transform: scale(0);
+        }
+        @keyframes popIn { to { transform: scale(1); } }
+
+        /* Content */
         .content { background: #ffffff; padding: 32px 36px; }
-        .greeting { font-size: 14px; color: #4a5568; margin-bottom: 20px; line-height: 1.8; }
+        .greeting { font-size: 14px; color: #333333; margin-bottom: 24px; line-height: 1.9; }
 
-        .info-card { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
-        .info-card-title { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+        /* Info Card */
+        .info-card { background: #ffffff; border: 1px solid #fddcbf; border-radius: 10px; padding: 18px 22px; margin-bottom: 14px; }
+        .info-card-title { font-size: 10px; color: #e8600a; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid #fddcbf; }
         .info-row-table { width: 100%; border-collapse: collapse; }
-        .info-row-table tr { border-bottom: 1px solid #edf2f7; }
+        .info-row-table tr { border-bottom: 1px solid #fce9d4; }
         .info-row-table tr:last-child { border-bottom: none; }
         .info-row-table td { padding: 9px 0; font-size: 13px; }
-        .info-row-table td.lbl { color: #718096; width: 45%; }
-        .info-row-table td.val { color: #2d3748; font-weight: 600; text-align: right; }
+        .info-row-table td.lbl { color: #888888; width: 45%; }
+        .info-row-table td.val { color: #1a1a1a; font-weight: 600; text-align: right; }
 
-        .total-card { background: #eff6ff; border: 2px solid #3182ce; border-radius: 10px; padding: 16px 24px; margin-bottom: 16px; }
-        .total-inner { display: flex; justify-content: space-between; align-items: center; }
-        .total-label { font-size: 13px; font-weight: 700; color: #1e3a8a; }
-        .total-amount { font-size: 20px; font-weight: 800; color: #1e3a8a; }
-
-        /* Email-safe total using table */
+        /* Total Card */
+        .total-card { background: #ffffff; border: 2px solid #e8600a; border-radius: 10px; padding: 16px 24px; margin-bottom: 16px; }
         .total-table { width: 100%; border-collapse: collapse; }
         .total-table td { padding: 0; }
-        .total-table td.t-label { font-size: 13px; font-weight: 700; color: #1e3a8a; }
-        .total-table td.t-amount { font-size: 20px; font-weight: 800; color: #1e3a8a; text-align: right; }
+        .total-table td.t-label { font-size: 13px; font-weight: 700; color: #1a1a1a; }
+        .total-table td.t-amount { font-size: 20px; font-weight: 800; color: #e8600a; text-align: right; }
 
-        .attachment-box { background: #ebf8ff; border: 1px solid #bee3f8; border-left: 4px solid #3182ce; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: #2c5282; line-height: 1.7; }
+        /* Attachment */
+        .attachment-box { background: #ffffff; border: 1px solid #fddcbf; border-left: 4px solid #e8600a; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: #444444; line-height: 1.7; }
 
-        .cta-wrap { text-align: center; margin: 24px 0 16px; }
-        .cta-btn { display: inline-block; background: #1a56db; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-weight: 700; font-size: 13px; }
+        /* CTA */
+        .cta-wrap { text-align: center; margin: 22px 0 14px; }
+        .cta-btn { display: inline-block; background: #e8600a; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-weight: 700; font-size: 13px; }
 
-        .footer { background: #f7fafc; border-radius: 0 0 12px 12px; padding: 20px 36px; text-align: center; border-top: 1px solid #e2e8f0; }
-        .footer p { color: #a0aec0; font-size: 11px; line-height: 1.8; }
+        /* Footer */
+        .footer { background: #ffffff; border-radius: 0 0 12px 12px; padding: 18px 36px; text-align: center; border-top: 2px solid #fddcbf; }
+        .footer p { color: #aaaaaa; font-size: 11px; line-height: 1.8; }
+
+        /* Mobile */
+        @media only screen and (max-width: 480px) {
+            body { padding: 0 !important; }
+            .email-wrapper { border-radius: 0; }
+            .logo-bar { padding: 16px 16px; border-radius: 0; }
+            .success-banner { padding: 24px 16px; }
+            .content { padding: 20px 16px; }
+            .footer { padding: 16px 16px; border-radius: 0; }
+            .info-card { padding: 14px 14px; }
+            .total-card { padding: 14px 14px; }
+        }
     </style>
 </head>
 <body>
     <div class="email-wrapper">
 
         @php
-            $appLogo = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value')
-                    ?? \App\Models\Setting::where('key', 'app_logo')->value('value');
-            $appName = \App\Models\Setting::where('key', 'app_name')->value('value') ?? config('app.name');
+            $appLogoValue = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value');
+            if (empty($appLogoValue)) {
+                $appLogoValue = \App\Models\Setting::where('key', 'app_logo')->value('value');
+            }
+            $appLogo = !empty($appLogoValue) ? $appLogoValue : null;
+
+            $appNameValue = \App\Models\Setting::where('key', 'app_name')->value('value');
+            $appName = !empty($appNameValue) ? $appNameValue : config('app.name');
+
+            $kopNamaValue = \App\Models\Setting::where('key', 'kop_surat_nama')->value('value');
+            $kopNama = !empty($kopNamaValue) ? $kopNamaValue : $appName;
         @endphp
 
         <!-- Logo Bar -->
         <div class="logo-bar">
             @if($appLogo)
-                <img src="{{ url('storage/' . $appLogo) }}" alt="{{ $appName }}">
+                <img src="{{ url('storage/' . $appLogo) }}" alt="{{ $kopNama }}">
             @else
-                <div class="app-name">{{ $appName }}</div>
+                <div class="app-name">{{ $kopNama }}</div>
                 <div class="app-tagline">Sistem Manajemen Akademi</div>
             @endif
         </div>
 
         <!-- Success Banner -->
         <div class="success-banner">
-            <div class="banner-icon">
-                <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-                    <circle cx="26" cy="26" r="26" fill="rgba(255,255,255,0.15)"/>
-                    <rect x="14" y="18" width="24" height="16" rx="3" stroke="white" stroke-width="2.5"/>
-                    <path d="M14 22h24M20 28h4" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <div class="check-circle-wrap">
+                <svg class="check-circle-anim" width="72" height="72" viewBox="0 0 72 72">
+                    <circle class="check-bg" cx="36" cy="36" r="36"/>
+                    <circle class="check-ring" cx="36" cy="36" r="28"/>
+                    <path class="check-path" d="M22 36 L31 45 L50 26"/>
                 </svg>
             </div>
             <h1>Pembayaran Berhasil Diterima</h1>
@@ -92,10 +136,7 @@
 
             <!-- Rincian Pembayaran -->
             <div class="info-card">
-                <div class="info-card-title">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/></svg>
-                    Rincian Pembayaran
-                </div>
+                <div class="info-card-title">Rincian Pembayaran</div>
                 <table class="info-row-table">
                     <tr>
                         <td class="lbl">No. Invoice</td>
@@ -134,10 +175,7 @@
             <div class="total-card">
                 <table class="total-table">
                     <tr>
-                        <td class="t-label">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#1e3a8a"/></svg>
-                            Total Dibayar
-                        </td>
+                        <td class="t-label">Total Dibayar</td>
                         <td class="t-amount">Rp {{ number_format($invoice->total_amount, 0, ',', '.') }}</td>
                     </tr>
                 </table>
@@ -145,7 +183,7 @@
 
             <!-- Attachment Notice -->
             <div class="attachment-box">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="#3182ce" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="#888888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <strong>Kuitansi PDF terlampir.</strong><br>
                 File kuitansi pembayaran telah kami lampirkan pada email ini. Simpan sebagai bukti pembayaran resmi untuk keperluan administrasi Anda.
             </div>
@@ -160,7 +198,8 @@
         <div class="footer">
             <p>
                 Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.<br>
-                &copy; {{ date('Y') }} {{ $appName }}. All rights reserved.
+                Jika ada pertanyaan, hubungi admin {{ $kopNama }}.<br><br>
+                &copy; {{ date('Y') }} {{ $kopNama }}. All rights reserved.
             </p>
         </div>
 
