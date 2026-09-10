@@ -145,7 +145,10 @@ class InvoiceController extends Controller
                     'recreated_from_id' => $invoice->recreated_from_id,
                 ];
             }),
-            'filters' => $request->only(['search', 'kelas_id', 'status', 'periode_bulan', 'periode_tahun', 'sort']),
+            'filters' => array_merge(
+                ['sort' => 'created_desc'],
+                $request->only(['search', 'kelas_id', 'status', 'periode_bulan', 'periode_tahun', 'sort'])
+            ),
             'allSiswa' => $allSiswaQuery->get(),
             'allKelas' => $allKelasQuery->get(['id_kelas', 'nama_kelas', 'biaya_spp_default']),
             'allStatus' => $statusPembayaranOptions,
