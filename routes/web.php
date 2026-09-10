@@ -154,10 +154,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('mutasi/{mutasi}/regenerate', [\App\Http\Controllers\Admin\MutasiSiswaController::class, 'regenerate'])->name('mutasi.regenerate');
             Route::post('mutasi/{mutasi}/cancel', [\App\Http\Controllers\Admin\MutasiSiswaController::class, 'cancel'])->name('mutasi.cancel');
             
-            // Remove the delete route manually or let except(['destroy']) handle it
             Route::resource('siswa', SiswaController::class)->except(['destroy']);
             Route::get('invoices/export-paid', [InvoiceController::class, 'exportPaid'])->name('invoices.export_paid');
             Route::resource('invoices', InvoiceController::class);
+            Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('pdf.invoice');
             Route::patch('invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark_as_paid');
             Route::post('invoices/{invoice}/recreate', [InvoiceController::class, 'recreate'])->name('invoices.recreate');
             Route::post('invoices/bulk-store', [InvoiceController::class, 'bulkStore'])->name('invoices.bulk_store');

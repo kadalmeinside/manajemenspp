@@ -158,12 +158,47 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     * Saat ini tidak digunakan (pembuatan invoice dilakukan via store() langsung).
+     * Display the specified resource.
      */
-    public function create()
+    public function show(Request $request, Invoice $invoice)
     {
-        //
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        $invoice->load(['siswa.user', 'siswa.kelas', 'childInvoices.periode_tagihan']);
+
+        // Check if this invoice is paid via a parent invoice (bulk)
+        $parentInvoice = null;
+        if ($invoice->status === 'PAID') {
+            $parentInvoice = DB::table('invoice_relations')
+                ->join('invoices', 'invoice_relations.parent_invoice_id', '=', 'invoices.id')
+                ->where('invoice_relations.child_invoice_id', $invoice->id)
+                ->select('invoices.id', 'invoices.created_at', 'invoices.total_amount')
+                ->first();
+        }
+
+        $appLogoValue = \App\Models\Setting::where('key', 'app_logo_cek_spp')->value('value') ?: \App\Models\Setting::where('key', 'app_logo')->value('value');
+        $appNameValue = \App\Models\Setting::where('key', 'app_name')->value('value') ?: config('app.name');
+        $kopNamaValue = \App\Models\Setting::where('key', 'kop_surat_nama')->value('value') ?: $appNameValue;
+        $kopAlamatValue = \App\Models\Setting::where('key', 'kop_surat_alamat')->value('value') ?: '-';
+        $kopKontakValue = \App\Models\Setting::where('key', 'kop_surat_kontak')->value('value') ?: '-';
+
+        return Inertia::render('Admin/Invoices/Show', [
+            'invoice' => array_merge($invoice->toArray(), [
+                'xendit_payment_url_dynamic' => $invoice->payment_gateway === 'gapura' 
+                                                ? route('tagihan.spp.custom_pay', ['invoice' => $invoice->id]) 
+                                                : $invoice->xendit_payment_url,
+            ]),
+            'parentInvoice' => $parentInvoice,
+            'companyInfo' => [
+                'logo' => $appLogoValue ? asset('storage/' . $appLogoValue) : null,
+                'name' => $kopNamaValue,
+                'address' => $kopAlamatValue,
+                'contact' => $kopKontakValue,
+            ],
+            'can' => ['create_invoice' => $request->user()->can('manage_all_tagihan')],
+        ]);
     }
 
     /**
@@ -623,5 +658,20 @@ class InvoiceController extends Controller
             new \App\Exports\PaidInvoicesExport($request->input('start_date'), $request->input('end_date')), 
             $filename
         );
+    }
+
+    /**
+     * Download Invoice as PDF.
+     */
+    public function downloadPdf(Request $request, Invoice $invoice)
+    {
+        if (!$request->user()->can('manage_all_tagihan')) {
+            abort(403);
+        }
+
+        $invoice->load(['siswa.user', 'siswa.kelas', 'childInvoices.periode_tagihan']);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.invoice', ['invoice' => $invoice]);
+        return $pdf->download('Kuitansi_' . substr($invoice->id, 0, 8) . '.pdf');
     }
 }

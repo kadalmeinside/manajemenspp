@@ -412,7 +412,7 @@ const formatDescription = (desc) => {
                                     <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.created_at_formatted }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end space-x-2">
-                                            <a v-if="invoice.xendit_payment_url" :href="invoice.xendit_payment_url" target="_blank" class="text-blue-600 hover:text-blue-900 p-1" title="Lihat Link Pembayaran"><EyeIcon class="h-5 w-5" /></a>
+                                            <Link :href="route('admin.invoices.show', invoice.id)" class="text-blue-600 hover:text-blue-900 p-1" title="Lihat Detail Tagihan"><EyeIcon class="h-5 w-5" /></Link>
                                             
                                             <button v-if="invoice.status === 'PENDING' && can?.create_invoice" @click="confirmCancelInvoice(invoice)" class="text-gray-400 hover:text-red-600 p-1" title="Batalkan Invoice"><XCircleIcon class="h-5 w-5" /></button>
                                             
