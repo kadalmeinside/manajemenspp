@@ -119,7 +119,7 @@ const selectedStatus = ref(filters.value.status || '');
 const selectedType = ref(filters.value.type || '');
 const selectedPeriodeBulan = ref(filters.value.periode_bulan || '');
 const selectedPeriodeTahun = ref(filters.value.periode_tahun || '');
-const selectedSort = ref(filters.value.sort || 'created_desc');
+const selectedSort = ref(filters.value.sort || '');
 
 const submitFilters = () => {
     router.get(route('admin.invoices.index'), {
@@ -231,7 +231,7 @@ onMounted(() => {
     selectedStatus.value = urlParams.get('status') || filters.value.status || '';
     selectedPeriodeBulan.value = urlParams.get('periode_bulan') || filters.value.periode_bulan || '';
     selectedPeriodeTahun.value = urlParams.get('periode_tahun') || filters.value.periode_tahun || '';
-    selectedSort.value = urlParams.get('sort') || filters.value.sort || 'created_desc';
+    selectedSort.value = urlParams.get('sort') || filters.value.sort || '';
 });
 
 // Helper Function
@@ -327,7 +327,7 @@ const formatDescription = (desc) => {
                             <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
                         </select>
                         <select v-model="selectedSort" class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm" aria-label="Urutkan berdasarkan">
-                            <option value="created_desc">Urutkan: Paling Baru (Default)</option>
+                            <option value="">Urutkan: Paling Baru (Default)</option>
                             <option value="created_asc">Urutkan: Paling Lama</option>
                             <option value="paid_desc">Urutkan: Baru Dibayar</option>
                             <option value="due_asc">Urutkan: Jatuh Tempo Terdekat</option>
@@ -822,7 +822,7 @@ const formatDescription = (desc) => {
                     <div>
                         <InputLabel value="Urutkan Berdasarkan" />
                         <select v-model="selectedSort" class="mt-1 w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
-                            <option value="created_desc">Urutkan: Paling Baru (Default)</option>
+                            <option value="">Urutkan: Paling Baru (Default)</option>
                             <option value="created_asc">Urutkan: Paling Lama</option>
                             <option value="paid_desc">Urutkan: Baru Dibayar</option>
                             <option value="due_asc">Urutkan: Jatuh Tempo Terdekat</option>
