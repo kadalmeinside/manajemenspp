@@ -131,8 +131,8 @@ const completeOrder = (order) => {
                                     <td class="px-6 py-4">
                                         <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
                                             <li v-for="item in order.items" :key="item.id" class="mb-1">
-                                                <span class="font-medium">{{ item.product.name }}</span> 
-                                                <span class="text-gray-500 dark:text-gray-400">({{ item.variant.name }}) x {{ item.quantity }}</span>
+                                                <span class="font-medium">{{ item.product?.name || 'Produk Telah Dihapus' }}</span> 
+                                                <span class="text-gray-500 dark:text-gray-400">({{ item.variant?.name || 'Varian Dihapus' }}) x {{ item.quantity }}</span>
                                             </li>
                                         </ul>
                                     </td>
