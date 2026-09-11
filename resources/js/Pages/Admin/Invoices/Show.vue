@@ -165,7 +165,30 @@ const handlePrint = () => { window.print(); };
                                 <h3 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2 mb-3 text-left md:text-right">Detail Transaksi</h3>
                                 <div class="space-y-1 text-sm text-gray-600 dark:text-gray-400 text-left md:text-right">
                                     <p>Tanggal Dibuat: <strong class="text-gray-800 dark:text-gray-200">{{ formatDate(invoice.created_at) }}</strong></p>
-                                    <p v-if="invoice.status === 'PAID'">Metode: <strong class="text-gray-800 dark:text-gray-200">{{ (invoice.payment_method || 'Online').toUpperCase() }}</strong></p>
+                                    
+                                    <!-- Payment Info Block -->
+                                    <template v-if="invoice.status === 'PAID'">
+                                        <p>
+                                            Metode Pembayaran: 
+                                            <strong class="text-gray-800 dark:text-gray-200 uppercase">
+                                                <span v-if="invoice.payment_method === 'MANUAL'">Manual Transfer / Tunai</span>
+                                                <span v-else>Payment Gateway ({{ invoice.payment_gateway || 'Xendit' }})</span>
+                                            </strong>
+                                        </p>
+                                        <p v-if="invoice.payment_method === 'MANUAL' && invoice.bukti_pembayaran">
+                                            Bukti Transfer: 
+                                            <a :href="'/storage/' + invoice.bukti_pembayaran" target="_blank" class="text-blue-600 hover:underline">
+                                                Lihat Lampiran
+                                            </a>
+                                        </p>
+                                        <p v-else-if="invoice.payment_method !== 'MANUAL' && invoice.xendit_payment_url">
+                                            Link Pembayaran: 
+                                            <a :href="invoice.xendit_payment_url" target="_blank" class="text-blue-600 hover:underline">
+                                                Buka Referensi Gateway
+                                            </a>
+                                        </p>
+                                    </template>
+                                    
                                     <p v-if="invoice.type">Tipe: <strong class="text-gray-800 dark:text-gray-200 uppercase">{{ invoice.type.replace(/_/g, ' ') }}</strong></p>
                                 </div>
                             </div>
