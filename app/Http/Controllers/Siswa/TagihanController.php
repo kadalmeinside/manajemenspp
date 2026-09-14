@@ -57,6 +57,13 @@ class TagihanController extends Controller
                                 ->where('status', 'PAID')
                                 ->orderBy('periode_tagihan', 'desc')
                                 ->first();
+                                
+        // 4. Ambil Riwayat Pembayaran (History Invoices)
+        $historyInvoices = $siswa->invoices()
+                                ->where('type', 'spp')
+                                ->whereIn('status', ['PAID']) // Mungkin EXPIRED juga kalau perlu, tapi PAID saja cukup untuk SPP
+                                ->orderBy('periode_tagihan', 'desc')
+                                ->get();
 
         return Inertia::render('Siswa/Tagihan/Index', [
             // Kirim daftar invoice PENDING yang sudah ada
@@ -69,6 +76,19 @@ class TagihanController extends Controller
                     'status' => $invoice->status,
                     'periode_tagihan' => $invoice->periode_tagihan->format('Y-m-d'),
                     'is_projected' => false,
+                ];
+            }),
+            
+            'historyInvoices' => $historyInvoices->map(function ($invoice) {
+                return [
+                    'id' => $invoice->id,
+                    'description' => $invoice->description,
+                    'total_amount' => (float) $invoice->total_amount,
+                    'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
+                    'status' => $invoice->status,
+                    'periode_tagihan' => $invoice->periode_tagihan->format('Y-m-d'),
+                    'paid_at_formatted' => $invoice->paid_at ? $invoice->paid_at->format('d M Y') : null,
+                    'payment_method' => $invoice->payment_method,
                 ];
             }),
             

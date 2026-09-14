@@ -9,13 +9,16 @@ import {
     CheckIcon,
     CreditCardIcon,
     BanknotesIcon,
-    XMarkIcon
+    XMarkIcon,
+    ClockIcon
 } from '@heroicons/vue/24/outline';
 import { CurrencyDollarIcon } from '@heroicons/vue/24/solid';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import Checkbox from '@/Components/Checkbox.vue';
 
 const props = defineProps({
     sppInvoices: Array, // Daftar PENDING invoices
+    historyInvoices: Array, // Daftar PAID invoices
     lastPaidPeriod: String, // Periode terakhir yang PAID
     siswa: Object,
     pageTitle: String,
@@ -23,6 +26,7 @@ const props = defineProps({
     active_gateway: String,
 });
 
+const activeTab = ref('tagihan');
 const selectedPeriods = ref([]);
 
 const paymentForm = useForm({
@@ -156,6 +160,30 @@ const summarySppPendingAmount = computed(() => props.sppInvoices.reduce((sum, in
 const grandTotalPendingAmount = computed(() => summarySppPendingAmount.value);
 
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
+
+const formatPeriod = (dateString) => {
+    if (!dateString) return '';
+    return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(dateString));
+};
+
+const getHistoryStatusClass = (status) => {
+    switch (status) {
+        case 'PAID':
+            return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+        case 'EXPIRED':
+            return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400';
+        case 'FAILED':
+            return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+        default:
+            return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+    }
+};
+
+const isItemDisabled = (index) => {
+    if (index === 0) return false;
+    // Disabled jika item sebelumnya BUKAN merupakan bagian dari selectedPeriods
+    return !selectedPeriods.value.includes(displayList.value[index - 1].periode_tagihan);
+};
 </script>
 
 <template>
@@ -199,91 +227,129 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
                     </div>
                 </div>
 
-                <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-8 rounded-r-xl shadow-sm flex items-start">
-                    <InformationCircleIcon class="h-5 w-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
-                    <div>
-                        <h4 class="font-bold text-red-900 dark:text-red-300 text-sm">Informasi Pembayaran</h4>
-                        <p class="text-sm text-red-700 dark:text-red-400 mt-0.5">
-                            Pilih tagihan SPP yang ingin dibayar. Pembayaran bulan berikutnya hanya bisa dipilih jika bulan sebelumnya sudah dipilih.
-                        </p>
-                    </div>
+                <!-- Tab Bar -->
+                <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+                    <nav class="flex" aria-label="Tabs">
+                        <button
+                            @click="activeTab = 'tagihan'"
+                            :class="['flex-1 py-4 px-6 text-sm font-semibold rounded-tl-2xl rounded-bl-2xl transition-all flex items-center justify-center gap-2', activeTab === 'tagihan' ? 'bg-red-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700']"
+                        >
+                            <DocumentTextIcon class="h-5 w-5" />
+                            Tagihan Aktif
+                            <span v-if="displayList.filter(i => !i.is_projected).length > 0" class="ml-2 inline-flex items-center justify-center h-5 w-5 text-xs font-bold rounded-full" :class="activeTab === 'tagihan' ? 'bg-white/30 text-white' : 'bg-red-100 text-red-700'">{{ displayList.filter(i => !i.is_projected).length }}</span>
+                        </button>
+                        <button
+                            @click="activeTab = 'riwayat'"
+                            :class="['flex-1 py-4 px-6 text-sm font-semibold rounded-tr-2xl rounded-br-2xl transition-all flex items-center justify-center gap-2', activeTab === 'riwayat' ? 'bg-red-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700']"
+                        >
+                            <ClockIcon class="h-5 w-5" />
+                            Riwayat Bayar
+                            <span v-if="(historyInvoices || []).length > 0" class="ml-2 inline-flex items-center justify-center h-5 w-5 text-xs font-bold rounded-full" :class="activeTab === 'riwayat' ? 'bg-white/30 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'">{{ (historyInvoices || []).length }}</span>
+                        </button>
+                    </nav>
                 </div>
 
-                <!-- Bagian Header SPP -->
-                <div class="flex items-center mb-6">
-                    <div class="bg-gradient-to-br from-red-500 to-rose-500 p-2 rounded-xl shadow-lg shadow-red-500/30 mr-4">
-                        <DocumentTextIcon class="h-6 w-6 text-white" />
-                    </div>
-                    <h3 class="font-extrabold text-xl md:text-2xl text-gray-900 dark:text-white">
-                        Tagihan Bulanan (SPP)
-                    </h3>
-                </div>
-
-                <!-- Inline Error Alert -->
-                <transition enter-active-class="transition ease-out duration-300" enter-from-class="transform opacity-0 -translate-y-2" enter-to-class="transform opacity-100 translate-y-0" leave-active-class="transition ease-in duration-200" leave-from-class="transform opacity-100 translate-y-0" leave-to-class="transform opacity-0 -translate-y-2">
-                    <div v-if="errorMessage" class="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-start text-rose-600 dark:text-rose-400 shadow-sm">
-                        <InformationCircleIcon class="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" />
+                <!-- TAB: Tagihan Aktif (cards pilih bayar) -->
+                <div v-show="activeTab === 'tagihan'">
+                    <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-6 rounded-r-xl shadow-sm flex items-start">
+                        <InformationCircleIcon class="h-5 w-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
                         <div>
-                            <h4 class="font-bold text-sm">Pilih Secara Berurutan</h4>
-                            <p class="text-sm mt-0.5">{{ errorMessage }}</p>
+                            <h4 class="font-bold text-red-900 dark:text-red-300 text-sm">Informasi Pembayaran</h4>
+                            <p class="text-sm text-red-700 dark:text-red-400 mt-0.5">
+                                Pilih tagihan SPP yang ingin dibayar. Pembayaran bulan berikutnya hanya bisa dipilih jika bulan sebelumnya sudah dipilih.
+                            </p>
                         </div>
                     </div>
-                </transition>
 
-                <div v-if="displayList.length > 0" class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700/60">
-                    <template v-for="item in displayList" :key="item.id">
-                        <!-- Invoice List Item -->
-                        <div @click="updateSelection(item, !selectedPeriods.includes(item.periode_tagihan))" 
-                             class="group relative transition-all duration-300 cursor-pointer flex items-center p-4 sm:p-6"
-                             :class="[
-                                 selectedPeriods.includes(item.periode_tagihan) ? 'bg-gradient-to-r from-white from-50% via-emerald-50 via-75% to-emerald-500 dark:from-gray-800 dark:via-emerald-900/30 dark:to-emerald-600' : 'hover:bg-gray-50/50 dark:hover:bg-gray-700/20',
-                                 (!selectedPeriods.includes(item.periode_tagihan) && (displayList.findIndex(i => i.id === item.id) > 0 && !selectedPeriods.includes(displayList[displayList.findIndex(i => i.id === item.id) - 1].periode_tagihan))) ? 'opacity-60 grayscale-[30%]' : ''
-                             ]">
-                             
-                             <!-- Aksen Background Icon Uang -->
-                             <div v-if="selectedPeriods.includes(item.periode_tagihan)" class="absolute -bottom-8 -right-4 transform -rotate-12 pointer-events-none z-0 overflow-hidden">
-                                 <BanknotesIcon class="w-36 h-36 text-white/20" />
-                             </div>
+                    <!-- Inline Error Alert -->
+                    <transition enter-active-class="transition ease-out duration-300" enter-from-class="transform opacity-0 -translate-y-2" enter-to-class="transform opacity-100 translate-y-0" leave-active-class="transition ease-in duration-200" leave-from-class="transform opacity-100 translate-y-0" leave-to-class="transform opacity-0 -translate-y-2">
+                        <div v-if="errorMessage" class="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50 flex items-start text-rose-600 dark:text-rose-400 shadow-sm">
+                            <InformationCircleIcon class="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <h4 class="font-bold text-sm">Pilih Secara Berurutan</h4>
+                                <p class="text-sm mt-0.5">{{ errorMessage }}</p>
+                            </div>
+                        </div>
+                    </transition>
 
-                             <div class="absolute left-0 top-0 bottom-0 w-1 transition-colors duration-200 z-10" :class="selectedPeriods.includes(item.periode_tagihan) ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-transparent'"></div>
-                            
-                            <div class="flex-shrink-0 mr-4 sm:mr-6 flex items-center justify-center w-6 h-6 rounded border-2 transition-colors duration-200 z-10"
-                                 :class="selectedPeriods.includes(item.periode_tagihan) ? 'bg-emerald-500 border-emerald-500 shadow-sm shadow-emerald-500/50' : 'border-gray-300 dark:border-gray-600 group-hover:border-emerald-400'">
-                                <CheckIcon v-if="selectedPeriods.includes(item.periode_tagihan)" class="h-4 w-4 text-white font-bold" />
+                    <div v-if="displayList.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div v-for="(item, index) in displayList" :key="item.id"
+                            @click="!isItemDisabled(index) && updateSelection(item, !selectedPeriods.includes(item.periode_tagihan))" 
+                            class="relative overflow-hidden rounded-xl transition-all duration-300 p-4 flex items-start space-x-3 cursor-pointer group"
+                            :class="{ 
+                                'bg-gradient-to-r from-white from-50% via-red-50 via-75% to-red-500 text-white shadow-xl shadow-red-500/30 border-2 border-red-100 dark:border-red-500/30 scale-[1.02]': selectedPeriods.includes(item.periode_tagihan), 
+                                'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700': !isItemDisabled(index) && !selectedPeriods.includes(item.periode_tagihan), 
+                                'bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 opacity-60 cursor-not-allowed grayscale': isItemDisabled(index) 
+                            }">
+                            <!-- Aksen Background Icon Uang -->
+                            <div v-if="selectedPeriods.includes(item.periode_tagihan)" class="absolute -bottom-8 -right-4 transform -rotate-12 pointer-events-none z-0">
+                                <BanknotesIcon class="w-32 h-32 text-white/20" />
                             </div>
                             
-                            <div class="flex-grow min-w-0 pr-4 z-10">
-                                <h3 class="text-base sm:text-lg font-bold leading-tight truncate transition-colors duration-300" :class="selectedPeriods.includes(item.periode_tagihan) ? 'text-gray-900 dark:text-white' : 'text-gray-900 dark:text-white'">
-                                    {{ getShortDescription(item.description) }}
-                                </h3>
-                                <div class="flex items-center gap-2 mt-1 sm:mt-1.5">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border transition-colors duration-300" 
-                                          :class="selectedPeriods.includes(item.periode_tagihan) ? 'bg-white/50 border-emerald-200 text-emerald-800 dark:bg-gray-800/50 dark:border-emerald-700 dark:text-emerald-200' : getStatusClass(item.status)">
-                                        <span class="w-1.5 h-1.5 rounded-full mr-1.5" :class="item.is_projected ? 'bg-gray-400' : 'bg-emerald-500'"></span>
-                                        {{ item.is_projected ? 'Proyeksi' : 'Tersedia' }}
-                                    </span>
-                                </div>
+                            <div class="pt-0.5 z-10 flex-shrink-0">
+                                <Checkbox 
+                                    :checked="selectedPeriods.includes(item.periode_tagihan)" 
+                                    @click.stop
+                                    @update:checked="updateSelection(item, $event)" 
+                                    :disabled="isItemDisabled(index)" 
+                                    class="h-5 w-5 rounded transition duration-200 cursor-pointer"
+                                    :class="selectedPeriods.includes(item.periode_tagihan) ? 'border-red-400 text-red-600 focus:ring-red-500 bg-white/60' : 'border-gray-300 text-red-600 focus:ring-red-600'" />
                             </div>
-                            
-                            <div class="flex-shrink-0 text-right z-10 relative">
-                                <span class="text-base sm:text-lg font-black transition-colors duration-300 drop-shadow-sm" 
-                                      :class="selectedPeriods.includes(item.periode_tagihan) ? 'text-white dark:text-white' : 'text-gray-900 dark:text-white'">
+                            <div class="flex-1 z-10">
+                                <p class="font-bold text-base leading-tight mb-1 transition-colors"
+                                   :class="selectedPeriods.includes(item.periode_tagihan) ? 'text-red-900 drop-shadow-sm' : 'text-gray-900 dark:text-white'">
+                                    {{ formatPeriod(item.periode_tagihan) }}
+                                </p>
+                                <p class="text-sm font-semibold transition-colors"
+                                   :class="selectedPeriods.includes(item.periode_tagihan) ? 'text-red-800' : 'text-gray-600 dark:text-gray-400'">
                                     {{ item.total_amount_formatted }}
+                                </p>
+                            </div>
+                            <span class="px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase rounded-full shadow-sm z-10" 
+                                  :class="selectedPeriods.includes(item.periode_tagihan) ? 'bg-white/20 text-white border border-white/20' : (item.is_projected ? 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300')">
+                                {{ item.is_projected ? 'Proyeksi' : 'Belum Bayar' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckCircleIcon class="h-10 w-10 text-green-500" />
+                        </div>
+                        <h4 class="text-2xl font-extrabold text-gray-900 dark:text-white">SPP Lunas!</h4>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2 text-lg">Tidak ada tagihan SPP yang perlu dibayar hingga akhir tahun.</p>
+                    </div>
+                </div>
+
+                <!-- TAB: Riwayat Pembayaran -->
+                <div v-show="activeTab === 'riwayat'">
+                    <div v-if="!historyInvoices || historyInvoices.length === 0" class="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="w-20 h-20 bg-gray-100 dark:bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ClockIcon class="h-10 w-10 text-gray-400" />
+                        </div>
+                        <h4 class="text-2xl font-extrabold text-gray-900 dark:text-white">Belum Ada Riwayat</h4>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2 text-lg">Belum ada riwayat pembayaran SPP yang tercatat.</p>
+                    </div>
+                    <div v-else class="space-y-3">
+                        <div v-for="invoice in historyInvoices" :key="invoice.id"
+                             class="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div class="flex-grow">
+                                <p class="font-bold text-gray-900 dark:text-white text-lg">{{ formatPeriod(invoice.periode_tagihan) }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ invoice.description }}</p>
+                                <p v-if="invoice.paid_at_formatted" class="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1 font-medium">
+                                    <CheckCircleIcon class="h-4 w-4" />
+                                    Dibayar pada: {{ invoice.paid_at_formatted }}
+                                    <span v-if="invoice.payment_method === 'manual'" class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Transfer Manual</span>
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-4 flex-shrink-0 mt-3 sm:mt-0">
+                                <span class="text-xl font-black text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</span>
+                                <span class="px-3 py-1 text-xs font-bold uppercase rounded-full" :class="getHistoryStatusClass(invoice.status)">
+                                    Lunas
                                 </span>
                             </div>
                         </div>
-                    </template>
-                </div>
-
-                <div v-else class="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <div class="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircleIcon class="h-10 w-10 text-green-500" />
                     </div>
-                    <h4 class="text-2xl font-extrabold text-gray-900 dark:text-white">SPP Lunas!</h4>
-                    <p class="text-gray-500 dark:text-gray-400 mt-2 text-lg">Tidak ada tagihan SPP yang perlu dibayar hingga akhir tahun.</p>
                 </div>
-
-                <!-- End of SPP Section -->
 
                 <div class="pb-32"></div> 
             </div>
