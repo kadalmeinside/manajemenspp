@@ -172,19 +172,21 @@ const handlePrint = () => { window.print(); };
                                             Metode Pembayaran: 
                                             <strong class="text-gray-800 dark:text-gray-200 uppercase">
                                                 <span v-if="invoice.payment_method === 'MANUAL'">Manual Transfer / Tunai</span>
-                                                <span v-else>Payment Gateway ({{ invoice.payment_gateway || 'Xendit' }})</span>
+                                                <span v-else>
+                                                    Payment Gateway ({{ invoice.payment_gateway || 'Xendit' }})
+                                                    <template v-if="invoice.xendit_callback_payload?.payment_channel">
+                                                        - {{ invoice.xendit_callback_payload.payment_method?.replace(/_/g, ' ') }} ({{ invoice.xendit_callback_payload.payment_channel }})
+                                                    </template>
+                                                    <template v-else-if="invoice.checkout_data?.payment_channel">
+                                                        - {{ invoice.checkout_data.payment_method?.replace(/_/g, ' ') }} ({{ invoice.checkout_data.payment_channel }})
+                                                    </template>
+                                                </span>
                                             </strong>
                                         </p>
                                         <p v-if="invoice.payment_method === 'MANUAL' && invoice.bukti_pembayaran">
                                             Bukti Transfer: 
                                             <a :href="'/storage/' + invoice.bukti_pembayaran" target="_blank" class="text-blue-600 hover:underline">
                                                 Lihat Lampiran
-                                            </a>
-                                        </p>
-                                        <p v-else-if="invoice.payment_method !== 'MANUAL' && invoice.xendit_payment_url">
-                                            Link Pembayaran: 
-                                            <a :href="invoice.xendit_payment_url" target="_blank" class="text-blue-600 hover:underline">
-                                                Buka Referensi Gateway
                                             </a>
                                         </p>
                                     </template>
@@ -248,9 +250,9 @@ const handlePrint = () => { window.print(); };
                         </div>
 
                         <!-- Payment Link CTA -->
-                        <div v-if="invoice.status === 'PENDING' && invoice.xendit_payment_url_dynamic" class="mt-8 flex justify-end">
+                        <div v-if="(invoice.status === 'PENDING' || (invoice.status === 'PAID' && invoice.payment_method !== 'MANUAL')) && invoice.xendit_payment_url_dynamic" class="mt-8 flex justify-end">
                             <a :href="invoice.xendit_payment_url_dynamic" target="_blank" class="inline-flex items-center px-6 py-3 bg-gray-900 dark:bg-white border border-transparent rounded-lg font-bold text-sm text-white dark:text-gray-900 uppercase tracking-widest shadow-md hover:bg-gray-700 dark:hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                Bayar Sekarang / Buka Link
+                                {{ invoice.status === 'PAID' ? 'Buka Referensi Pembayaran (Gateway)' : 'Bayar Sekarang / Buka Link' }}
                                 <svg class="ml-2 -mr-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             </a>
                         </div>
