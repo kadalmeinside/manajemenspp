@@ -108,14 +108,14 @@ const getStatusText = (status) => {
                         <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
                             <div v-for="item in order.items" :key="item.id" class="py-6 first:pt-0 last:pb-0 flex flex-row gap-4 sm:gap-6 hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors rounded-xl px-2 -mx-2">
                                 <div class="w-20 h-20 sm:w-28 sm:h-28 bg-gray-100 dark:bg-gray-900 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner p-2">
-                                    <img v-if="item.product.image_path" :src="'/storage/' + item.product.image_path" :alt="item.product.name" class="w-full h-full object-contain drop-shadow-sm" />
+                                    <img v-if="item.product?.image_path" :src="'/storage/' + item.product.image_path" :alt="item.product?.name || 'Produk Dihapus'" class="w-full h-full object-contain drop-shadow-sm" />
                                     <ShoppingBagIcon v-else class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
                                 </div>
                                 <div class="flex-grow flex flex-col justify-center">
                                     <div class="flex flex-col sm:flex-row justify-between items-start gap-2">
                                         <div class="pr-2">
-                                            <h4 class="font-bold text-sm sm:text-lg text-gray-900 dark:text-white leading-tight line-clamp-2">{{ item.product.name }}</h4>
-                                            <p class="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 mt-1 sm:mt-2 bg-gray-100 dark:bg-gray-700 inline-block px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium">Varian: <span class="text-gray-800 dark:text-gray-200">{{ item.variant.name }}</span></p>
+                                            <h4 class="font-bold text-sm sm:text-lg text-gray-900 dark:text-white leading-tight line-clamp-2">{{ item.product?.name || 'Produk Telah Dihapus' }}</h4>
+                                            <p class="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 mt-1 sm:mt-2 bg-gray-100 dark:bg-gray-700 inline-block px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-medium">Varian: <span class="text-gray-800 dark:text-gray-200">{{ item.variant?.name || 'Dihapus' }}</span></p>
                                         </div>
                                         <div class="text-left sm:text-right shrink-0 mt-2 sm:mt-0">
                                             <p class="font-extrabold text-sm sm:text-lg text-gray-900 dark:text-white">{{ formatRupiah(item.subtotal) }}</p>
