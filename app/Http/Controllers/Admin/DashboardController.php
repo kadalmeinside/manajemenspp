@@ -83,7 +83,7 @@ class DashboardController extends Controller
         $pendapatanBulanLalu = $pendapatanBulanLaluQuery->sum('total_amount');
         
         $pendapatanManualBulanIni = (clone $pendapatanBulanIniQuery)->where('payment_method', 'manual')->sum('total_amount');
-        $pendapatanXenditBulanIni = (clone $pendapatanBulanIniQuery)->where(function($q) {
+        $pendapatanOnlineBulanIni = (clone $pendapatanBulanIniQuery)->where(function($q) {
             $q->whereNull('payment_method')->orWhere('payment_method', '!=', 'manual');
         })->sum('total_amount');
         
@@ -293,7 +293,7 @@ class DashboardController extends Controller
                 'pendapatan' => [
                     'total' => $pendapatanBulanIni,
                     'change' => $calculateChange($pendapatanBulanIni, $pendapatanBulanLalu),
-                    'xendit' => $pendapatanXenditBulanIni,
+                    'online' => $pendapatanOnlineBulanIni,
                     'manual' => $pendapatanManualBulanIni,
                 ],
                 'tagihan_tertunda' => [

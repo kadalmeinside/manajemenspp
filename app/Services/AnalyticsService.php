@@ -169,28 +169,36 @@ class AnalyticsService
             }
 
             // Using application-level calculation for simplicity with SQLite compatibility
-            $invoices = $query->get(['payment_method', 'total_amount']);
+            $invoices = $query->get(['payment_method', 'payment_gateway', 'total_amount']);
             
-            $xenditTotal = 0;
-            $xenditRevenue = 0;
-            $manualTotal = 0;
-            $manualRevenue = 0;
+            $methodCounts = [];
+            $methodRevenues = [];
             
             foreach ($invoices as $inv) {
+                // Determine group
+                $group = 'Online';
                 if ($inv->payment_method === 'manual') {
-                    $manualTotal++;
-                    $manualRevenue += $inv->total_amount;
-                } else {
-                    // Null or anything else is assumed Xendit/Gateway
-                    $xenditTotal++;
-                    $xenditRevenue += $inv->total_amount;
+                    $group = 'Manual';
+                } else if ($inv->payment_gateway) {
+                    $group = ucfirst($inv->payment_gateway);
+                    if (strtolower($group) === 'midtrans_custom') {
+                        $group = 'Midtrans Custom';
+                    }
                 }
+                
+                if (!isset($methodCounts[$group])) {
+                    $methodCounts[$group] = 0;
+                    $methodRevenues[$group] = 0;
+                }
+                
+                $methodCounts[$group]++;
+                $methodRevenues[$group] += $inv->total_amount;
             }
 
             return [
-                'labels' => ['Xendit (Otomatis)', 'Manual'],
-                'data_count' => [$xenditTotal, $manualTotal],
-                'data_revenue' => [$xenditRevenue, $manualRevenue]
+                'labels' => array_keys($methodCounts),
+                'data_count' => array_values($methodCounts),
+                'data_revenue' => array_values($methodRevenues)
             ];
         });
     }
@@ -483,7 +491,7 @@ class AnalyticsService
                     $stats[$kelasLabel] = [
                         'unpaid' => 0, 
                         'manual' => 0, 
-                        'xendit' => 0, 
+                        'online' => 0, 
                         'total' => 0
                     ];
                 }
@@ -492,7 +500,7 @@ class AnalyticsService
                 
                 if ($inv->status === 'PAID') {
                     if ($inv->payment_method !== 'manual') {
-                        $stats[$kelasLabel]['xendit']++;
+                        $stats[$kelasLabel]['online']++;
                     } else {
                         $stats[$kelasLabel]['manual']++;
                     }
@@ -505,18 +513,18 @@ class AnalyticsService
             $labels = [];
             $unpaidPct = [];
             $manualPct = [];
-            $xenditPct = [];
+            $onlinePct = [];
             
             foreach ($stats as $kelas => $data) {
                 $labels[] = $kelas;
                 if ($data['total'] > 0) {
                     $unpaidPct[] = round(($data['unpaid'] / $data['total']) * 100, 1);
                     $manualPct[] = round(($data['manual'] / $data['total']) * 100, 1);
-                    $xenditPct[] = round(($data['xendit'] / $data['total']) * 100, 1);
+                    $onlinePct[] = round(($data['online'] / $data['total']) * 100, 1);
                 } else {
                     $unpaidPct[] = 0;
                     $manualPct[] = 0;
-                    $xenditPct[] = 0;
+                    $onlinePct[] = 0;
                 }
             }
             
@@ -524,7 +532,7 @@ class AnalyticsService
                 'labels' => $labels,
                 'unpaid' => $unpaidPct,
                 'manual' => $manualPct,
-                'xendit' => $xenditPct,
+                'online' => $onlinePct,
                 'raw_stats' => $stats
             ];
         });

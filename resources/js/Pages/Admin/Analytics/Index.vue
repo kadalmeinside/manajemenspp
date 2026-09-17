@@ -195,7 +195,7 @@
                 <!-- Kelas Payment Transition -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 mb-8">
                     <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Transisi Pembayaran Online (Per Kelas)</h3>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">Persentase tagihan Belum Lunas, Lunas Manual, dan Lunas Xendit untuk memantau adopsi pembayaran online.</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">Persentase tagihan Belum Lunas, Lunas Manual, dan Lunas Online untuk memantau adopsi pembayaran online.</p>
                     <div v-if="!payment_transition" class="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     <div v-else class="h-64 relative">
                         <Bar :data="paymentTransitionChartData" :options="paymentTransitionChartOptions" />
@@ -291,7 +291,7 @@ const paymentMethodsChartData = computed(() => {
         labels: props.payment_methods.labels,
         datasets: [{
             data: props.payment_methods.data_revenue,
-            backgroundColor: ['#3b82f6', '#94a3b8'], // Blue for Xendit, Slate for Manual
+            backgroundColor: ['#3b82f6', '#94a3b8', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'], // Colors for dynamic payment gateways
             borderWidth: 0,
             hoverOffset: 4
         }]
@@ -532,9 +532,9 @@ const paymentTransitionChartData = computed(() => {
                 data: props.payment_transition.manual,
             },
             {
-                label: 'Lunas Xendit (%)',
+                label: 'Lunas Online (%)',
                 backgroundColor: '#10b981', // Green
-                data: props.payment_transition.xendit,
+                data: props.payment_transition.online,
             }
         ]
     };
@@ -562,7 +562,7 @@ const paymentTransitionChartOptions = {
                             if (stats) {
                                 if (context.datasetIndex === 0) label += ` (${stats.unpaid} tagihan)`;
                                 if (context.datasetIndex === 1) label += ` (${stats.manual} tagihan)`;
-                                if (context.datasetIndex === 2) label += ` (${stats.xendit} tagihan)`;
+                                if (context.datasetIndex === 2) label += ` (${stats.online} tagihan)`;
                             }
                         }
                     }

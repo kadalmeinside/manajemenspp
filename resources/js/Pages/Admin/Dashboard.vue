@@ -27,7 +27,7 @@ const pageTitle = "Dashboard Admin";
 
 // --- State untuk Tab & Toggle ---
 const activeTab = ref('aktivitas');
-const activeRevenueView = ref('total'); // 'total', 'xendit', 'manual'
+const activeRevenueView = ref('total'); // 'total', 'online', 'manual'
 
 // Helper untuk ikon aktivitas publik
 const getActivityStyles = (type) => {
@@ -44,8 +44,8 @@ const getActivityStyles = (type) => {
 // Computed property untuk menampilkan pendapatan dinamis
 const displayedRevenue = computed(() => {
     switch (activeRevenueView.value) {
-        case 'xendit':
-            return props.stats.pendapatan.xendit;
+        case 'online':
+            return props.stats.pendapatan.online;
         case 'manual':
             return props.stats.pendapatan.manual;
         default: // 'total'
@@ -239,7 +239,7 @@ const getJobStatusClass = (status) => {
                             <div class="mt-3">
                                 <div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1 text-xs">
                                     <button @click="activeRevenueView = 'total'" :class="[activeRevenueView === 'total' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Total</button>
-                                    <button @click="activeRevenueView = 'xendit'" :class="[activeRevenueView === 'xendit' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Xendit</button>
+                                    <button @click="activeRevenueView = 'online'" :class="[activeRevenueView === 'online' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Online</button>
                                     <button @click="activeRevenueView = 'manual'" :class="[activeRevenueView === 'manual' ? 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 shadow' : 'text-gray-500 hover:text-gray-700', 'flex-1 px-2 py-1 rounded-md font-semibold transition-colors']">Manual</button>
                                 </div>
                                 <div v-if="activeRevenueView === 'total'" class="mt-2 flex items-center text-xs">
