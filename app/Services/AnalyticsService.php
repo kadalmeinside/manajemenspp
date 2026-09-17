@@ -678,13 +678,16 @@ class AnalyticsService
             
             $revenue = [];
             $pendaftar = [];
+            $keluar = [];
             
             foreach ($kelasMap as $id => $name) {
                 $revenue[$name] = array_fill(0, 12, 0);
                 $pendaftar[$name] = array_fill(0, 12, 0);
+                $keluar[$name] = array_fill(0, 12, 0);
             }
             $revenue['Tanpa Kelas'] = array_fill(0, 12, 0);
             $pendaftar['Tanpa Kelas'] = array_fill(0, 12, 0);
+            $keluar['Tanpa Kelas'] = array_fill(0, 12, 0);
 
             $isSqlite = DB::connection()->getDriverName() === 'sqlite';
 
@@ -738,14 +741,40 @@ class AnalyticsService
                 }
             }
             
+            // 3. Siswa Keluar
+            $keluarQuery = Siswa::whereIn('status_siswa', ['Keluar', 'Resign'])
+                ->whereYear('updated_at', $year);
+                
+            if ($isSqlite) {
+                $keluarQuery->selectRaw('id_kelas, cast(strftime("%m", updated_at) as integer) as month, COUNT(*) as count')
+                             ->groupBy('id_kelas', DB::raw('cast(strftime("%m", updated_at) as integer)'));
+            } else {
+                $keluarQuery->selectRaw('id_kelas, MONTH(updated_at) as month, COUNT(*) as count')
+                             ->groupBy('id_kelas', 'month');
+            }
+            
+            if ($managedKelasIds) {
+                $keluarQuery->whereIn('id_kelas', $managedKelasIds);
+            }
+            
+            foreach ($keluarQuery->get() as $row) {
+                $kName = $kelasMap[$row->id_kelas] ?? 'Tanpa Kelas';
+                $mIndex = intval($row->month) - 1;
+                if (isset($keluar[$kName][$mIndex])) {
+                    $keluar[$kName][$mIndex] += $row->count;
+                }
+            }
+            
             // Clean up empty 'Tanpa Kelas'
             if (array_sum($revenue['Tanpa Kelas']) == 0) unset($revenue['Tanpa Kelas']);
             if (array_sum($pendaftar['Tanpa Kelas']) == 0) unset($pendaftar['Tanpa Kelas']);
+            if (array_sum($keluar['Tanpa Kelas']) == 0) unset($keluar['Tanpa Kelas']);
             
             return [
                 'labels' => $labels,
                 'revenue' => $revenue,
                 'pendaftar' => $pendaftar,
+                'keluar' => $keluar,
             ];
         });
     }

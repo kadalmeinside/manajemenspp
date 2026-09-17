@@ -7,6 +7,9 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-6 h-96 flex items-center justify-center">
                 <div class="text-gray-400">Memuat Grafik Pendaftar...</div>
             </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-6 h-96 flex items-center justify-center">
+                <div class="text-gray-400">Memuat Grafik Siswa Keluar...</div>
+            </div>
         </div>
         
         <div v-else class="space-y-6">
@@ -23,6 +26,14 @@
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Tren Pendaftar Baru</h3>
                 <div class="h-80">
                     <Bar :data="pendaftarChartData" :options="chartOptions" />
+                </div>
+            </div>
+
+            <!-- Keluar Bar Chart -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Tren Siswa Keluar</h3>
+                <div class="h-80">
+                    <Bar :data="keluarChartData" :options="chartOptions" />
                 </div>
             </div>
         </div>
@@ -110,6 +121,28 @@ const pendaftarChartData = computed(() => {
     let colorIndex = 0;
     
     for (const [kelas, data] of Object.entries(props.yearly_trends.pendaftar)) {
+        datasets.push({
+            label: kelas,
+            data: data,
+            backgroundColor: getDatasetColor(colorIndex),
+            borderWidth: 0,
+        });
+        colorIndex++;
+    }
+    
+    return {
+        labels: props.yearly_trends.labels,
+        datasets: datasets
+    };
+});
+
+const keluarChartData = computed(() => {
+    if (!props.yearly_trends || !props.yearly_trends.keluar) return { labels: [], datasets: [] };
+    
+    const datasets = [];
+    let colorIndex = 0;
+    
+    for (const [kelas, data] of Object.entries(props.yearly_trends.keluar)) {
         datasets.push({
             label: kelas,
             data: data,
