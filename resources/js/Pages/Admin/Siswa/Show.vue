@@ -15,10 +15,12 @@ import InputError from '@/Components/InputError.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import html2pdf from 'html2pdf.js';
+import QrcodeVue from 'qrcode.vue';
 const page = usePage();
 
 const props = defineProps({
     siswa: Object,
+    id_card_back_text: String,
     pendingInvoices: { type: Array, default: () => [] },
     paidInvoices: { type: Array, default: () => [] },
     expiredInvoices: { type: Array, default: () => [] },
@@ -32,10 +34,15 @@ const props = defineProps({
     mutasiSiswas: { type: Array, default: () => [] },
 });
 
+const verifyUrl = computed(() => {
+    return route('public.verify.siswa', props.siswa.id_siswa);
+});
+
 const downloadIdCard = async () => {
-    const element = document.getElementById('student-id-card');
-    const width  = element.offsetWidth;
-    const height = element.offsetHeight;
+    // Kita gunakan card tersembunyi yang 100% menggunakan px agar html2canvas tidak error
+    const element = document.getElementById('hidden-printable-card');
+    const width  = 669; // Lebar satu kartu
+    const height = 425;
 
     // Pre-convert SVG ball ornaments ke base64 img agar html2canvas bisa merendernya
     const ballSvgs = Array.from(element.querySelectorAll('svg[data-ball]'));
@@ -85,6 +92,7 @@ const isEditWaliOpen = ref(false);
 const isEditAkademikOpen = ref(false);
 const isEditKeuanganOpen = ref(false);
 const isPreviewIdCardOpen = ref(false);
+const isFlipped = ref(false);
 const form = useForm({
     nama_siswa: '',
     user_name: '',
@@ -674,48 +682,34 @@ const underDevelopmentAlert = () => {
                         </p>
                     </div>
                     <div v-else class="relative">
-                        <div class="bg-black rounded-2xl shadow-xl text-white relative overflow-hidden group w-full" style="background: linear-gradient(135deg, #1a0000 0%, #660000 50%, #000000 100%); aspect-ratio: 1.586 / 1;">
+                        <div class="shadow-xl relative overflow-hidden group w-full" style="container-type: inline-size; border-radius: 1.5cqw; background-image: url('/images/idcard/bg_idcard.png'); background-size: cover; background-position: center; aspect-ratio: 669 / 425;">
+                            <!-- Header Logo -->
+                            <img src="/images/idcard/header_idcard.png" alt="Header" class="absolute left-1/2 -translate-x-1/2 object-contain pointer-events-none" style="top: 3.7cqw; height: 5.1cqw; width: auto;" crossorigin="anonymous" />
                             
-                            <!-- Soccer Ball -->
-                            <svg class="absolute -top-10 -left-10 w-32 h-32 text-red-600 opacity-10 transform rotate-12" viewBox="0 0 72.371 72.372" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                                <path d="M22.57,2.648c-4.489,1.82-8.517,4.496-11.971,7.949C7.144,14.051,4.471,18.08,2.65,22.568C0.892,26.904,0,31.486,0,36.186 c0,4.699,0.892,9.281,2.65,13.615c1.821,4.489,4.495,8.518,7.949,11.971c3.454,3.455,7.481,6.129,11.971,7.949 c4.336,1.76,8.917,2.649,13.617,2.649c4.7,0,9.28-0.892,13.616-2.649c4.488-1.82,8.518-4.494,11.971-7.949 c3.455-3.453,6.129-7.48,7.949-11.971c1.758-4.334,2.648-8.916,2.648-13.615c0-4.7-0.891-9.282-2.648-13.618 c-1.82-4.488-4.496-8.518-7.949-11.971s-7.479-6.129-11.971-7.949C45.467,0.891,40.887,0,36.187,0 C31.487,0,26.906,0.891,22.57,2.648z M9.044,51.419c-1.743-1.094-3.349-2.354-4.771-3.838c-2.172-6.112-2.54-12.729-1.101-19.01 c0.677-1.335,1.447-2.617,2.318-3.845c0.269-0.379,0.518-0.774,0.806-1.142l8.166,4.832c0,0.064,0,0.134,0,0.205 c-0.021,4.392,0.425,8.752,1.313,13.049c0.003,0.02,0.006,0.031,0.01,0.049l-6.333,9.93C9.314,51.579,9.177,51.503,9.044,51.419z M33.324,68.206c1.409,0.719,2.858,1.326,4.347,1.82c-6.325,0.275-12.713-1.207-18.36-4.447L33,68.018 C33.105,68.085,33.212,68.149,33.324,68.206z M33.274,65.735L17.12,62.856c-1.89-2.295-3.59-4.723-5.051-7.318 c-0.372-0.66-0.787-1.301-1.102-1.99l6.327-9.92c0.14,0.035,0.296,0.072,0.473,0.119c3.958,1.059,7.986,1.812,12.042,2.402 c0.237,0.033,0.435,0.062,0.604,0.08l7.584,13.113c-1.316,1.85-2.647,3.69-4.007,5.51C33.764,65.155,33.524,65.446,33.274,65.735z M60.15,60.149c-1.286,1.287-2.651,2.447-4.08,3.481c-0.237-1.894-0.646-3.75-1.223-5.563l8.092-15.096 c2.229-1.015,4.379-2.166,6.375-3.593c0.261-0.185,0.478-0.392,0.646-0.618C69.374,46.561,66.104,54.196,60.15,60.149z M59.791,40.571c0.301,0.574,0.598,1.154,0.896,1.742l-7.816,14.58c-0.045,0.01-0.088,0.02-0.133,0.026 c-4.225,0.789-8.484,1.209-12.779,1.229l-7.8-13.487c1.214-2.254,2.417-4.517,3.61-6.781c0.81-1.536,1.606-3.082,2.401-4.627 l16.143-1.658C56.29,34.495,58.163,37.457,59.791,40.571z M56.516,23.277c-0.766,2.023-1.586,4.025-2.401,6.031l-15.726,1.615 c-0.188-0.248-0.383-0.492-0.588-0.725c-1.857-2.103-3.726-4.193-5.592-6.289c0.017-0.021,0.034-0.037,0.051-0.056 c-0.753-0.752-1.508-1.504-2.261-2.258l4.378-13.181c0.302-0.08,0.606-0.147,0.913-0.18c2.38-0.242,4.763-0.516,7.149-0.654 c1.461-0.082,2.93-0.129,4.416-0.024l10.832,12.209C57.314,20.943,56.95,22.124,56.516,23.277z M60.15,12.221 c2.988,2.99,5.302,6.402,6.938,10.047c-2.024-1.393-4.188-2.539-6.463-3.473c-0.354-0.146-0.717-0.275-1.086-0.402L48.877,6.376 c0.074-0.519,0.113-1.039,0.129-1.563C53.062,6.464,56.864,8.936,60.15,12.221z M25.334,4.182c0.042,0.031,0.062,0.057,0.086,0.064 c2.437,0.842,4.654,2.082,6.744,3.553l-4.09,12.317c-0.021,0.006-0.041,0.012-0.061,0.021c-0.837,0.346-1.69,0.656-2.514,1.031 c-3.395,1.543-6.705,3.252-9.823,5.301l-8.071-4.775c0.012-0.252,0.055-0.508,0.141-0.736c0.542-1.444,1.075-2.896,1.688-4.311 c0.472-1.09,1.01-2.143,1.597-3.172c0.384-0.424,0.782-0.844,1.192-1.254c3.833-3.832,8.363-6.553,13.186-8.162 C25.384,4.098,25.358,4.139,25.334,4.182z"/>
-                            </svg>
-
-                            <!-- Focused Soccer Ball -->
-                            <svg class="absolute -bottom-8 -right-8 w-40 h-40 text-red-500 opacity-10 transform -rotate-12" viewBox="0 0 72.371 72.372" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                                <path d="M22.57,2.648c-4.489,1.82-8.517,4.496-11.971,7.949C7.144,14.051,4.471,18.08,2.65,22.568C0.892,26.904,0,31.486,0,36.186 c0,4.699,0.892,9.281,2.65,13.615c1.821,4.489,4.495,8.518,7.949,11.971c3.454,3.455,7.481,6.129,11.971,7.949 c4.336,1.76,8.917,2.649,13.617,2.649c4.7,0,9.28-0.892,13.616-2.649c4.488-1.82,8.518-4.494,11.971-7.949 c3.455-3.453,6.129-7.48,7.949-11.971c1.758-4.334,2.648-8.916,2.648-13.615c0-4.7-0.891-9.282-2.648-13.618 c-1.82-4.488-4.496-8.518-7.949-11.971s-7.479-6.129-11.971-7.949C45.467,0.891,40.887,0,36.187,0 C31.487,0,26.906,0.891,22.57,2.648z M9.044,51.419c-1.743-1.094-3.349-2.354-4.771-3.838c-2.172-6.112-2.54-12.729-1.101-19.01 c0.677-1.335,1.447-2.617,2.318-3.845c0.269-0.379,0.518-0.774,0.806-1.142l8.166,4.832c0,0.064,0,0.134,0,0.205 c-0.021,4.392,0.425,8.752,1.313,13.049c0.003,0.02,0.006,0.031,0.01,0.049l-6.333,9.93C9.314,51.579,9.177,51.503,9.044,51.419z M33.324,68.206c1.409,0.719,2.858,1.326,4.347,1.82c-6.325,0.275-12.713-1.207-18.36-4.447L33,68.018 C33.105,68.085,33.212,68.149,33.324,68.206z M33.274,65.735L17.12,62.856c-1.89-2.295-3.59-4.723-5.051-7.318 c-0.372-0.66-0.787-1.301-1.102-1.99l6.327-9.92c0.14,0.035,0.296,0.072,0.473,0.119c3.958,1.059,7.986,1.812,12.042,2.402 c0.237,0.033,0.435,0.062,0.604,0.08l7.584,13.113c-1.316,1.85-2.647,3.69-4.007,5.51C33.764,65.155,33.524,65.446,33.274,65.735z M60.15,60.149c-1.286,1.287-2.651,2.447-4.08,3.481c-0.237-1.894-0.646-3.75-1.223-5.563l8.092-15.096 c2.229-1.015,4.379-2.166,6.375-3.593c0.261-0.185,0.478-0.392,0.646-0.618C69.374,46.561,66.104,54.196,60.15,60.149z M59.791,40.571c0.301,0.574,0.598,1.154,0.896,1.742l-7.816,14.58c-0.045,0.01-0.088,0.02-0.133,0.026 c-4.225,0.789-8.484,1.209-12.779,1.229l-7.8-13.487c1.214-2.254,2.417-4.517,3.61-6.781c0.81-1.536,1.606-3.082,2.401-4.627 l16.143-1.658C56.29,34.495,58.163,37.457,59.791,40.571z M56.516,23.277c-0.766,2.023-1.586,4.025-2.401,6.031l-15.726,1.615 c-0.188-0.248-0.383-0.492-0.588-0.725c-1.857-2.103-3.726-4.193-5.592-6.289c0.017-0.021,0.034-0.037,0.051-0.056 c-0.753-0.752-1.508-1.504-2.261-2.258l4.378-13.181c0.302-0.08,0.606-0.147,0.913-0.18c2.38-0.242,4.763-0.516,7.149-0.654 c1.461-0.082,2.93-0.129,4.416-0.024l10.832,12.209C57.314,20.943,56.95,22.124,56.516,23.277z M60.15,12.221 c2.988,2.99,5.302,6.402,6.938,10.047c-2.024-1.393-4.188-2.539-6.463-3.473c-0.354-0.146-0.717-0.275-1.086-0.402L48.877,6.376 c0.074-0.519,0.113-1.039,0.129-1.563C53.062,6.464,56.864,8.936,60.15,12.221z M25.334,4.182c0.042,0.031,0.062,0.057,0.086,0.064 c2.437,0.842,4.654,2.082,6.744,3.553l-4.09,12.317c-0.021,0.006-0.041,0.012-0.061,0.021c-0.837,0.346-1.69,0.656-2.514,1.031 c-3.395,1.543-6.705,3.252-9.823,5.301l-8.071-4.775c0.012-0.252,0.055-0.508,0.141-0.736c0.542-1.444,1.075-2.896,1.688-4.311 c0.472-1.09,1.01-2.143,1.597-3.172c0.384-0.424,0.782-0.844,1.192-1.254c3.833-3.832,8.363-6.553,13.186-8.162 C25.384,4.098,25.358,4.139,25.334,4.182z"/>
-                            </svg>
-
                             <!-- Content Wrapper -->
-                            <div class="relative z-10 p-5 flex flex-col h-full justify-between">
-                                <!-- Header ID Card -->
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h4 class="font-black text-lg sm:text-xl tracking-widest text-red-500">KARTU PELAJAR</h4>
-                                        <p class="text-[8px] sm:text-[9px] text-red-300 uppercase tracking-[0.2em] font-semibold mt-1">Sistem Informasi Akademik</p>
-                                    </div>
-                                    <div class="w-9 h-9 sm:w-10 sm:h-10 bg-white/10 rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
-                                        <QrCodeIcon class="w-5 h-5 sm:w-6 sm:h-6 text-white opacity-80" />
+                            <div class="absolute inset-0 flex items-center" style="padding: 0 4.5cqw; padding-top: 18cqw; gap: 3.5cqw;">
+                                
+                                <!-- Photo -->
+                                <div class="bg-gray-100 flex-shrink-0 relative shadow-sm overflow-hidden" style="width: 26cqw; aspect-ratio: 1 / 1; border-radius: 0 7cqw 0 7cqw; border: 0.8cqw solid #ffffff;">
+                                    <img v-if="siswa.foto_url" :src="siswa.foto_url" alt="Foto Siswa" class="absolute inset-0 w-full h-full object-cover" />
+                                    <!-- Fallback icon -->
+                                    <div v-else class="absolute inset-0 flex items-center justify-center text-gray-400 bg-gray-200">
+                                        <UserIcon style="width: 12.8cqw; height: 12.8cqw;" />
                                     </div>
                                 </div>
                                 
-                                <!-- Body ID Card (Photo & Details) -->
-                                <div class="flex items-center gap-3 sm:gap-4 mt-auto">
-                                    <!-- Photo Placeholder -->
-                                    <div class="w-16 h-20 sm:w-20 sm:h-28 bg-gradient-to-br from-gray-800 to-black rounded-lg border border-red-500/30 overflow-hidden shadow-2xl flex-shrink-0 relative">
-                                        <div class="absolute inset-0 flex items-center justify-center text-gray-500">
-                                            <UserIcon class="w-8 h-8 sm:w-10 sm:h-10" />
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Details -->
-                                    <div class="flex-1 min-w-0 flex flex-col justify-end">
-                                        <h3 class="font-bold text-base sm:text-lg leading-normal mb-1 text-white drop-shadow-md m-0">{{ siswa.nama_siswa }}</h3>
-                                        <div class="text-xs sm:text-sm text-red-200 font-mono tracking-widest mb-2 drop-shadow-md opacity-80 m-0">{{ siswa.nis || 'NIS-PENDING' }}</div>
-                                        <div class="flex">
-                                            <div class="flex items-center justify-center px-3 py-1.5 bg-red-600/20 rounded border border-red-500/30 text-[10px] sm:text-xs font-semibold shadow-sm text-red-100 text-center leading-tight">
-                                                {{ siswa.kelas_nama || 'Belum Ada Kelas' }}
-                                            </div>
+                                <!-- Details -->
+                                <div class="flex-1 min-w-0" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; overflow: hidden;">
+                                    <div class="flex flex-col items-stretch" style="width: max-content; max-width: 100%;">
+                                        <h3 class="font-black text-white m-0 uppercase drop-shadow-md truncate text-left w-full" 
+                                            style="font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; letter-spacing: 0.03em; margin-bottom: calc(1.5cqw - 0.25em); line-height: 1.1; padding-top: 1cqw;"
+                                            :style="{ fontSize: Math.min(20, 240 / Math.max(10, siswa.nama_siswa?.length || 10)) + 'cqw' }">
+                                            {{ siswa.nama_siswa }}
+                                        </h3>
+                                        <div class="rounded-full text-white font-semibold tracking-wider bg-transparent truncate text-center w-full" 
+                                             style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 0.8cqw 2cqw;"
+                                             :style="{ fontSize: Math.min(2.6, 75 / Math.max(25, ((siswa.nis || 'PENDING').length + (siswa.kelas_nama || 'BELUM ADA KELAS').length + 3))) + 'cqw', border: 'max(1px, 0.3cqw) solid #ffffff' }">
+                                            {{ siswa.nis || 'PENDING' }} <span style="margin: 0 0.8cqw;">|</span> {{ siswa.kelas_nama || 'BELUM ADA KELAS' }}
                                         </div>
                                     </div>
                                 </div>
@@ -1293,69 +1287,82 @@ const underDevelopmentAlert = () => {
 
         <!-- Fullscreen ID Card Preview -->
         <div v-if="isPreviewIdCardOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-all">
-            <div class="max-w-2xl w-full flex flex-col items-center gap-6 relative">
+            <div class="max-w-4xl w-full flex flex-col items-center gap-6 relative">
                 <!-- Close Button on top right -->
-                <button @click="isPreviewIdCardOpen = false" class="absolute -top-10 right-0 text-white hover:text-red-400 bg-black/40 hover:bg-black/60 rounded-full p-2 transition">
+                <button @click="isPreviewIdCardOpen = false" class="absolute -top-10 right-0 text-white hover:text-red-400 bg-black/40 hover:bg-black/60 rounded-full p-2 transition z-10">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
 
-                <!-- The Actual Printable ID Card -->
-                <div id="student-id-card" class="bg-black rounded-2xl shadow-2xl text-white relative overflow-hidden group shrink-0" style="background: linear-gradient(135deg, #1a0000 0%, #660000 50%, #000000 100%); width: 500px; height: 315px;">
+                <!-- Cards Container (3D Flip) -->
+                <div class="relative w-full max-w-[450px] mx-auto group [perspective:1000px]">
+                    <!-- Flip Button Container -->
+                    <div class="flex justify-end mb-3">
+                        <button @click="isFlipped = !isFlipped" class="px-4 py-2 bg-red-600 text-white rounded-full text-sm font-bold shadow-lg hover:bg-red-700 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Putar Kartu
+                        </button>
+                    </div>
 
-                    <!-- Soccer Ball top-left: viewBox shows bottom-right quarter → corner accent, data-ball attr for PDF pre-conversion -->
-                    <svg data-ball="top-left" style="position: absolute; top: 0; left: 0; width: 110px; height: 110px; opacity: 0.25; pointer-events: none;" viewBox="36 36 37 37" xmlns="http://www.w3.org/2000/svg" fill="#dc2626">
-                        <path d="M22.57,2.648c-4.489,1.82-8.517,4.496-11.971,7.949C7.144,14.051,4.471,18.08,2.65,22.568C0.892,26.904,0,31.486,0,36.186 c0,4.699,0.892,9.281,2.65,13.615c1.821,4.489,4.495,8.518,7.949,11.971c3.454,3.455,7.481,6.129,11.971,7.949 c4.336,1.76,8.917,2.649,13.617,2.649c4.7,0,9.28-0.892,13.616-2.649c4.488-1.82,8.518-4.494,11.971-7.949 c3.455-3.453,6.129-7.48,7.949-11.971c1.758-4.334,2.648-8.916,2.648-13.615c0-4.7-0.891-9.282-2.648-13.618 c-1.82-4.488-4.496-8.518-7.949-11.971s-7.479-6.129-11.971-7.949C45.467,0.891,40.887,0,36.187,0 C31.487,0,26.906,0.891,22.57,2.648z M9.044,51.419c-1.743-1.094-3.349-2.354-4.771-3.838c-2.172-6.112-2.54-12.729-1.101-19.01 c0.677-1.335,1.447-2.617,2.318-3.845c0.269-0.379,0.518-0.774,0.806-1.142l8.166,4.832c0,0.064,0,0.134,0,0.205 c-0.021,4.392,0.425,8.752,1.313,13.049c0.003,0.02,0.006,0.031,0.01,0.049l-6.333,9.93C9.314,51.579,9.177,51.503,9.044,51.419z M33.324,68.206c1.409,0.719,2.858,1.326,4.347,1.82c-6.325,0.275-12.713-1.207-18.36-4.447L33,68.018 C33.105,68.085,33.212,68.149,33.324,68.206z M33.274,65.735L17.12,62.856c-1.89-2.295-3.59-4.723-5.051-7.318 c-0.372-0.66-0.787-1.301-1.102-1.99l6.327-9.92c0.14,0.035,0.296,0.072,0.473,0.119c3.958,1.059,7.986,1.812,12.042,2.402 c0.237,0.033,0.435,0.062,0.604,0.08l7.584,13.113c-1.316,1.85-2.647,3.69-4.007,5.51C33.764,65.155,33.524,65.446,33.274,65.735z M60.15,60.149c-1.286,1.287-2.651,2.447-4.08,3.481c-0.237-1.894-0.646-3.75-1.223-5.563l8.092-15.096 c2.229-1.015,4.379-2.166,6.375-3.593c0.261-0.185,0.478-0.392,0.646-0.618C69.374,46.561,66.104,54.196,60.15,60.149z M59.791,40.571c0.301,0.574,0.598,1.154,0.896,1.742l-7.816,14.58c-0.045,0.01-0.088,0.02-0.133,0.026 c-4.225,0.789-8.484,1.209-12.779,1.229l-7.8-13.487c1.214-2.254,2.417-4.517,3.61-6.781c0.81-1.536,1.606-3.082,2.401-4.627 l16.143-1.658C56.29,34.495,58.163,37.457,59.791,40.571z M56.516,23.277c-0.766,2.023-1.586,4.025-2.401,6.031l-15.726,1.615 c-0.188-0.248-0.383-0.492-0.588-0.725c-1.857-2.103-3.726-4.193-5.592-6.289c0.017-0.021,0.034-0.037,0.051-0.056 c-0.753-0.752-1.508-1.504-2.261-2.258l4.378-13.181c0.302-0.08,0.606-0.147,0.913-0.18c2.38-0.242,4.763-0.516,7.149-0.654 c1.461-0.082,2.93-0.129,4.416-0.024l10.832,12.209C57.314,20.943,56.95,22.124,56.516,23.277z M60.15,12.221 c2.988,2.99,5.302,6.402,6.938,10.047c-2.024-1.393-4.188-2.539-6.463-3.473c-0.354-0.146-0.717-0.275-1.086-0.402L48.877,6.376 c0.074-0.519,0.113-1.039,0.129-1.563C53.062,6.464,56.864,8.936,60.15,12.221z M25.334,4.182c0.042,0.031,0.062,0.057,0.086,0.064 c2.437,0.842,4.654,2.082,6.744,3.553l-4.09,12.317c-0.021,0.006-0.041,0.012-0.061,0.021c-0.837,0.346-1.69,0.656-2.514,1.031 c-3.395,1.543-6.705,3.252-9.823,5.301l-8.071-4.775c0.012-0.252,0.055-0.508,0.141-0.736c0.542-1.444,1.075-2.896,1.688-4.311 c0.472-1.09,1.01-2.143,1.597-3.172c0.384-0.424,0.782-0.844,1.192-1.254c3.833-3.832,8.363-6.553,13.186-8.162 C25.384,4.098,25.358,4.139,25.334,4.182z"/>
-                    </svg>
+                    <!-- Inner Card (Flips) -->
+                    <div class="relative w-full transition-transform duration-700 [transform-style:preserve-3d]"
+                         :class="{ '[transform:rotateY(180deg)]': isFlipped }"
+                         style="aspect-ratio: 669 / 425;">
+                        
+                        <!-- Front Side -->
+                        <div id="student-id-card-front" class="absolute inset-0 w-full h-full overflow-hidden shadow-2xl [backface-visibility:hidden]" style="container-type: inline-size; border-radius: 1.5cqw; background-image: url('/images/idcard/bg_idcard.png'); background-size: cover; background-position: center;">
+                            <!-- Header Logo -->
+                            <img src="/images/idcard/header_idcard.png" alt="Header" class="absolute left-1/2 -translate-x-1/2 object-contain pointer-events-none" style="top: 3.7cqw; height: 5.1cqw; width: auto;" crossorigin="anonymous" />
 
-                    <!-- Soccer Ball bottom-right: viewBox shows top-left quarter → corner accent -->
-                    <svg data-ball="bottom-right" style="position: absolute; bottom: 0; right: 0; width: 110px; height: 110px; opacity: 0.25; pointer-events: none;" viewBox="0 0 37 37" xmlns="http://www.w3.org/2000/svg" fill="#ef4444">
-                        <path d="M22.57,2.648c-4.489,1.82-8.517,4.496-11.971,7.949C7.144,14.051,4.471,18.08,2.65,22.568C0.892,26.904,0,31.486,0,36.186 c0,4.699,0.892,9.281,2.65,13.615c1.821,4.489,4.495,8.518,7.949,11.971c3.454,3.455,7.481,6.129,11.971,7.949 c4.336,1.76,8.917,2.649,13.617,2.649c4.7,0,9.28-0.892,13.616-2.649c4.488-1.82,8.518-4.494,11.971-7.949 c3.455-3.453,6.129-7.48,7.949-11.971c1.758-4.334,2.648-8.916,2.648-13.615c0-4.7-0.891-9.282-2.648-13.618 c-1.82-4.488-4.496-8.518-7.949-11.971s-7.479-6.129-11.971-7.949C45.467,0.891,40.887,0,36.187,0 C31.487,0,26.906,0.891,22.57,2.648z M9.044,51.419c-1.743-1.094-3.349-2.354-4.771-3.838c-2.172-6.112-2.54-12.729-1.101-19.01 c0.677-1.335,1.447-2.617,2.318-3.845c0.269-0.379,0.518-0.774,0.806-1.142l8.166,4.832c0,0.064,0,0.134,0,0.205 c-0.021,4.392,0.425,8.752,1.313,13.049c0.003,0.02,0.006,0.031,0.01,0.049l-6.333,9.93C9.314,51.579,9.177,51.503,9.044,51.419z M33.324,68.206c1.409,0.719,2.858,1.326,4.347,1.82c-6.325,0.275-12.713-1.207-18.36-4.447L33,68.018 C33.105,68.085,33.212,68.149,33.324,68.206z M33.274,65.735L17.12,62.856c-1.89-2.295-3.59-4.723-5.051-7.318 c-0.372-0.66-0.787-1.301-1.102-1.99l6.327-9.92c0.14,0.035,0.296,0.072,0.473,0.119c3.958,1.059,7.986,1.812,12.042,2.402 c0.237,0.033,0.435,0.062,0.604,0.08l7.584,13.113c-1.316,1.85-2.647,3.69-4.007,5.51C33.764,65.155,33.524,65.446,33.274,65.735z M60.15,60.149c-1.286,1.287-2.651,2.447-4.08,3.481c-0.237-1.894-0.646-3.75-1.223-5.563l8.092-15.096 c2.229-1.015,4.379-2.166,6.375-3.593c0.261-0.185,0.478-0.392,0.646-0.618C69.374,46.561,66.104,54.196,60.15,60.149z M59.791,40.571c0.301,0.574,0.598,1.154,0.896,1.742l-7.816,14.58c-0.045,0.01-0.088,0.02-0.133,0.026 c-4.225,0.789-8.484,1.209-12.779,1.229l-7.8-13.487c1.214-2.254,2.417-4.517,3.61-6.781c0.81-1.536,1.606-3.082,2.401-4.627 l16.143-1.658C56.29,34.495,58.163,37.457,59.791,40.571z M56.516,23.277c-0.766,2.023-1.586,4.025-2.401,6.031l-15.726,1.615 c-0.188-0.248-0.383-0.492-0.588-0.725c-1.857-2.103-3.726-4.193-5.592-6.289c0.017-0.021,0.034-0.037,0.051-0.056 c-0.753-0.752-1.508-1.504-2.261-2.258l4.378-13.181c0.302-0.08,0.606-0.147,0.913-0.18c2.38-0.242,4.763-0.516,7.149-0.654 c1.461-0.082,2.93-0.129,4.416-0.024l10.832,12.209C57.314,20.943,56.95,22.124,56.516,23.277z M60.15,12.221 c2.988,2.99,5.302,6.402,6.938,10.047c-2.024-1.393-4.188-2.539-6.463-3.473c-0.354-0.146-0.717-0.275-1.086-0.402L48.877,6.376 c0.074-0.519,0.113-1.039,0.129-1.563C53.062,6.464,56.864,8.936,60.15,12.221z M25.334,4.182c0.042,0.031,0.062,0.057,0.086,0.064 c2.437,0.842,4.654,2.082,6.744,3.553l-4.09,12.317c-0.021,0.006-0.041,0.012-0.061,0.021c-0.837,0.346-1.69,0.656-2.514,1.031 c-3.395,1.543-6.705,3.252-9.823,5.301l-8.071-4.775c0.012-0.252,0.055-0.508,0.141-0.736c0.542-1.444,1.075-2.896,1.688-4.311 c0.472-1.09,1.01-2.143,1.597-3.172c0.384-0.424,0.782-0.844,1.192-1.254c3.833-3.832,8.363-6.553,13.186-8.162 C25.384,4.098,25.358,4.139,25.334,4.182z"/>
-                    </svg>
+                            <!-- Content Wrapper -->
+                            <div class="absolute inset-0 flex items-center" style="padding: 0 4.5cqw; padding-top: 18cqw; gap: 3.5cqw;">
+                                <!-- Photo -->
+                                <div class="bg-gray-100 flex-shrink-0 relative shadow-sm overflow-hidden" style="width: 26cqw; aspect-ratio: 1 / 1; border-radius: 0 7cqw 0 7cqw; border: 0.8cqw solid #ffffff;">
+                                    <img v-if="siswa.foto_url" :src="siswa.foto_url" alt="Foto Siswa" class="absolute inset-0 w-full h-full object-cover" />
+                                    <!-- Fallback icon -->
+                                    <div v-else class="absolute inset-0 flex items-center justify-center text-gray-400 bg-gray-200">
+                                        <UserIcon style="width: 12.8cqw; height: 12.8cqw;" />
+                                    </div>
+                                </div>
 
-                    <!-- Content Wrapper -->
-                    <div style="position: relative; z-index: 10; padding: 20px 24px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
-                        <!-- Header -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <h4 style="font-weight: 900; font-size: 22px; letter-spacing: 0.2em; color: #ef4444; margin: 0; line-height: 1.2;">KARTU PELAJAR</h4>
-                                <p style="font-size: 10px; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 600; margin: 4px 0 0 0;">Sistem Informasi Akademik</p>
-                            </div>
-                            <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);">
-                                <QrCodeIcon class="w-7 h-7 text-white opacity-80" />
+                                <!-- Name & NIS/Academy -->
+                                <div class="flex-1 min-w-0" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; overflow: hidden;">
+                                    <div class="flex flex-col items-stretch" style="width: max-content; max-width: 100%;">
+                                        <h3 class="font-black text-white m-0 uppercase drop-shadow-md truncate text-left w-full" 
+                                            style="font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; letter-spacing: 0.03em; margin-bottom: calc(1.5cqw - 0.25em); line-height: 1.1; padding-top: 1cqw;"
+                                            :style="{ fontSize: Math.min(20, 240 / Math.max(10, siswa.nama_siswa?.length || 10)) + 'cqw' }">
+                                            {{ siswa.nama_siswa }}
+                                        </h3>
+                                        <div class="rounded-full text-white font-semibold tracking-wider bg-transparent truncate text-center w-full" 
+                                             style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 0.8cqw 2cqw;"
+                                             :style="{ fontSize: Math.min(2.6, 75 / Math.max(25, ((siswa.nis || 'PENDING').length + (siswa.kelas_nama || 'BELUM ADA KELAS').length + 3))) + 'cqw', border: 'max(1px, 0.3cqw) solid #ffffff' }">
+                                            {{ siswa.nis || 'PENDING' }} <span style="margin: 0 0.8cqw;">|</span> {{ siswa.kelas_nama || 'BELUM ADA KELAS' }}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Spacer -->
-                        <div style="flex: 1;"></div>
-
-                        <!-- Body: Photo + Name / NIS / Badge -->
-                        <div style="display: flex; align-items: flex-end; gap: 20px; padding-bottom: 8px;">
-                            <!-- Photo -->
-                            <div style="width: 80px; height: 100px; background: linear-gradient(135deg, #1f2937, #000000); border-radius: 10px; border: 1px solid rgba(239,68,68,0.3); overflow: hidden; flex-shrink: 0; position: relative;">
-                                <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6b7280;">
-                                    <UserIcon class="w-10 h-10" />
+                        <!-- Back Side -->
+                        <div id="student-id-card-back" class="absolute inset-0 w-full h-full overflow-hidden shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)]" style="container-type: inline-size; border-radius: 1.5cqw; background-image: url('/images/idcard/bg_idcard.png'); background-size: cover; background-position: center;">
+                            <!-- Content Wrapper -->
+                            <div class="absolute inset-0 flex flex-col justify-center items-center text-white" style="padding: 4cqw; gap: 3cqw;">
+                                <div class="flex-1 w-full" style="font-size: 3cqw; line-height: 1.4; overflow-y: auto;" v-html="id_card_back_text">
                                 </div>
-                            </div>
-
-                            <!-- Name, NIS, Badge -->
-                            <div style="flex: 1; min-width: 0;">
-                                <h3 style="font-weight: 700; font-size: 20px; color: #ffffff; margin: 0 0 5px 0; line-height: 1.3; word-break: break-word;">{{ siswa.nama_siswa }}</h3>
-                                <div style="font-size: 13px; color: #fecaca; font-family: monospace; letter-spacing: 0.15em; opacity: 0.8; margin-bottom: 10px;">{{ siswa.nis || 'NIS-PENDING' }}</div>
-                                <!-- Badge: full-width, perfectly centered for html2canvas using table-cell -->
-                                <div style="width: 100%; height: 32px; border-radius: 8px; background-color: rgba(220,38,38,0.25); border: 1px solid rgba(239,68,68,0.5); box-sizing: border-box; display: table;">
-                                    <div style="display: table-cell; vertical-align: middle; text-align: center; color: #fee2e2; font-size: 13px; font-weight: 600;">
-                                        {{ siswa.kelas_nama || 'Belum Ada Kelas' }}
-                                    </div>
+                                <div class="flex-shrink-0" style="width: 18cqw; height: 18cqw; background: white; padding: 1cqw; border-radius: 1cqw; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                                    <qrcode-vue :value="verifyUrl" level="M" :size="256" style="width: 100%; height: 100%;" render-as="svg" />
                                 </div>
+                                <p class="text-center font-bold" style="font-size: 2.2cqw; margin-top: -1cqw;">Scan untuk Verifikasi</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex gap-4 w-full max-w-[500px] justify-center mt-4">
+                <div class="flex gap-4 w-full justify-center mt-4">
                     <button @click="isPreviewIdCardOpen = false" class="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium border border-white/20 backdrop-blur-sm transition">
                         Tutup
                     </button>
@@ -1366,4 +1373,55 @@ const underDevelopmentAlert = () => {
             </div>
         </div>
     </AuthenticatedLayout>
+
+    <!-- HIDDEN PRINTABLE ID CARD (PURE PX, NO CQW, NO FLEX ROW) -->
+    <div style="position: absolute; top: 0; left: 0; z-index: -999; opacity: 0.01; pointer-events: none;">
+        <div id="hidden-printable-card" style="position: relative; width: 669px; display: flex; flex-direction: column;">
+            
+            <!-- Front Card -->
+            <div style="position: relative; width: 669px; height: 425px; border-radius: 10px; overflow: hidden; background-image: url('/images/idcard/bg_idcard.png'); background-size: cover; background-position: center;">
+                <!-- Header Logo -->
+                <img src="/images/idcard/header_idcard.png" alt="Header" crossorigin="anonymous"
+                     style="position: absolute; top: 25px; left: 334px; transform: translateX(-50%); height: 34px; width: auto; object-fit: contain;" />
+                
+                <!-- Photo -->
+                <div style="position: absolute; top: 152px; left: 30px; width: 174px; height: 174px; border-radius: 0 47px 0 47px; border: 5px solid #ffffff; background-color: #f3f4f6; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <img v-if="siswa.foto_url" :src="siswa.foto_url" alt="Foto Siswa" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
+                    <div v-else style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af;">
+                        <UserIcon style="width: 85px; height: 85px;" />
+                    </div>
+                </div>
+
+                <!-- Text Data -->
+                <!-- Name -->
+                <div style="position: absolute; top: 115px; left: 227px; width: 420px; height: 174px; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px;">
+                    <h3 style="margin: 0; padding: 0; padding-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; width: 100%; font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; font-weight: 500; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.05; text-align: left; text-shadow: 0 4px 6px rgba(0,0,0,0.1);"
+                        :style="{ fontSize: Math.min(120, 1600 / Math.max(10, siswa.nama_siswa?.length || 10)) + 'px' }">
+                        {{ siswa.nama_siswa }}
+                    </h3>
+                    
+                    <!-- Capsule -->
+                    <div style="display: block; margin-top: 15px; width: max-content; max-width: 412px; box-sizing: border-box; height: 30px; line-height: 26px; padding: 0 13px; border-radius: 9999px; border: 2px solid #ffffff; background-color: transparent; color: #ffffff; font-weight: 600; letter-spacing: 0.05em; text-align: center; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space: nowrap; overflow: hidden; z-index: 20;"
+                         :style="{ fontSize: Math.min(17.4, 500 / Math.max(25, ((siswa.nis || 'PENDING').length + (siswa.kelas_nama || 'BELUM ADA KELAS').length + 3))) + 'px' }">
+                        <span style="position: relative; top: -5.5px;">
+                            {{ siswa.nis || 'PENDING' }} <span style="margin: 0 5px;">|</span> {{ siswa.kelas_nama || 'BELUM ADA KELAS' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Back Card -->
+            <div style="position: relative; width: 669px; height: 425px; border-radius: 10px; overflow: hidden; background-image: url('/images/idcard/bg_idcard.png'); background-size: cover; background-position: center;">
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; box-sizing: border-box;">
+                    <div style="flex: 1; width: 100%; font-size: 20px; line-height: 1.4; color: #ffffff; overflow: hidden; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);" v-html="id_card_back_text"></div>
+                    
+                    <div style="width: 120px; height: 120px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 15px;">
+                        <qrcode-vue :value="verifyUrl" level="M" :size="100" style="width: 100%; height: 100%;" render-as="svg" />
+                    </div>
+                    <p style="margin-top: 10px; font-weight: bold; font-size: 16px; color: #ffffff; text-shadow: 0px 1px 3px rgba(0,0,0,0.8);">Scan untuk Verifikasi</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </template>

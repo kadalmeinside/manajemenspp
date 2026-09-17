@@ -35,6 +35,7 @@ class Siswa extends Model
         'mulai_spp_date',
         'id_kelas',
         'id_user',
+        'foto',
     ];
 
     protected $casts = [
@@ -44,6 +45,13 @@ class Siswa extends Model
         'admin_fee_custom' => 'decimal:2',
         'tanggal_lahir' => 'date:Y-m-d',
     ];
+
+    protected $appends = ['foto_url'];
+
+    public function getFotoUrlAttribute()
+    {
+        return $this->foto ? asset('storage/' . $this->foto) : null;
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

@@ -344,6 +344,7 @@ class SiswaController extends Controller
                     'created_by_name' => $mutasi->creator ? $mutasi->creator->name : '-',
                 ];
             }),
+            'id_card_back_text' => \App\Models\Setting::where('key', 'id_card_back_text')->value('value') ?? 'LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT, SED DO EIUSMOD TEMPOR INCIDIDUNT UT LABORE ET DOLORE MAGNA ALIQUA.',
         ]);
     }
 
@@ -367,6 +368,7 @@ class SiswaController extends Controller
             // Data baru yang sudah diformat untuk ditampilkan di biodata
             'jumlah_spp_custom_formatted' => 'Rp ' . number_format($siswa->jumlah_spp_custom ?? 0, 0, ',', '.'),
             'admin_fee_custom_formatted' => 'Rp ' . number_format($siswa->admin_fee_custom ?? 0, 0, ',', '.'),
+            'foto_url' => $siswa->foto_url,
         ];
     }
 

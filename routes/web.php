@@ -207,6 +207,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
         Route::get('/dashboard', [SiswaDashboardController::class, 'index'])->name('dashboard');
         Route::put('/profil/update-info', [SiswaProfileController::class, 'updateInformation'])->name('profil.update_info');
         Route::put('/profil/update-password', [SiswaProfileController::class, 'updatePassword'])->name('profil.update_password');
+        Route::post('/profil/update-photo', [SiswaProfileController::class, 'updatePhoto'])->name('profil.update_photo');
         Route::get('/profil', [SiswaProfileController::class, 'show'])->name('profil.show');
         Route::get('/tagihan', [SiswaTagihanController::class, 'index'])->name('tagihan.index');
         Route::post('/invoices/{invoice}/pay', [SiswaTagihanController::class, 'createPaymentToken'])->name('tagihan.pay');
@@ -250,6 +251,9 @@ Route::post('/cek-spp/agreements', [\App\Http\Controllers\UserAgreementControlle
 // Route Publik Mutasi Siswa
 Route::get('/mutasi/{token}', [\App\Http\Controllers\Public\MutasiController::class, 'show'])->name('mutasi.show');
 Route::post('/mutasi/{token}/approve', [\App\Http\Controllers\Public\MutasiController::class, 'approve'])->name('mutasi.approve');
+
+// Route Verifikasi ID Card Siswa
+Route::get('/verify/siswa/{id}', [\App\Http\Controllers\Public\VerifySiswaController::class, 'show'])->name('public.verify.siswa');
 
 // Webhook Gapura (DANA Finish Notify)
 Route::post('/v1.0/debit/notify', [\App\Http\Controllers\Api\GapuraWebhookController::class, 'handleFinishNotify']);

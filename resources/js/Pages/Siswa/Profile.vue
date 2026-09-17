@@ -4,6 +4,7 @@ import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import InputError from '@/Components/InputError.vue';
 import Toast from '@/Components/Toast.vue';
+import PhotoCropper from '@/Components/PhotoCropper.vue';
 import {
     UserCircleIcon,
     EnvelopeIcon,
@@ -17,13 +18,18 @@ import {
     CheckBadgeIcon
 } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
+import QrcodeVue from 'qrcode.vue';
 
 const props = defineProps({
     siswa: Object,
     pageTitle: String,
     status: String,
     mutasiSiswas: { type: Array, default: () => [] },
+    id_card_back_text: String,
 });
+
+const isFlipped = ref(false);
+const verifyUrl = computed(() => route('public.verify.siswa', props.siswa.id_siswa));
 
 const user = usePage().props.auth.user;
 const flashMessage = computed(() => usePage().props.flash?.message);
@@ -87,6 +93,70 @@ const initials = computed(() => {
         <div class="py-4 bg-gray-50 dark:bg-gray-900 min-h-screen">
             <div class="max-w-2xl mx-auto px-4 sm:px-6 space-y-5">
 
+                <!-- ID Card 3D Flip -->
+                <div class="relative w-full max-w-[450px] mx-auto group [perspective:1000px]">
+                    <!-- Flip Button Container -->
+                    <div class="flex justify-end mb-2">
+                        <button @click="isFlipped = !isFlipped" class="px-4 py-1.5 bg-red-600 text-white rounded-full text-sm font-bold shadow-md hover:bg-red-700 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Putar Kartu
+                        </button>
+                    </div>
+
+                    <!-- Inner Card (Flips) -->
+                    <div class="relative w-full transition-transform duration-700 [transform-style:preserve-3d]"
+                         :class="{ '[transform:rotateY(180deg)]': isFlipped }"
+                         style="aspect-ratio: 669 / 425;">
+                        
+                        <!-- Front Side -->
+                        <div class="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl [backface-visibility:hidden]" style="container-type: inline-size; background-image: url('/images/idcard/bg_idcard.png'); background-size: cover; background-position: center;">
+                            <!-- Header Logo -->
+                            <img src="/images/idcard/header_idcard.png" alt="Header" class="absolute left-1/2 -translate-x-1/2 object-contain pointer-events-none" style="top: 3.7cqw; height: 5.1cqw; width: auto;" crossorigin="anonymous" />
+
+                            <!-- Content Wrapper -->
+                            <div class="absolute inset-0 flex items-center" style="padding: 0 4.5cqw; padding-top: 18cqw; gap: 3.5cqw;">
+                                <!-- Photo -->
+                                <div class="bg-gray-100 flex-shrink-0 relative shadow-sm overflow-hidden" style="width: 26cqw; aspect-ratio: 1 / 1; border-radius: 0 7cqw 0 7cqw; border: 0.8cqw solid #ffffff;">
+                                    <img v-if="siswa.foto_url" :src="siswa.foto_url" alt="Foto Siswa" class="absolute inset-0 w-full h-full object-cover" />
+                                    <!-- Fallback icon -->
+                                    <div v-else class="absolute inset-0 flex items-center justify-center text-gray-400 bg-gray-200">
+                                        <UserCircleIcon style="width: 12.8cqw; height: 12.8cqw;" />
+                                    </div>
+                                </div>
+
+                                <!-- Name & NIS/Academy -->
+                                <div class="flex-1 min-w-0" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; overflow: hidden;">
+                                    <div class="flex flex-col items-stretch" style="width: max-content; max-width: 100%;">
+                                        <h3 class="font-black text-white m-0 uppercase drop-shadow-md truncate text-left w-full" 
+                                            style="font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; letter-spacing: 0.03em; margin-bottom: calc(1.5cqw - 0.25em); line-height: 1.1; padding-top: 1cqw;"
+                                            :style="{ fontSize: Math.min(20, 240 / Math.max(10, siswa.nama_siswa?.length || 10)) + 'cqw' }">
+                                            {{ siswa.nama_siswa }}
+                                        </h3>
+                                        <div class="rounded-full text-white font-semibold tracking-wider bg-transparent truncate text-center w-full" 
+                                                style="font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 0.8cqw 2cqw;"
+                                                :style="{ fontSize: Math.min(2.6, 75 / Math.max(25, ((siswa.nis || 'PENDING').length + (siswa.kelas?.nama_kelas || 'BELUM ADA KELAS').length + 3))) + 'cqw', border: 'max(1px, 0.3cqw) solid #ffffff' }">
+                                            {{ siswa.nis || 'PENDING' }} <span style="margin: 0 0.8cqw;">|</span> {{ siswa.kelas?.nama_kelas || 'BELUM ADA KELAS' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Back Side -->
+                        <div class="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)]" style="container-type: inline-size; background-image: url('/images/idcard/bg_idcard.png'); background-size: cover; background-position: center;">
+                            <div class="absolute inset-0 flex flex-col justify-center items-center text-white" style="padding: 4cqw; gap: 3cqw;">
+                                <div class="flex-1 w-full" style="font-size: 3cqw; line-height: 1.4; overflow-y: auto;" v-html="id_card_back_text"></div>
+                                <div class="flex-shrink-0" style="width: 18cqw; height: 18cqw; background: white; padding: 1cqw; border-radius: 1cqw; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                                    <qrcode-vue :value="verifyUrl" level="M" :size="256" style="width: 100%; height: 100%;" render-as="svg" />
+                                </div>
+                                <p class="text-center font-bold" style="font-size: 2.2cqw; margin-top: -1cqw;">Scan untuk Verifikasi</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Hero Card: Avatar + Biodata -->
                 <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                     <!-- Red Gradient Banner -->
@@ -99,10 +169,12 @@ const initials = computed(() => {
                     <div class="px-6 pb-6">
                         <!-- Avatar overlapping banner -->
                         <div class="-mt-10 mb-4 flex items-end justify-between">
-                            <div class="relative">
-                                <div class="h-20 w-20 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-lg">
-                                    <span class="text-3xl font-black text-white">{{ initials }}</span>
-                                </div>
+                            <div class="relative z-10">
+                                <PhotoCropper 
+                                    :current-photo-url="siswa.foto_url" 
+                                    :initials="initials" 
+                                    :upload-url="route('profil.update_photo')" 
+                                />
                             </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold" :class="getStatusClass(siswa.status_siswa)">
                                 <CheckBadgeIcon v-if="siswa.status_siswa === 'Aktif'" class="w-3.5 h-3.5 mr-1" />

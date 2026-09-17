@@ -38,6 +38,7 @@ const form = useForm({
     legal_doc_re_registration: props.settings.legal_doc_re_registration || '',
     legal_doc_resignation: props.settings.legal_doc_resignation || '',
     legal_doc_mutasi: props.settings.legal_doc_mutasi || '',
+    id_card_back_text: props.settings.id_card_back_text || '',
     enable_parent_login: props.settings.enable_parent_login ?? '1',
     enable_virtual_account: props.settings.enable_virtual_account ?? '1',
     active_payment_gateway: props.settings.active_payment_gateway ?? 'xendit',
@@ -341,6 +342,26 @@ function submit() {
                                 <p class="text-sm text-gray-500 italic mt-2">
                                     Catatan: Logo pada kop surat akan secara otomatis menggunakan "Logo Aplikasi" yang Anda unggah di bagian Umum.
                                 </p>
+                            </div>
+                        </div>
+
+                        <div class="border-b pb-4 mb-4">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Kartu Identitas (ID Card)</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <InputLabel for="id_card_back_text" value="Teks Sisi Belakang Kartu" />
+                                    <textarea
+                                        id="id_card_back_text"
+                                        class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                                        v-model="form.id_card_back_text"
+                                        rows="6"
+                                        placeholder="Ketik teks, dukungan HTML diizinkan seperti &lt;ul&gt; &lt;li&gt; poin 1 &lt;/li&gt; &lt;/ul&gt;"
+                                    ></textarea>
+                                    <InputError class="mt-2" :message="form.errors.id_card_back_text" />
+                                    <p class="text-sm text-gray-500 italic mt-2">
+                                        Catatan: Anda dapat menggunakan tag HTML dasar seperti <b>&lt;b&gt;tebal&lt;/b&gt;</b> atau <ul>&lt;ul&gt;&lt;li&gt;bullet&lt;/li&gt;&lt;/ul&gt;</ul> untuk memformat teks.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 

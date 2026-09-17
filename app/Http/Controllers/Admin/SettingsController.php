@@ -69,6 +69,7 @@ class SettingsController extends Controller
             'gapura_merchant_id' => 'nullable|string|max:255',
             'gapura_private_key' => 'nullable|string',
             'gapura_dana_public_key' => 'nullable|string',
+            'id_card_back_text' => 'nullable|string',
         ]);
 
         // Simpan atau update pengaturan teks
@@ -76,7 +77,8 @@ class SettingsController extends Controller
             'app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak', 
             'enable_parent_login', 'enable_virtual_account',
             'active_payment_gateway', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production',
-            'gapura_client_id', 'gapura_client_secret', 'gapura_merchant_id', 'gapura_private_key', 'gapura_dana_public_key'
+            'gapura_client_id', 'gapura_client_secret', 'gapura_merchant_id', 'gapura_private_key', 'gapura_dana_public_key',
+            'id_card_back_text'
         ];
         foreach ($textSettings as $key) {
             if ($request->has($key)) {

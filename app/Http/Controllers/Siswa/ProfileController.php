@@ -44,6 +44,8 @@ class ProfileController extends Controller
         // Kirim data ke komponen Vue
         return Inertia::render('Siswa/Profile', [
             'siswa' => [
+                'id_siswa' => $siswa->id_siswa,
+                'nis' => $siswa->nis,
                 'nama_siswa' => $siswa->nama_siswa,
                 'status_siswa' => $siswa->status_siswa,
                 'email_wali' => $siswa->email_wali,
@@ -56,7 +58,9 @@ class ProfileController extends Controller
                     'nama_kelas' => $siswa->kelas->nama_kelas,
                     'biaya_spp_default_formatted' => $siswa->kelas->biaya_spp_default ? 'Rp ' . number_format($siswa->kelas->biaya_spp_default, 0, ',', '.') : '-',
                 ] : null,
+                'foto_url' => $siswa->foto_url,
             ],
+            'id_card_back_text' => \App\Models\Setting::where('key', 'id_card_back_text')->value('value') ?? 'LOREM IPSUM DOLOR SIT AMET, CONSECTETUR ADIPISCING ELIT, SED DO EIUSMOD TEMPOR INCIDIDUNT UT LABORE ET DOLORE MAGNA ALIQUA.',
             'mutasiSiswas' => $siswa->mutasiSiswas->map(function($mutasi) {
                 return [
                     'id' => $mutasi->id,
@@ -113,6 +117,38 @@ class ProfileController extends Controller
 
         return back()->with([
             'message' => 'Password berhasil diperbarui.',
+            'type' => 'success'
+        ]);
+    }
+
+    /**
+     * Memperbarui foto profil siswa.
+     */
+    public function updatePhoto(Request $request)
+    {
+        $user = $request->user();
+        $siswa = $this->getActiveSiswa($user);
+
+        $request->validate([
+            'foto' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'], // Max 2MB
+        ]);
+
+        if ($request->hasFile('foto')) {
+            // Hapus foto lama jika ada
+            if ($siswa->foto && \Illuminate\Support\Facades\Storage::disk('public')->exists($siswa->foto)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($siswa->foto);
+            }
+
+            // Simpan foto baru di folder fotos
+            $path = $request->file('foto')->store('fotos', 'public');
+            
+            $siswa->forceFill([
+                'foto' => $path,
+            ])->save();
+        }
+
+        return back()->with([
+            'message' => 'Foto profil berhasil diperbarui.',
             'type' => 'success'
         ]);
     }
