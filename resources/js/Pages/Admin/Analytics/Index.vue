@@ -8,8 +8,8 @@
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="pb-12 pt-0 md:pt-4">
+            <div class="max-w-7xl mx-auto space-y-6">
 
                 <!-- Header Actions & Filters -->
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
@@ -17,7 +17,7 @@
                         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Ringkasan: {{ namaBulan[form.bulan - 1] }} {{ form.tahun }}</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Pilih periode untuk mengubah data ringkasan.</p>
                     </div>
-                    <form @submit.prevent="updateFilters" class="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                    <form @submit.prevent class="flex flex-wrap sm:flex-nowrap items-center gap-3">
                         <select v-model="form.bulan" class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option v-for="(nama, index) in namaBulan" :key="index" :value="index + 1">{{ nama }}</option>
                         </select>
@@ -26,9 +26,17 @@
                             <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
                         </select>
                         
-                        <button type="submit" :disabled="form.processing" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm disabled:opacity-50">
-                            Terapkan
-                        </button>
+                        <div class="w-6 h-6 flex items-center justify-center ml-2 transition-all duration-300">
+                            <!-- Loading Spinner -->
+                            <svg v-if="isLoading" class="animate-spin text-blue-600 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <!-- Success Checkmark -->
+                            <svg v-else-if="isSuccess" class="text-green-500 h-6 w-6 animate-pulse" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
                     </form>
                 </div>
 
@@ -128,7 +136,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
@@ -154,13 +162,39 @@ const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
 };
 
+const isLoading = ref(false);
+const isSuccess = ref(false);
+let successTimeout = null;
+
 const updateFilters = () => {
+    isLoading.value = true;
+    isSuccess.value = false;
+    if (successTimeout) clearTimeout(successTimeout);
+
     form.get(route('admin.analytics.index'), {
         preserveState: true,
         preserveScroll: true,
-        only: ['summary_data', 'filters']
+        only: ['summary_data', 'filters'],
+        onFinish: () => {
+            isLoading.value = false;
+            isSuccess.value = true;
+            
+            // Remove success checkmark after 3 seconds
+            successTimeout = setTimeout(() => {
+                isSuccess.value = false;
+            }, 3000);
+        }
     });
 };
+
+// Auto reload on filter change
+watch(() => form.bulan, () => {
+    updateFilters();
+});
+
+watch(() => form.tahun, () => {
+    updateFilters();
+});
 
 onMounted(() => {
     // Request lazy loaded props immediately upon mount
