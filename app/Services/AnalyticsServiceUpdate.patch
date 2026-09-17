@@ -1,0 +1,125 @@
+--- app/Services/AnalyticsService.php
++++ app/Services/AnalyticsService.php
+@@ -12,6 +12,126 @@
+ class AnalyticsService
+ {
++    /**
++     * Get summary data globally and per class
++     */
++    public function getSummaryData($month, $year, $managedKelasIds = null)
++    {
++        $cacheKey = "analytics_summary_{$month}_{$year}_" . ($managedKelasIds ? implode('_', $managedKelasIds->toArray()) : 'all');
++        
++        return Cache::remember($cacheKey, 60, function () use ($month, $year, $managedKelasIds) {
++            // 1. Get all classes
++            $kelasQuery = Kelas::orderBy('nama_kelas');
++            if ($managedKelasIds) {
++                $kelasQuery->whereIn('id_kelas', $managedKelasIds);
++            }
++            $kelasList = $kelasQuery->get(['id_kelas', 'nama_kelas']);
++            
++            // 2. Pendapatan (Invoices PAID, spp/pendaftaran, paid_at match)
++            $pendapatanQuery = Invoice::where('status', 'PAID')
++                ->whereIn('type', ['spp', 'pendaftaran'])
++                ->whereMonth('paid_at', $month)
++                ->whereYear('paid_at', $year)
++                ->join('siswa', 'invoices.id_siswa', '=', 'siswa.id_siswa')
++                ->selectRaw('siswa.id_kelas, SUM(invoices.total_amount) as total')
++                ->groupBy('siswa.id_kelas');
++            if ($managedKelasIds) {
++                $pendapatanQuery->whereIn('siswa.id_kelas', $managedKelasIds);
++            }
++            $pendapatanByKelas = $pendapatanQuery->pluck('total', 'id_kelas')->toArray();
++
++            // 3. Pendaftar (Siswa created_at match, has PAID pendaftaran)
++            $pendaftarQuery = Siswa::whereMonth('created_at', $month)
++                ->whereYear('created_at', $year)
++                ->whereHas('invoices', fn($q) => $q->where('type', 'pendaftaran')->where('status', 'PAID'))
++                ->selectRaw('id_kelas, COUNT(*) as count')
++                ->groupBy('id_kelas');
++            if ($managedKelasIds) {
++                $pendaftarQuery->whereIn('id_kelas', $managedKelasIds);
++            }
++            $pendaftarByKelas = $pendaftarQuery->pluck('count', 'id_kelas')->toArray();
++
++            // 4. Cuti (\App\Models\StudentLeave approved, month/year match)
++            $cutiQuery = \App\Models\StudentLeave::where('status', 'approved')
++                ->where('month', $month)
++                ->where('year', $year)
++                ->join('siswa', 'student_leaves.id_siswa', '=', 'siswa.id_siswa')
++                ->selectRaw('siswa.id_kelas, COUNT(*) as count')
++                ->groupBy('siswa.id_kelas');
++            if ($managedKelasIds) {
++                $cutiQuery->whereIn('siswa.id_kelas', $managedKelasIds);
++            }
++            $cutiByKelas = $cutiQuery->pluck('count', 'id_kelas')->toArray();
++
++            // 5. Keluar (Siswa status_siswa Keluar, updated_at match)
++            $keluarQuery = Siswa::whereIn('status_siswa', ['Keluar', 'Resign'])
++                ->whereMonth('updated_at', $month)
++                ->whereYear('updated_at', $year)
++                ->selectRaw('id_kelas, COUNT(*) as count')
++                ->groupBy('id_kelas');
++            if ($managedKelasIds) {
++                $keluarQuery->whereIn('id_kelas', $managedKelasIds);
++            }
++            $keluarByKelas = $keluarQuery->pluck('count', 'id_kelas')->toArray();
++            
++            // 6. Siswa Aktif saat ini
++            $aktifQuery = Siswa::where('status_siswa', 'Aktif')
++                ->selectRaw('id_kelas, COUNT(*) as count')
++                ->groupBy('id_kelas');
++            if ($managedKelasIds) {
++                $aktifQuery->whereIn('id_kelas', $managedKelasIds);
++            }
++            $aktifByKelas = $aktifQuery->pluck('count', 'id_kelas')->toArray();
++            
++            // Aggregate Global
++            $global = [
++                'pendapatan' => array_sum($pendapatanByKelas),
++                'pendaftar' => array_sum($pendaftarByKelas),
++                'cuti' => array_sum($cutiByKelas),
++                'keluar' => array_sum($keluarByKelas),
++                'siswa_aktif' => array_sum($aktifByKelas),
++            ];
++            
++            // Build Per Kelas Array
++            $perKelas = [];
++            foreach ($kelasList as $kelas) {
++                $id = $kelas->id_kelas;
++                $perKelas[] = [
++                    'id_kelas' => $id,
++                    'nama_kelas' => $kelas->nama_kelas,
++                    'siswa_aktif' => $aktifByKelas[$id] ?? 0,
++                    'pendapatan' => $pendapatanByKelas[$id] ?? 0,
++                    'pendaftar' => $pendaftarByKelas[$id] ?? 0,
++                    'cuti' => $cutiByKelas[$id] ?? 0,
++                    'keluar' => $keluarByKelas[$id] ?? 0,
++                ];
++            }
++            
++            // Optionally add "Tanpa Kelas" if any metrics exist for null class
++            $tanpaKelasData = [
++                'id_kelas' => null,
++                'nama_kelas' => 'Tanpa Kelas',
++                'siswa_aktif' => $aktifByKelas[''] ?? 0,
++                'pendapatan' => $pendapatanByKelas[''] ?? 0,
++                'pendaftar' => $pendaftarByKelas[''] ?? 0,
++                'cuti' => $cutiByKelas[''] ?? 0,
++                'keluar' => $keluarByKelas[''] ?? 0,
++            ];
++            
++            if ($tanpaKelasData['siswa_aktif'] > 0 || $tanpaKelasData['pendapatan'] > 0 || $tanpaKelasData['pendaftar'] > 0 || $tanpaKelasData['cuti'] > 0 || $tanpaKelasData['keluar'] > 0) {
++                $perKelas[] = $tanpaKelasData;
++            }
++            
++            return [
++                'global' => $global,
++                'per_kelas' => $perKelas,
++            ];
++        });
++    }
++
+     /**
+      * Get payment rate per class for a specific month and year.
+      * (Tagihan Lunas / Total Tagihan) * 100 per kelas.

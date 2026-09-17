@@ -654,4 +654,99 @@ class AnalyticsService
             ];
         });
     }
+
+    /**
+     * Get yearly trends data (Revenue and Pendaftar per month per class)
+     */
+    public function getYearlyTrendData($year, $managedKelasIds = null)
+    {
+        $cacheKey = "analytics_yearly_trend_{$year}_" . ($managedKelasIds ? implode('_', $managedKelasIds->toArray()) : 'all');
+        
+        return Cache::remember($cacheKey, 1800, function () use ($year, $managedKelasIds) {
+            $kelasQuery = Kelas::orderBy('nama_kelas');
+            if ($managedKelasIds) {
+                $kelasQuery->whereIn('id_kelas', $managedKelasIds);
+            }
+            $kelasList = $kelasQuery->get(['id_kelas', 'nama_kelas']);
+            $kelasMap = $kelasList->pluck('nama_kelas', 'id_kelas')->toArray();
+            
+            // Initialize arrays for 12 months (0-11)
+            $labels = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $labels[] = Carbon::createFromDate($year, $m, 1)->isoFormat('MMM');
+            }
+            
+            $revenue = [];
+            $pendaftar = [];
+            
+            foreach ($kelasMap as $id => $name) {
+                $revenue[$name] = array_fill(0, 12, 0);
+                $pendaftar[$name] = array_fill(0, 12, 0);
+            }
+            $revenue['Tanpa Kelas'] = array_fill(0, 12, 0);
+            $pendaftar['Tanpa Kelas'] = array_fill(0, 12, 0);
+
+            $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+
+            // 1. Revenue
+            $revenueQuery = Invoice::where('status', 'PAID')
+                ->whereIn('type', ['spp', 'pendaftaran'])
+                ->whereYear('paid_at', $year)
+                ->join('siswa', 'invoices.id_siswa', '=', 'siswa.id_siswa');
+                
+            if ($isSqlite) {
+                $revenueQuery->selectRaw('siswa.id_kelas, cast(strftime("%m", invoices.paid_at) as integer) as month, SUM(invoices.total_amount) as total')
+                             ->groupBy('siswa.id_kelas', DB::raw('cast(strftime("%m", invoices.paid_at) as integer)'));
+            } else {
+                $revenueQuery->selectRaw('siswa.id_kelas, MONTH(invoices.paid_at) as month, SUM(invoices.total_amount) as total')
+                             ->groupBy('siswa.id_kelas', 'month');
+            }
+            
+            if ($managedKelasIds) {
+                $revenueQuery->whereIn('siswa.id_kelas', $managedKelasIds);
+            }
+            
+            foreach ($revenueQuery->get() as $row) {
+                $kName = $kelasMap[$row->id_kelas] ?? 'Tanpa Kelas';
+                $mIndex = intval($row->month) - 1; // 0-based array index
+                if (isset($revenue[$kName][$mIndex])) {
+                    $revenue[$kName][$mIndex] += $row->total;
+                }
+            }
+
+            // 2. Pendaftar
+            $pendaftarQuery = Siswa::whereYear('created_at', $year)
+                ->whereHas('invoices', fn($q) => $q->where('type', 'pendaftaran')->where('status', 'PAID'));
+                
+            if ($isSqlite) {
+                $pendaftarQuery->selectRaw('id_kelas, cast(strftime("%m", created_at) as integer) as month, COUNT(*) as count')
+                             ->groupBy('id_kelas', DB::raw('cast(strftime("%m", created_at) as integer)'));
+            } else {
+                $pendaftarQuery->selectRaw('id_kelas, MONTH(created_at) as month, COUNT(*) as count')
+                             ->groupBy('id_kelas', 'month');
+            }
+            
+            if ($managedKelasIds) {
+                $pendaftarQuery->whereIn('id_kelas', $managedKelasIds);
+            }
+            
+            foreach ($pendaftarQuery->get() as $row) {
+                $kName = $kelasMap[$row->id_kelas] ?? 'Tanpa Kelas';
+                $mIndex = intval($row->month) - 1;
+                if (isset($pendaftar[$kName][$mIndex])) {
+                    $pendaftar[$kName][$mIndex] += $row->count;
+                }
+            }
+            
+            // Clean up empty 'Tanpa Kelas'
+            if (array_sum($revenue['Tanpa Kelas']) == 0) unset($revenue['Tanpa Kelas']);
+            if (array_sum($pendaftar['Tanpa Kelas']) == 0) unset($pendaftar['Tanpa Kelas']);
+            
+            return [
+                'labels' => $labels,
+                'revenue' => $revenue,
+                'pendaftar' => $pendaftar,
+            ];
+        });
+    }
 }

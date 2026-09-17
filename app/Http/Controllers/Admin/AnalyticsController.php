@@ -23,6 +23,7 @@ class AnalyticsController extends Controller
         $request->validate([
             'tahun' => 'nullable|integer|date_format:Y',
             'bulan' => 'nullable|integer|between:1,12',
+            'tab' => 'nullable|string|in:ringkasan,tahunan',
         ]);
 
         $user = $request->user();
@@ -38,12 +39,19 @@ class AnalyticsController extends Controller
             'filters' => [
                 'tahun' => (int)$selectedTahun, 
                 'bulan' => (int)$selectedBulan,
+                'tab' => $request->input('tab', 'ringkasan'),
             ],
             'availableYears' => range(date('Y'), date('Y') - 5),
             
             // Lazy load summary data
             'summary_data' => Inertia::lazy(fn () => $this->analyticsService->getSummaryData(
                 $selectedBulan,
+                $selectedTahun,
+                $managedKelasIds
+            )),
+
+            // Lazy load yearly trends
+            'yearly_trends' => Inertia::lazy(fn () => $this->analyticsService->getYearlyTrendData(
                 $selectedTahun,
                 $managedKelasIds
             )),
