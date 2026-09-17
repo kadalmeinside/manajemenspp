@@ -14,8 +14,8 @@
                 <!-- Header Actions & Filters -->
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
                     <div>
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Ringkasan Bulanan</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Pilih periode untuk melihat data ringkasan.</p>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Ringkasan: {{ namaBulan[form.bulan - 1] }} {{ form.tahun }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Pilih periode untuk mengubah data ringkasan.</p>
                     </div>
                     <form @submit.prevent="updateFilters" class="flex flex-wrap sm:flex-nowrap items-center gap-3">
                         <select v-model="form.bulan" class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -42,7 +42,7 @@
                         <div class="absolute -right-6 -top-6 opacity-20">
                             <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
-                        <p class="text-indigo-100 text-sm font-medium uppercase tracking-wider relative z-10">Pendapatan Bulan Ini</p>
+                        <p class="text-indigo-100 text-sm font-medium uppercase tracking-wider relative z-10">Pendapatan</p>
                         <p class="text-2xl font-bold mt-2 relative z-10">{{ formatCurrency(summary_data.global.pendapatan) }}</p>
                     </div>
 
@@ -51,7 +51,7 @@
                         <div class="absolute -right-6 -top-6 opacity-20">
                             <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                         </div>
-                        <p class="text-blue-100 text-sm font-medium uppercase tracking-wider relative z-10">Pendaftar Bulan Ini</p>
+                        <p class="text-blue-100 text-sm font-medium uppercase tracking-wider relative z-10">Pendaftar</p>
                         <p class="text-3xl font-bold mt-2 relative z-10">{{ summary_data.global.pendaftar }}</p>
                     </div>
 
@@ -60,7 +60,7 @@
                         <div class="absolute -right-6 -top-6 opacity-20">
                             <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         </div>
-                        <p class="text-amber-100 text-sm font-medium uppercase tracking-wider relative z-10">Cuti Bulan Ini</p>
+                        <p class="text-amber-100 text-sm font-medium uppercase tracking-wider relative z-10">Siswa Cuti</p>
                         <p class="text-3xl font-bold mt-2 relative z-10">{{ summary_data.global.cuti }}</p>
                     </div>
 
@@ -69,7 +69,7 @@
                         <div class="absolute -right-6 -top-6 opacity-20">
                             <svg class="w-32 h-32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path></svg>
                         </div>
-                        <p class="text-rose-100 text-sm font-medium uppercase tracking-wider relative z-10">Keluar Bulan Ini</p>
+                        <p class="text-rose-100 text-sm font-medium uppercase tracking-wider relative z-10">Siswa Keluar</p>
                         <p class="text-3xl font-bold mt-2 relative z-10">{{ summary_data.global.keluar }}</p>
                     </div>
                 </div>
@@ -77,7 +77,7 @@
                 <!-- Per Kelas Table -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mt-8">
                     <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Total Siswa Aktif Semua Kelas (Berdasarkan Status Bulan Ini)</h3>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Total Siswa Aktif Semua Kelas</h3>
                     </div>
                     
                     <div v-if="!summary_data" class="p-6 animate-pulse space-y-4">
@@ -89,10 +89,10 @@
                                 <tr>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Kelas</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Siswa Aktif</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendapatan Bulan Ini</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendaftar Bulan Ini</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cuti Bulan Ini</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Keluar Bulan Ini</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendapatan</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendaftar</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cuti</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Keluar</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
