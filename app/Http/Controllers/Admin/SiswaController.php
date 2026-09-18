@@ -348,6 +348,43 @@ class SiswaController extends Controller
         ]);
     }
 
+    public function updatePhoto(Request $request, Siswa $siswa)
+    {
+        if (!$request->user()->can('edit_siswa')) {
+            abort(403);
+        }
+
+        $request->validate([
+            'foto' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ]);
+
+        if ($request->hasFile('foto')) {
+            // Hapus foto lama jika ada
+            if ($siswa->foto) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($siswa->foto);
+            }
+
+            // Simpan foto baru
+            $file = $request->file('foto');
+            $filename = time() . '_' . $siswa->nis . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('siswa_foto', $filename, 'public');
+
+            $siswa->update([
+                'foto' => $path
+            ]);
+
+            return back()->with([
+                'type' => 'success',
+                'message' => 'Foto profil berhasil diperbarui.'
+            ]);
+        }
+
+        return back()->with([
+            'type' => 'error',
+            'message' => 'Gagal mengunggah foto profil.'
+        ]);
+    }
+
     private function formatSiswaForDetail(Siswa $siswa) {
         return [
             'id_siswa' => $siswa->id_siswa,

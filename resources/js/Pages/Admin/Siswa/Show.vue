@@ -16,6 +16,8 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import html2pdf from 'html2pdf.js';
 import QrcodeVue from 'qrcode.vue';
+import Cropper from 'cropperjs';
+import 'cropperjs/dist/cropper.css';
 const page = usePage();
 
 const props = defineProps({
@@ -467,6 +469,104 @@ const openWhatsApp = () => {
 const underDevelopmentAlert = () => {
     alert('Fitur ini sedang dalam pengembangan.');
 };
+
+// --- Logika untuk Upload Foto Profil ---
+const photoInput = ref(null);
+const isCropModalOpen = ref(false);
+const cropImageSrc = ref('');
+const cropper = ref(null);
+const cropperImageRef = ref(null);
+const isUploadingPhoto = ref(false);
+
+const triggerPhotoUpload = () => {
+    if (photoInput.value) {
+        photoInput.value.click();
+    }
+};
+
+const onPhotoFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            cropImageSrc.value = event.target.result;
+            isCropModalOpen.value = true;
+            // Clear input so same file can be selected again
+            e.target.value = '';
+            
+            // Initialize cropper after modal renders
+            setTimeout(() => {
+                if (cropperImageRef.value) {
+                    if (cropper.value) {
+                        cropper.value.destroy();
+                    }
+                    cropper.value = new Cropper(cropperImageRef.value, {
+                        aspectRatio: 1, // 1:1 ratio
+                        viewMode: 1,
+                        dragMode: 'move', // Free form panning
+                        autoCropArea: 1,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                    });
+                }
+            }, 100);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        alert('File harus berupa gambar.');
+    }
+};
+
+const closeCropModal = () => {
+    isCropModalOpen.value = false;
+    if (cropper.value) {
+        cropper.value.destroy();
+        cropper.value = null;
+    }
+    cropImageSrc.value = '';
+};
+
+const saveCrop = () => {
+    if (!cropper.value) return;
+    
+    isUploadingPhoto.value = true;
+    
+    const canvas = cropper.value.getCroppedCanvas({
+        width: 600,
+        height: 600,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+    });
+    
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            alert('Gagal memproses gambar');
+            isUploadingPhoto.value = false;
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('foto', blob, 'profile.jpg');
+        
+        router.post(route('admin.siswa.update_photo', props.siswa.id_siswa), formData, {
+            preserveScroll: true,
+            forceFormData: true,
+            onSuccess: () => {
+                closeCropModal();
+                isUploadingPhoto.value = false;
+            },
+            onError: () => {
+                alert('Terjadi kesalahan saat mengunggah foto.');
+                isUploadingPhoto.value = false;
+            }
+        });
+    }, 'image/jpeg', 0.85); // 85% quality best practice
+};
 </script>
 
 <template>
@@ -484,6 +584,8 @@ const underDevelopmentAlert = () => {
         </template>
 
          <Toast :message="flashMessage" :type="flashType" />
+         
+        <input type="file" ref="photoInput" @change="onPhotoFileChange" accept="image/jpeg,image/png,image/webp" class="hidden" />
 
         <div class="pt-4 space-y-6">
             
@@ -491,8 +593,17 @@ const underDevelopmentAlert = () => {
             <div class="relative z-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm rounded-2xl overflow-visible border border-gray-200/50 dark:border-gray-700/50">
                 <div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4 sm:gap-6 w-full">
-                        <div class="h-24 w-24 sm:h-20 sm:w-20 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0 border-4 border-white dark:border-gray-800 shadow-sm mx-auto sm:mx-0">
-                            <span class="text-4xl sm:text-3xl font-bold text-indigo-700 dark:text-indigo-300">{{ siswa.nama_siswa.charAt(0) }}</span>
+                        <div @click="triggerPhotoUpload" class="relative h-24 w-24 sm:h-20 sm:w-20 rounded-full flex items-center justify-center flex-shrink-0 border-4 border-white dark:border-gray-800 shadow-sm mx-auto sm:mx-0 group cursor-pointer overflow-hidden bg-indigo-100 dark:bg-indigo-900/50">
+                            <template v-if="siswa.foto_url">
+                                <img :src="siswa.foto_url" alt="Foto Siswa" class="w-full h-full object-cover" />
+                            </template>
+                            <template v-else>
+                                <span class="text-4xl sm:text-3xl font-bold text-indigo-700 dark:text-indigo-300">{{ siswa.nama_siswa.charAt(0) }}</span>
+                            </template>
+                            <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <PencilIcon class="w-6 h-6 text-white" />
+                                <span class="text-[10px] text-white font-semibold mt-1">Ubah Foto</span>
+                            </div>
                         </div>
                         <div class="flex flex-col items-center sm:items-start w-full">
                             <h3 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
@@ -772,6 +883,30 @@ const underDevelopmentAlert = () => {
                     </div>
                 </div>
             </div>
+            
+            <!-- Modal Crop Image -->
+            <Modal :show="isCropModalOpen" @close="closeCropModal" maxWidth="md">
+                <div class="p-6">
+                    <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                        Sesuaikan Foto Profil
+                    </h2>
+                    <div class="w-full relative h-[400px] bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
+                        <img v-if="cropImageSrc" ref="cropperImageRef" :src="cropImageSrc" alt="Crop Image" style="max-width: 100%; display: block;" />
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <SecondaryButton @click="closeCropModal" :disabled="isUploadingPhoto">
+                            Batal
+                        </SecondaryButton>
+                        <PrimaryButton @click="saveCrop" :disabled="isUploadingPhoto" :class="{ 'opacity-50': isUploadingPhoto }">
+                            <svg v-if="isUploadingPhoto" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            {{ isUploadingPhoto ? 'Mengunggah...' : 'Simpan Foto' }}
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
 
             <!-- Riwayat Mutasi Cabang -->
             <div v-if="mutasiSiswas && mutasiSiswas.length > 0" class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700 mb-6">
