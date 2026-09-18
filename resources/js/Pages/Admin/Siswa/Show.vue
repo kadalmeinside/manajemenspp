@@ -1395,8 +1395,8 @@ const underDevelopmentAlert = () => {
                 <!-- Text Data -->
                 <!-- Name -->
                 <div style="position: absolute; top: 152px; left: 227px; width: 420px; height: 174px; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 20px;">
-                    <h3 style="margin: 0; padding: 0; width: 100%; flex-shrink: 0; font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; font-weight: 500; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.05; text-align: left; text-shadow: 0 4px 6px rgba(0,0,0,0.1);"
-                        :style="{ fontSize: Math.min(120, 1600 / Math.max(10, siswa.nama_siswa?.length || 10)) + 'px' }">
+                    <h3 style="margin: 0; padding: 0; width: 100%; flex-shrink: 0; font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; font-weight: 500; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.15; text-align: left; text-shadow: 0 4px 6px rgba(0,0,0,0.1);"
+                        :style="{ fontSize: Math.min(95, 1600 / Math.max(12, siswa.nama_siswa?.length || 12)) + 'px' }">
                         {{ siswa.nama_siswa }}
                     </h3>
                     
