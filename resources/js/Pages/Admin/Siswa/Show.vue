@@ -1394,13 +1394,13 @@ const underDevelopmentAlert = () => {
 
                 <!-- Text Data -->
                 <!-- Name -->
-                <h3 style="position: absolute; bottom: 149px; left: 227px; width: 420px; margin: 0; padding: 0; padding-bottom: 10px; font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; font-weight: 500; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.05; text-align: left; text-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10;"
+                <h3 style="position: absolute; bottom: 164px; left: 227px; width: 420px; margin: 0; padding: 0; padding-bottom: 10px; font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; font-weight: 500; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.05; text-align: left; text-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10;"
                     :style="{ fontSize: Math.min(120, 1600 / Math.max(10, siswa.nama_siswa?.length || 10)) + 'px' }">
                     {{ siswa.nama_siswa }}
                 </h3>
                 
                 <!-- Capsule -->
-                <div style="position: absolute; top: 296px; left: 227px; width: max-content; max-width: 412px; box-sizing: border-box; height: 30px; line-height: 26px; padding: 0 13px; border-radius: 9999px; border: 2px solid #ffffff; background-color: transparent; color: #ffffff; font-weight: 600; letter-spacing: 0.05em; text-align: center; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space: nowrap; overflow: hidden; z-index: 20;"
+                <div style="position: absolute; top: 281px; left: 227px; width: max-content; max-width: 412px; box-sizing: border-box; height: 30px; line-height: 26px; padding: 0 13px; border-radius: 9999px; border: 2px solid #ffffff; background-color: transparent; color: #ffffff; font-weight: 600; letter-spacing: 0.05em; text-align: center; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space: nowrap; overflow: hidden; z-index: 20;"
                      :style="{ fontSize: Math.min(17.4, 500 / Math.max(25, ((siswa.nis || 'PENDING').length + (siswa.kelas_nama || 'BELUM ADA KELAS').length + 3))) + 'px' }">
                     <span style="position: relative; top: -5.5px;">
                         {{ siswa.nis || 'PENDING' }} <span style="margin: 0 5px;">|</span> {{ siswa.kelas_nama || 'BELUM ADA KELAS' }}
