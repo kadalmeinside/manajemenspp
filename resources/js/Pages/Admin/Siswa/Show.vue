@@ -1394,14 +1394,14 @@ const underDevelopmentAlert = () => {
 
                 <!-- Text Data -->
                 <!-- Name -->
-                <div style="position: absolute; top: 115px; left: 227px; width: 420px; height: 174px; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px;">
+                <div style="position: absolute; top: 140px; left: 227px; width: 420px; height: 174px; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px;">
                     <h3 style="margin: 0; padding: 0; padding-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; width: 100%; font-family: 'Morganite', 'Bebas Neue', 'Arial Narrow', sans-serif; font-weight: 500; color: #ffffff; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.05; text-align: left; text-shadow: 0 4px 6px rgba(0,0,0,0.1);"
                         :style="{ fontSize: Math.min(120, 1600 / Math.max(10, siswa.nama_siswa?.length || 10)) + 'px' }">
                         {{ siswa.nama_siswa }}
                     </h3>
                     
                     <!-- Capsule -->
-                    <div style="display: block; margin-top: 15px; width: max-content; max-width: 412px; box-sizing: border-box; height: 30px; line-height: 26px; padding: 0 13px; border-radius: 9999px; border: 2px solid #ffffff; background-color: transparent; color: #ffffff; font-weight: 600; letter-spacing: 0.05em; text-align: center; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space: nowrap; overflow: hidden; z-index: 20;"
+                    <div style="display: block; margin-top: 35px; width: max-content; max-width: 412px; box-sizing: border-box; height: 30px; line-height: 26px; padding: 0 13px; border-radius: 9999px; border: 2px solid #ffffff; background-color: transparent; color: #ffffff; font-weight: 600; letter-spacing: 0.05em; text-align: center; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space: nowrap; overflow: hidden; z-index: 20;"
                          :style="{ fontSize: Math.min(17.4, 500 / Math.max(25, ((siswa.nis || 'PENDING').length + (siswa.kelas_nama || 'BELUM ADA KELAS').length + 3))) + 'px' }">
                         <span style="position: relative; top: -5.5px;">
                             {{ siswa.nis || 'PENDING' }} <span style="margin: 0 5px;">|</span> {{ siswa.kelas_nama || 'BELUM ADA KELAS' }}
