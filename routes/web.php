@@ -67,6 +67,7 @@ Route::post('/pengunduran-diri/{siswa}', [ResignationController::class, 'submitF
 
 Route::get('/daftar-academy', [RegistrationController::class, 'createAcademy'])->name('register-academy.create');
 Route::get('/daftar-ss', [RegistrationController::class, 'createSs'])->name('register-ss.create');
+Route::get('/daftar-womenss', [RegistrationController::class, 'createWomenSs'])->name('register-womenss.create');
 Route::post('/pendaftaran', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('pendaftaran.store');
 Route::post('/pendaftaran/check-email', [RegistrationController::class, 'checkEmail'])->middleware('throttle:30,1')->name('pendaftaran.check-email');
 Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');

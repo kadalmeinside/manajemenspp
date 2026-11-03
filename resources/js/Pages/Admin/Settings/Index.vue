@@ -35,6 +35,7 @@ const form = useForm({
     legal_doc_registration_public: props.settings.legal_doc_registration_public || '',
     legal_doc_registration_academy: props.settings.legal_doc_registration_academy || '',
     legal_doc_registration_ss: props.settings.legal_doc_registration_ss || '',
+    legal_doc_registration_womenss: props.settings.legal_doc_registration_womenss || '',
     legal_doc_re_registration: props.settings.legal_doc_re_registration || '',
     legal_doc_resignation: props.settings.legal_doc_resignation || '',
     legal_doc_mutasi: props.settings.legal_doc_mutasi || '',
@@ -399,6 +400,13 @@ function submit() {
                                 <div>
                                     <InputLabel value="Pendaftaran Soccer School" />
                                     <select v-model="form.legal_doc_registration_ss" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
+                                        <option value="">-- Pilih Dokumen --</option>
+                                        <option v-for="doc in registrationDocs" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <InputLabel value="Pendaftaran Women Soccer School" />
+                                    <select v-model="form.legal_doc_registration_womenss" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 rounded-md shadow-sm">
                                         <option value="">-- Pilih Dokumen --</option>
                                         <option v-for="doc in registrationDocs" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
                                     </select>

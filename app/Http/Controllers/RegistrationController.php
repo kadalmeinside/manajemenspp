@@ -88,6 +88,35 @@ class RegistrationController extends Controller
     }
 
     /**
+     * Menampilkan form pendaftaran Women Soccer School.
+     */
+    public function createWomenSs()
+    {
+        $docId = \App\Models\Setting::where('key', 'legal_doc_registration_womenss')->value('value')
+            ?: \App\Models\Setting::where('key', 'legal_doc_registration_ss')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
+
+        $allKelas = Kelas::where('deskripsi', 'Women Soccer School')
+                         ->orderBy('nama_kelas')
+                         ->get();
+
+        return Inertia::render('Public/RegisterSs', [
+            'pageTitle'     => 'Formulir Pendaftaran Women Soccer School',
+            'branchLabel'   => 'Pilih Cabang Women Soccer School',
+            'allKelas'      => $allKelas->map(function ($kelas) {
+                return [
+                    'id_kelas'                  => $kelas->id_kelas,
+                    'nama_kelas'                => $kelas->nama_kelas,
+                    'kode_cabang'               => $kelas->kode_cabang,
+                    'biaya_pendaftaran_normal'   => (float) $kelas->biaya_pendaftaran,
+                    'biaya_pendaftaran_saat_ini' => $kelas->getBiayaPendaftaranSaatIni(),
+                ];
+            }),
+            'termsDocument' => $terms,
+        ]);
+    }
+
+    /**
      * Memvalidasi kode promo secara real-time.
      */
     public function validatePromoCode(ValidatePromoRequest $request)

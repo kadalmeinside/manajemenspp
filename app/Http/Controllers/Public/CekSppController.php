@@ -141,6 +141,7 @@ class CekSppController extends Controller
         $settings = \App\Models\Setting::whereIn('key', [
             'legal_doc_registration_academy',
             'legal_doc_registration_ss',
+            'legal_doc_registration_womenss',
             'legal_doc_registration_public',
         ])->pluck('value', 'key');
 
@@ -149,6 +150,8 @@ class CekSppController extends Controller
         if ($siswa->kelas) {
             if ($siswa->kelas->nama_kelas === 'Persija Academy') {
                 $requiredDocId = $settings['legal_doc_registration_academy'] ?? null;
+            } elseif ($siswa->kelas->deskripsi === 'Women Soccer School') {
+                $requiredDocId = $settings['legal_doc_registration_womenss'] ?? $settings['legal_doc_registration_ss'] ?? null;
             } elseif ($siswa->kelas->deskripsi === 'Soccer School') {
                 $requiredDocId = $settings['legal_doc_registration_ss'] ?? null;
             } else {

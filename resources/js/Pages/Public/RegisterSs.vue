@@ -16,6 +16,7 @@ const props = defineProps({
     allKelas: Array, 
     termsDocument: Object,
     errors: Object,
+    branchLabel: String,
 });
 
 const page = usePage();
@@ -225,7 +226,7 @@ const submit = () => {
                         <InputError :message="form.errors.tanggal_lahir" class="mt-2" />
                     </div>
                     <div>
-                        <InputLabel for="id_kelas" value="Pilih Cabang Soccer School" required/>
+                        <InputLabel for="id_kelas" :value="branchLabel || (pageTitle?.includes('Women') ? 'Pilih Cabang Women Soccer School' : 'Pilih Cabang Soccer School')" required/>
                         <select id="id_kelas" v-model="form.id_kelas" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-md shadow-sm" required>
                             <option value="" disabled>-- Pilih Cabang --</option>
                             <option v-for="kelas in allKelas" :key="kelas.id_kelas" :value="kelas.id_kelas">{{ kelas.nama_kelas }}</option>

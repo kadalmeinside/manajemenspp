@@ -61,6 +61,21 @@ class ReRegistrationController extends Controller
             'termsDocument' => $terms,
         ]);
     }
+
+    public function createWomenSs()
+    {
+        $docId = \App\Models\Setting::where('key', 'legal_doc_registration_womenss')->value('value')
+            ?: \App\Models\Setting::where('key', 'legal_doc_registration_ss')->value('value');
+        $terms = $docId ? LegalDocument::find($docId) : null;
+
+        return Inertia::render('Public/ReRegisterSs', [
+            'pageTitle'     => 'Formulir Daftar Ulang Siswa Women Soccer School',
+            'allKelas'      => Kelas::where('deskripsi', 'Women Soccer School')
+                                    ->orderBy('nama_kelas')
+                                    ->get(['id_kelas', 'nama_kelas', 'kode_cabang']),
+            'termsDocument' => $terms,
+        ]);
+    }
     
     
 

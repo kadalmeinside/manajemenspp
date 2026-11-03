@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // DB raw update to fix child invoices inherited from parent
-        \Illuminate\Support\Facades\DB::statement("
-            UPDATE invoices child
-            JOIN invoices parent ON child.parent_payment_id = parent.id
-            SET 
-                child.payment_gateway = parent.payment_gateway,
-                child.payment_method = parent.payment_method
-            WHERE child.type = 'spp' 
-              AND child.status = 'PAID' 
-              AND child.parent_payment_id IS NOT NULL
-              AND parent.payment_gateway IS NOT NULL
-        ");
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'sqlite') {
+            // DB raw update to fix child invoices inherited from parent
+            \Illuminate\Support\Facades\DB::statement("
+                UPDATE invoices child
+                JOIN invoices parent ON child.parent_payment_id = parent.id
+                SET 
+                    child.payment_gateway = parent.payment_gateway,
+                    child.payment_method = parent.payment_method
+                WHERE child.type = 'spp' 
+                  AND child.status = 'PAID' 
+                  AND child.parent_payment_id IS NOT NULL
+                  AND parent.payment_gateway IS NOT NULL
+            ");
+        }
     }
 
     /**
