@@ -47,4 +47,20 @@ class PendingRegistration extends Model
         'checkout_data' => 'array',
         'expires_at' => 'datetime',
     ];
+
+    /**
+     * Relasi ke Kelas.
+     */
+    public function kelas()
+    {
+        return $this->belongsTo(Kelas::class, 'id_kelas', 'id_kelas');
+    }
+
+    /**
+     * Relasi ke Dokumen Legal (S&K).
+     */
+    public function legalDocument()
+    {
+        return $this->belongsTo(LegalDocument::class, 'legal_document_id', 'id');
+    }
 }
