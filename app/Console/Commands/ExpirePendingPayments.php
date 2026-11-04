@@ -122,3 +122,4 @@ class ExpirePendingPayments extends Command
         return self::SUCCESS;
     }
 }
+

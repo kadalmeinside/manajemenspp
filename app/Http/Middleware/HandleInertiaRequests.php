@@ -120,7 +120,7 @@ class HandleInertiaRequests extends Middleware
                 $group = 'public';
                 
                 if ($request->user()) {
-                    if ($request->user()->hasRole('admin|user')) {
+                    if ($request->user()->hasAnyRole(['admin', 'user', 'admin_kelas', 'staff_akademik'])) {
                         $group = 'admin';
                     } else {
                         $group = 'siswa';

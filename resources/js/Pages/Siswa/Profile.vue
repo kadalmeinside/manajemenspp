@@ -173,7 +173,7 @@ const initials = computed(() => {
                                 <PhotoCropper 
                                     :current-photo-url="siswa.foto_url" 
                                     :initials="initials" 
-                                    :upload-url="route('profil.update_photo')" 
+                                    :upload-url="route('siswa.profil.update_photo')" 
                                 />
                             </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold" :class="getStatusClass(siswa.status_siswa)">
