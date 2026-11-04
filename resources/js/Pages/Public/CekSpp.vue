@@ -291,7 +291,7 @@ const submitPayment = () => {
 };
 
 const handleBayarClick = () => {
-    if (['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway)) {
+    if (['midtrans_custom', 'gapura'].includes(props.active_gateway)) {
         isPaymentModalOpen.value = true;
     } else {
         submitPayment();
