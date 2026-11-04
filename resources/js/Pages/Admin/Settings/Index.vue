@@ -42,7 +42,7 @@ const form = useForm({
     id_card_back_text: props.settings.id_card_back_text || '',
     enable_parent_login: props.settings.enable_parent_login ?? '1',
     enable_virtual_account: props.settings.enable_virtual_account ?? '1',
-    enable_mdr_fee: props.settings.enable_mdr_fee ?? '0',
+    enable_mdr_fee: props.settings.enable_mdr_fee ?? '1',
     mdr_va_flat: props.settings.mdr_va_flat ?? '4440',
     mdr_qris_percent: props.settings.mdr_qris_percent ?? '0.7',
     active_payment_gateway: props.settings.active_payment_gateway ?? 'xendit',
@@ -310,20 +310,20 @@ function submit() {
 
                                 <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
                                     <div>
-                                        <InputLabel for="enable_mdr_fee" value="Skema Biaya Layanan / MDR Dinamis (Custom Checkout)" />
+                                        <InputLabel for="enable_mdr_fee" value="Skema Biaya Layanan / MDR (Midtrans & Gapura)" />
                                         <div class="mt-2 flex items-center space-x-4">
                                             <label class="inline-flex items-center">
-                                                <input type="radio" v-model="form.enable_mdr_fee" value="0" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Biaya Admin Flat Siswa (Default)</span>
+                                                <input type="radio" v-model="form.enable_mdr_fee" value="1" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Aktifkan (Biaya MDR dibebankan ke siswa: Flat untuk VA, % untuk QRIS)</span>
                                             </label>
                                             <label class="inline-flex items-center">
-                                                <input type="radio" v-model="form.enable_mdr_fee" value="1" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Dinamis Sesuai Metode (MDR VA vs QRIS)</span>
+                                                <input type="radio" v-model="form.enable_mdr_fee" value="0" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Nonaktifkan (Hanya SPP pokok)</span>
                                             </label>
                                         </div>
                                         <InputError class="mt-2" :message="form.errors.enable_mdr_fee" />
                                         <p class="text-xs text-gray-500 italic mt-1">
-                                            Aktifkan agar biaya layanan pada mode Custom Checkout (Midtrans Custom / Gapura) menyesuaikan metode yang dipilih siswa (Flat untuk VA, Persentase untuk QRIS).
+                                            Aktifkan agar biaya MDR Midtrans/Gapura dibebankan ke siswa secara transparan sesuai metode yang dipilih (Flat untuk Virtual Account, Persentase untuk QRIS).
                                         </p>
                                     </div>
 

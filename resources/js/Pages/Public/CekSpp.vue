@@ -214,8 +214,8 @@ const selectedSppAmount = computed(() => {
 
 const calculatedAdminFee = computed(() => {
     if (selectedPeriods.value.length === 0) return 0;
-    const isCustomGateway = ['gapura', 'midtrans_custom'].includes(props.active_gateway);
-    if (isCustomGateway && props.mdr_config?.enabled) {
+    const isMdrGateway = ['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway);
+    if (isMdrGateway && props.mdr_config?.enabled) {
         if (paymentForm.paymentType === 'QRIS') {
             const pct = Number(props.mdr_config.qris_percent ?? 0.7);
             return Math.ceil(selectedSppAmount.value * (pct / 100));
@@ -279,7 +279,7 @@ const submitPayment = () => {
 };
 
 const handleBayarClick = () => {
-    if (props.active_gateway === 'gapura' || props.active_gateway === 'midtrans_custom') {
+    if (['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway)) {
         isPaymentModalOpen.value = true;
     } else {
         submitPayment();
@@ -623,7 +623,7 @@ const formatPeriod = (dateStr) => {
                     </button>
                 </div>
                 
-                <div v-if="active_gateway === 'gapura' || active_gateway === 'midtrans_custom'" class="w-full">
+                <div v-if="['midtrans', 'midtrans_custom', 'gapura'].includes(active_gateway)" class="w-full">
                     <div class="grid grid-cols-2 gap-3 mb-5">
                         <template v-if="isVaEnabled">
                             <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
@@ -635,10 +635,10 @@ const formatPeriod = (dateStr) => {
                             <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
                                 <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
                             </button>
-                            <button v-if="active_gateway === 'midtrans_custom'" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <button v-if="['midtrans', 'midtrans_custom'].includes(active_gateway)" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
                                 <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
                             </button>
-                            <button v-if="active_gateway === 'midtrans_custom'" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <button v-if="['midtrans', 'midtrans_custom'].includes(active_gateway)" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
                                 <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
                             </button>
                         </template>
