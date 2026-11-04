@@ -279,7 +279,15 @@ const isItemDisabled = (index) => {
 const submitPayment = () => {
     isRedirecting.value = true;
     paymentForm.periods = selectedPeriods.value.sort();
-    paymentForm.post(route('tagihan.spp.pay', props.selectedSiswa.id_siswa)); 
+    paymentForm.post(route('tagihan.spp.pay', props.selectedSiswa.id_siswa), {
+        preserveScroll: true,
+        onError: () => {
+            isRedirecting.value = false;
+        },
+        onFinish: () => {
+            isRedirecting.value = false;
+        },
+    }); 
 };
 
 const handleBayarClick = () => {
@@ -455,6 +463,11 @@ const formatPeriod = (dateStr) => {
                     </div>
                 </div>
                     
+                    <div v-if="errors?.error" class="mb-5 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-2xl flex items-start gap-3 text-sm text-red-700 dark:text-red-300 shadow-sm">
+                        <XCircleIcon class="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div class="flex-1 font-medium">{{ errors.error }}</div>
+                    </div>
+
                     <div v-if="showSuccessCard" class="mb-6 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-2xl text-center shadow-sm">
                         <CheckCircleIcon class="h-12 w-12 text-green-500 mx-auto" />
                         <h4 class="mt-4 font-bold text-gray-800 dark:text-white">Akun Berhasil Dibuat!</h4>

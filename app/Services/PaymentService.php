@@ -268,6 +268,7 @@ class PaymentService
                 
                 $parentInvoice->update([
                     'xendit_invoice_id' => $pgInvoiceData['id'],
+                    'xendit_payment_url' => $pgInvoiceData['snap_redirect_url'] ?? $parentInvoice->xendit_payment_url,
                     'checkout_data' => $pgInvoiceData,
                 ]);
             } else {

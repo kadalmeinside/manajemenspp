@@ -187,11 +187,16 @@ class StoreCheckoutController extends Controller
                     'bill_key',
                     'qris_string',
                     'qr_url',
+                    'snap_redirect_url',
                     'amount',
                     'expiry_date',
                 ])->toArray();
 
-                $paymentUrl = route('siswa.store.orders.custom_pay', ['order' => $order->id]);
+                $snapRedirectUrl = (!empty($pgData['snap_redirect_url']) && empty($pgData['va_number']) && empty($pgData['qris_string']) && empty($pgData['qr_url']))
+                    ? $pgData['snap_redirect_url']
+                    : null;
+
+                $paymentUrl = $snapRedirectUrl ?: route('siswa.store.orders.custom_pay', ['order' => $order->id]);
                 $methodLabel = $paymentType . ($paymentType === 'VA' && $bankCode ? ' ' . strtoupper($bankCode) : '');
 
                 $order->update([
@@ -268,6 +273,10 @@ class StoreCheckoutController extends Controller
 
         if (empty($checkoutData)) {
             return redirect()->route('siswa.store.orders.show', $order->id);
+        }
+
+        if (!empty($checkoutData['snap_redirect_url']) && empty($checkoutData['va_number']) && empty($checkoutData['qris_string']) && empty($checkoutData['qr_url'])) {
+            return \Inertia\Inertia::location($checkoutData['snap_redirect_url']);
         }
 
         $order->load('siswa.kelas');

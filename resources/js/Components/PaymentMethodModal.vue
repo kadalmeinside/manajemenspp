@@ -1,8 +1,25 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import BankLogo from '@/Components/BankLogo.vue';
-import { XMarkIcon, CreditCardIcon } from '@heroicons/vue/24/outline';
+import { XMarkIcon, CreditCardIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
+
+const page = usePage();
+const dismissedError = ref(false);
+
+const serverError = computed(() => {
+    if (dismissedError.value) return null;
+    return page.props.errors?.error || page.props.errors?.general || page.props.flash?.error || null;
+});
+
+watch(
+    () => page.props.errors,
+    () => {
+        dismissedError.value = false;
+    },
+    { deep: true }
+);
 
 const props = defineProps({
     show: {
@@ -79,6 +96,7 @@ const handleConfirm = () => {
 };
 
 const selectMethod = (type, bank = '') => {
+    dismissedError.value = true;
     emit('update:paymentType', type);
     emit('update:bankCode', bank);
 };
@@ -245,6 +263,12 @@ const getButtonClass = (type, bank = '') => {
                             {{ formatCurrency(totalAmount) }}
                         </span>
                     </div>
+                </div>
+
+                <!-- Pesan Error (Jika Channel Belum Aktif / Gagal) -->
+                <div v-if="serverError" class="mb-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300">
+                    <ExclamationTriangleIcon class="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div class="flex-1 leading-relaxed">{{ serverError }}</div>
                 </div>
 
                 <!-- Tombol Lanjutkan Pembayaran -->

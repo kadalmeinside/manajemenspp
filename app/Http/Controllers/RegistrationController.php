@@ -323,9 +323,13 @@ class RegistrationController extends Controller
                     throw new \Exception("Gagal membuat tagihan custom {$activeGateway}.");
                 }
 
+                $snapRedirectUrl = (!empty($pgInvoiceData['snap_redirect_url']) && empty($pgInvoiceData['va_number']) && empty($pgInvoiceData['qris_string']) && empty($pgInvoiceData['qr_url']))
+                    ? $pgInvoiceData['snap_redirect_url']
+                    : null;
+
                 $pendingReg->update([
                     'xendit_invoice_id' => $pgInvoiceData['id'] ?? $pendingReg->xendit_external_id,
-                    'xendit_payment_url' => route('pendaftaran.custom_pay', ['pending' => $pendingReg->id]),
+                    'xendit_payment_url' => $snapRedirectUrl ?: route('pendaftaran.custom_pay', ['pending' => $pendingReg->id]),
                     'checkout_data' => $pgInvoiceData,
                 ]);
 
@@ -335,7 +339,7 @@ class RegistrationController extends Controller
                     $promo->increment('current_uses');
                 }
 
-                return Inertia::location(route('pendaftaran.custom_pay', ['pending' => $pendingReg->id]));
+                return Inertia::location($snapRedirectUrl ?: route('pendaftaran.custom_pay', ['pending' => $pendingReg->id]));
             } else {
                 $pgInvoiceData = $gatewayService->createInvoice(
                     $pendingReg->amount,
@@ -386,6 +390,10 @@ class RegistrationController extends Controller
     {
         if (!in_array($pending->payment_gateway, ['gapura', 'midtrans_custom']) || empty($pending->checkout_data)) {
             return redirect()->route('register-academy.create')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk pendaftaran ini.']);
+        }
+
+        if (!empty($pending->checkout_data['snap_redirect_url']) && empty($pending->checkout_data['va_number']) && empty($pending->checkout_data['qris_string']) && empty($pending->checkout_data['qr_url'])) {
+            return Inertia::location($pending->checkout_data['snap_redirect_url']);
         }
 
         $pending->load('kelas');

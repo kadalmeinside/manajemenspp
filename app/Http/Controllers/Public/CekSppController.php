@@ -297,6 +297,10 @@ class CekSppController extends Controller
             $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
             
             if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && $paymentType) {
+                $checkoutData = $parentInvoice->checkout_data ?? [];
+                if (!empty($checkoutData['snap_redirect_url']) && empty($checkoutData['va_number']) && empty($checkoutData['qris_string']) && empty($checkoutData['qr_url'])) {
+                    return Inertia::location($checkoutData['snap_redirect_url']);
+                }
                 return Inertia::location(route('tagihan.spp.custom_pay', ['invoice' => $parentInvoice->id]));
             }
 

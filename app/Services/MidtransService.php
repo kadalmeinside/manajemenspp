@@ -283,17 +283,37 @@ class MidtransService implements PaymentGatewayInterface
             ? 'https://api.midtrans.com/v2/charge' 
             : 'https://api.sandbox.midtrans.com/v2/charge';
 
-        $response = Http::withHeaders([
+        $headers = [
             'Authorization' => 'Basic ' . $encodedServerKey,
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json',
-        ])
-        ->connectTimeout(10)
-        ->timeout(30)
-        ->post($coreApiUrl, $payload);
+        ];
+
+        $response = Http::withHeaders($headers)
+            ->connectTimeout(10)
+            ->timeout(30)
+            ->post($coreApiUrl, $payload);
 
         $data = $response->json();
         $statusCode = (string) ($data['status_code'] ?? '');
+
+        // Jika QRIS gagal 402 (channel 'qris' belum diaktifkan di Core API), coba fallback Core API 'gopay' (menghasilkan QR code juga)
+        if ($paymentType === 'QRIS' && $statusCode === '402') {
+            $gopayPayload = $payload;
+            $gopayPayload['payment_type'] = 'gopay';
+            $gopayResponse = Http::withHeaders($headers)
+                ->connectTimeout(10)
+                ->timeout(30)
+                ->post($coreApiUrl, $gopayPayload);
+
+            $gopayData = $gopayResponse->json();
+            $gopayStatus = (string) ($gopayData['status_code'] ?? '');
+            if ($gopayResponse->successful() && in_array($gopayStatus, ['200', '201'])) {
+                $response = $gopayResponse;
+                $data = $gopayData;
+                $statusCode = $gopayStatus;
+            }
+        }
 
         if ($response->successful() && in_array($statusCode, ['200', '201'])) {
             // Extract VA Number or QRIS String
@@ -359,6 +379,80 @@ class MidtransService implements PaymentGatewayInterface
             ? ' (' . implode(', ', $data['validation_messages']) . ')'
             : '';
 
+        // Jika Core API mengembalikan 402 (karena akun Midtrans Production masih mode Snap / Core API belum diaktifkan oleh Midtrans Support),
+        // otomatis fallback ke Midtrans Snap yang dikunci khusus pada channel yang dipilih user (beserta tarif MDR-nya).
+        if ($statusCode === '402' || str_contains(strtolower($statusMessage), 'channel is not activated')) {
+            $snapChannelMap = [
+                'BCA'     => ['bca_va'],
+                'BNI'     => ['bni_va'],
+                'BRI'     => ['bri_va'],
+                'MANDIRI' => ['echannel'],
+                'PERMATA' => ['permata_va'],
+                'CIMB'    => ['cimb_va'],
+            ];
+
+            $enabledPayments = $paymentType === 'QRIS'
+                ? ['gopay', 'qris']
+                : ($snapChannelMap[strtoupper($bankCode)] ?? ['bca_va']);
+
+            $snapPayload = [
+                'transaction_details' => $payload['transaction_details'],
+                'customer_details'    => $payload['customer_details'],
+                'item_details'        => $payload['item_details'],
+                'enabled_payments'    => $enabledPayments,
+                'custom_expiry'       => $payload['custom_expiry'],
+            ];
+
+            $snapResponse = Http::withHeaders($headers)
+                ->connectTimeout(10)
+                ->timeout(30)
+                ->post("{$this->baseUrl}/transactions", $snapPayload);
+
+            if ($snapResponse->successful()) {
+                $snapData = $snapResponse->json();
+                if (!empty($snapData['redirect_url']) && !empty($snapData['token'])) {
+                    Log::info('Midtrans Core API returned 402; automatically fell back to Snap locked to selected channel.', [
+                        'external_id' => $externalId,
+                        'payment_type' => $paymentType,
+                        'bank_code' => $bankCode,
+                        'enabled_payments' => $enabledPayments,
+                    ]);
+
+                    return [
+                        'id' => $externalId,
+                        'transaction_id' => $snapData['token'],
+                        'external_id' => $externalId,
+                        'payment_type' => $paymentType,
+                        'bank_code' => $bankCode,
+                        'amount' => $totalInt,
+                        'base_amount' => $baseInt,
+                        'fee_amount' => $feeInt,
+                        'status' => 'PENDING',
+                        'va_number' => null,
+                        'biller_code' => null,
+                        'bill_key' => null,
+                        'qris_string' => null,
+                        'qr_url' => null,
+                        'snap_token' => $snapData['token'],
+                        'snap_redirect_url' => $snapData['redirect_url'],
+                        'invoice_url' => $snapData['redirect_url'],
+                        'raw_response' => $snapData,
+                    ];
+                }
+            }
+
+            Log::error('Midtrans Core API & Snap Fallback Failed', [
+                'external_id' => $externalId,
+                'core_status_code' => $statusCode,
+                'core_body' => $response->body(),
+                'snap_status' => $snapResponse->status(),
+                'snap_body' => $snapResponse->body(),
+            ]);
+
+            $channelName = $paymentType === 'QRIS' ? 'QRIS' : ('VA ' . strtoupper($bankCode));
+            throw new \Exception("Metode pembayaran {$channelName} belum aktif di akun Midtrans Production Anda (Kode 402: {$statusMessage}). Silakan pilih metode pembayaran lain atau matikan channel ini di Pengaturan Aplikasi.");
+        }
+
         Log::error('Midtrans Core API Creation Failed', [
             'external_id' => $externalId,
             'http_status' => $response->status(),
@@ -366,11 +460,6 @@ class MidtransService implements PaymentGatewayInterface
             'status_message' => $statusMessage . $validationMessages,
             'body' => $response->body(),
         ]);
-
-        if ($statusCode === '402' || str_contains(strtolower($statusMessage), 'channel is not activated')) {
-            $channelName = $paymentType === 'QRIS' ? 'QRIS' : ('VA ' . strtoupper($bankCode));
-            throw new \Exception("Metode pembayaran {$channelName} belum aktif untuk Core API di akun Midtrans Production Anda (Kode 402: {$statusMessage}). Silakan pilih metode pembayaran lain atau matikan channel ini di Pengaturan Aplikasi.");
-        }
 
         if ($response->status() === 401 || $statusCode === '401') {
             throw new \Exception("Kredensial Midtrans Server Key tidak valid atau tidak sesuai dengan mode Production/Sandbox (Kode 401). Silakan periksa kembali Server Key di Pengaturan Aplikasi.");

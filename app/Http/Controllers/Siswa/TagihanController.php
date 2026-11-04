@@ -287,6 +287,10 @@ class TagihanController extends Controller
             $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
             
             if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && !empty($parentInvoice->checkout_data)) {
+                $checkoutData = $parentInvoice->checkout_data;
+                if (!empty($checkoutData['snap_redirect_url']) && empty($checkoutData['va_number']) && empty($checkoutData['qris_string']) && empty($checkoutData['qr_url'])) {
+                    return Inertia::location($checkoutData['snap_redirect_url']);
+                }
                 return Inertia::location(route('tagihan.spp.custom_pay', ['invoice' => $parentInvoice->id]));
             }
 
@@ -309,6 +313,10 @@ class TagihanController extends Controller
                 return redirect()->route('siswa.invoices.index')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk tagihan ini.']);
             }
             return redirect()->route('tagihan.spp.form')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk tagihan ini.']);
+        }
+
+        if (!empty($invoice->checkout_data['snap_redirect_url']) && empty($invoice->checkout_data['va_number']) && empty($invoice->checkout_data['qris_string']) && empty($invoice->checkout_data['qr_url'])) {
+            return Inertia::location($invoice->checkout_data['snap_redirect_url']);
         }
 
         $invoice->load(['siswa.kelas']);
