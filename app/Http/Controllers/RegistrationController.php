@@ -200,6 +200,10 @@ class RegistrationController extends Controller
 
         $biayaFinal = $kelas->getBiayaPendaftaranSaatIni($kodePromoInput);
         $adminFee = (float) ($kelas->admin_fee_custom ?? 0);
+        $mdrConfig = \App\Services\PaymentService::getMdrConfig();
+        if ($mdrConfig['enabled'] && $mdrConfig['enable_pendaftaran']) {
+            $adminFee += (float) round($mdrConfig['va_flat']);
+        }
         $totalAmount = $biayaFinal + $adminFee;
         $externalId = 'PREG-'.strtoupper(Str::random(10));
 

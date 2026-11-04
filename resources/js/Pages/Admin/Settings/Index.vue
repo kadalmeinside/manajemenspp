@@ -43,6 +43,9 @@ const form = useForm({
     enable_parent_login: props.settings.enable_parent_login ?? '1',
     enable_virtual_account: props.settings.enable_virtual_account ?? '1',
     enable_mdr_fee: props.settings.enable_mdr_fee ?? '1',
+    enable_mdr_pendaftaran: props.settings.enable_mdr_pendaftaran ?? '0',
+    enable_mdr_spp: props.settings.enable_mdr_spp ?? '0',
+    enable_mdr_store: props.settings.enable_mdr_store ?? '1',
     mdr_va_flat: props.settings.mdr_va_flat ?? '4440',
     mdr_qris_percent: props.settings.mdr_qris_percent ?? '0.7',
     active_payment_gateway: props.settings.active_payment_gateway ?? 'xendit',
@@ -327,35 +330,105 @@ function submit() {
                                         </p>
                                     </div>
 
-                                    <div v-if="form.enable_mdr_fee === '1'" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
-                                        <div>
-                                            <InputLabel for="mdr_va_flat" value="Biaya MDR Virtual Account (Rp Flat)" />
-                                            <TextInput
-                                                id="mdr_va_flat"
-                                                type="number"
-                                                step="1"
-                                                min="0"
-                                                class="mt-1 block w-full"
-                                                v-model="form.mdr_va_flat"
-                                                placeholder="Contoh: 4440"
-                                            />
-                                            <p class="text-xs text-gray-500 mt-1">Standar Midtrans VA: Rp 4.000 + PPN 11% = Rp 4.440</p>
-                                            <InputError class="mt-2" :message="form.errors.mdr_va_flat" />
+                                    <div v-if="form.enable_mdr_fee === '1'" class="space-y-4">
+                                        <!-- Tarif Biaya MDR -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                                            <div>
+                                                <InputLabel for="mdr_va_flat" value="Tarif MDR Virtual Account (Rp Flat)" />
+                                                <TextInput
+                                                    id="mdr_va_flat"
+                                                    type="number"
+                                                    step="1"
+                                                    min="0"
+                                                    class="mt-1 block w-full"
+                                                    v-model="form.mdr_va_flat"
+                                                    placeholder="Contoh: 4440"
+                                                />
+                                                <p class="text-xs text-gray-500 mt-1">Standar Midtrans VA: Rp 4.000 + PPN 11% = Rp 4.440</p>
+                                                <InputError class="mt-2" :message="form.errors.mdr_va_flat" />
+                                            </div>
+                                            <div>
+                                                <InputLabel for="mdr_qris_percent" value="Tarif MDR QRIS (%)" />
+                                                <TextInput
+                                                    id="mdr_qris_percent"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    class="mt-1 block w-full"
+                                                    v-model="form.mdr_qris_percent"
+                                                    placeholder="Contoh: 0.7"
+                                                />
+                                                <p class="text-xs text-gray-500 mt-1">Standar Midtrans QRIS: 0.7% dari nominal transaksi</p>
+                                                <InputError class="mt-2" :message="form.errors.mdr_qris_percent" />
+                                            </div>
                                         </div>
-                                        <div>
-                                            <InputLabel for="mdr_qris_percent" value="Biaya MDR QRIS (%)" />
-                                            <TextInput
-                                                id="mdr_qris_percent"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                max="100"
-                                                class="mt-1 block w-full"
-                                                v-model="form.mdr_qris_percent"
-                                                placeholder="Contoh: 0.7"
-                                            />
-                                            <p class="text-xs text-gray-500 mt-1">Standar Midtrans QRIS: 0.7% dari nominal transaksi</p>
-                                            <InputError class="mt-2" :message="form.errors.mdr_qris_percent" />
+
+                                        <!-- Pengaturan Beban Biaya Per Modul -->
+                                        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 space-y-4">
+                                            <p class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                Penerapan Biaya Layanan Per Modul:
+                                            </p>
+
+                                            <!-- Modul SPP -->
+                                            <div class="p-3 bg-white dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700">
+                                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                    <div>
+                                                        <p class="text-sm font-semibold text-gray-900 dark:text-white">1. Tagihan SPP Bulanan</p>
+                                                        <p class="text-xs text-gray-500">Bebaskan biaya admin agar wali murid tidak terbebani setiap bulan.</p>
+                                                    </div>
+                                                    <div class="flex items-center space-x-3">
+                                                        <label class="inline-flex items-center text-xs">
+                                                            <input type="radio" v-model="form.enable_mdr_spp" value="0" class="form-radio text-indigo-600">
+                                                            <span class="ml-1.5 font-bold text-emerald-600 dark:text-emerald-400">Gratis (Rp 0)</span>
+                                                        </label>
+                                                        <label class="inline-flex items-center text-xs">
+                                                            <input type="radio" v-model="form.enable_mdr_spp" value="1" class="form-radio text-indigo-600">
+                                                            <span class="ml-1.5 text-gray-600 dark:text-gray-400">Bebankan ke Siswa</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Modul Pendaftaran -->
+                                            <div class="p-3 bg-white dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700">
+                                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                    <div>
+                                                        <p class="text-sm font-semibold text-gray-900 dark:text-white">2. Pendaftaran Siswa Baru</p>
+                                                        <p class="text-xs text-gray-500">Biaya admin pembayaran formulir pendaftaran calon siswa.</p>
+                                                    </div>
+                                                    <div class="flex items-center space-x-3">
+                                                        <label class="inline-flex items-center text-xs">
+                                                            <input type="radio" v-model="form.enable_mdr_pendaftaran" value="0" class="form-radio text-indigo-600">
+                                                            <span class="ml-1.5 font-bold text-emerald-600 dark:text-emerald-400">Gratis (Rp 0)</span>
+                                                        </label>
+                                                        <label class="inline-flex items-center text-xs">
+                                                            <input type="radio" v-model="form.enable_mdr_pendaftaran" value="1" class="form-radio text-indigo-600">
+                                                            <span class="ml-1.5 text-gray-600 dark:text-gray-400">Bebankan ke Pendaftar</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Modul Toko / Merchandise -->
+                                            <div class="p-3 bg-white dark:bg-gray-800 rounded border border-gray-100 dark:border-gray-700">
+                                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                                    <div>
+                                                        <p class="text-sm font-semibold text-gray-900 dark:text-white">3. Toko / Merchandise</p>
+                                                        <p class="text-xs text-gray-500">Biaya admin pembelian seragam/merchandise di toko online.</p>
+                                                    </div>
+                                                    <div class="flex items-center space-x-3">
+                                                        <label class="inline-flex items-center text-xs">
+                                                            <input type="radio" v-model="form.enable_mdr_store" value="1" class="form-radio text-indigo-600">
+                                                            <span class="ml-1.5 font-bold text-indigo-600 dark:text-indigo-400">Bebankan ke Pembeli</span>
+                                                        </label>
+                                                        <label class="inline-flex items-center text-xs">
+                                                            <input type="radio" v-model="form.enable_mdr_store" value="0" class="form-radio text-indigo-600">
+                                                            <span class="ml-1.5 text-gray-600 dark:text-gray-400">Gratis (Rp 0)</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

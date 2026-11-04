@@ -117,6 +117,9 @@ const calculatedAdminFee = computed(() => {
     if (selectedPeriods.value.length === 0) return 0;
     const isMdrGateway = ['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway);
     if (isMdrGateway && props.mdr_config?.enabled) {
+        if (!props.mdr_config.enable_spp) {
+            return 0;
+        }
         if (paymentForm.paymentType === 'QRIS') {
             const pct = Number(props.mdr_config.qris_percent ?? 0.7);
             return Math.ceil(selectedSppAmount.value * (pct / 100));

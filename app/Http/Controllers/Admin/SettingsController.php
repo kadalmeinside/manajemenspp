@@ -61,6 +61,9 @@ class SettingsController extends Controller
             'enable_parent_login' => 'nullable|in:0,1',
             'enable_virtual_account' => 'nullable|in:0,1',
             'enable_mdr_fee' => 'nullable|in:0,1',
+            'enable_mdr_pendaftaran' => 'nullable|in:0,1',
+            'enable_mdr_spp' => 'nullable|in:0,1',
+            'enable_mdr_store' => 'nullable|in:0,1',
             'mdr_va_flat' => 'nullable|numeric|min:0',
             'mdr_qris_percent' => 'nullable|numeric|min:0|max:100',
             'active_payment_gateway' => 'nullable|in:xendit,midtrans,midtrans_custom,gapura',
@@ -78,7 +81,7 @@ class SettingsController extends Controller
         // Simpan atau update pengaturan teks
         $textSettings = [
             'app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak', 
-            'enable_parent_login', 'enable_virtual_account', 'enable_mdr_fee', 'mdr_va_flat', 'mdr_qris_percent',
+            'enable_parent_login', 'enable_virtual_account', 'enable_mdr_fee', 'enable_mdr_pendaftaran', 'enable_mdr_spp', 'enable_mdr_store', 'mdr_va_flat', 'mdr_qris_percent',
             'active_payment_gateway', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production',
             'gapura_client_id', 'gapura_client_secret', 'gapura_merchant_id', 'gapura_private_key', 'gapura_dana_public_key',
             'id_card_back_text'

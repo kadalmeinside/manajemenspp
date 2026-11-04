@@ -28,6 +28,9 @@ class PaymentService
     {
         $settings = \App\Models\Setting::whereIn('key', [
             'enable_mdr_fee',
+            'enable_mdr_pendaftaran',
+            'enable_mdr_spp',
+            'enable_mdr_store',
             'mdr_va_flat',
             'mdr_qris_percent',
             'enable_virtual_account',
@@ -36,10 +39,13 @@ class PaymentService
         $isExplicitlyDisabled = isset($settings['enable_mdr_fee']) && $settings['enable_mdr_fee'] === '0';
 
         return [
-            'enabled'      => !$isExplicitlyDisabled,
-            'va_flat'      => (float) (isset($settings['mdr_va_flat']) && $settings['mdr_va_flat'] !== '' ? $settings['mdr_va_flat'] : 4440),
-            'qris_percent' => (float) (isset($settings['mdr_qris_percent']) && $settings['mdr_qris_percent'] !== '' ? $settings['mdr_qris_percent'] : 0.7),
-            'enable_va'    => ($settings['enable_virtual_account'] ?? '1') === '1',
+            'enabled'            => !$isExplicitlyDisabled,
+            'enable_pendaftaran' => ($settings['enable_mdr_pendaftaran'] ?? '0') === '1',
+            'enable_spp'         => ($settings['enable_mdr_spp'] ?? '0') === '1',
+            'enable_store'       => ($settings['enable_mdr_store'] ?? '1') === '1',
+            'va_flat'            => (float) (isset($settings['mdr_va_flat']) && $settings['mdr_va_flat'] !== '' ? $settings['mdr_va_flat'] : 4440),
+            'qris_percent'       => (float) (isset($settings['mdr_qris_percent']) && $settings['mdr_qris_percent'] !== '' ? $settings['mdr_qris_percent'] : 0.7),
+            'enable_va'          => ($settings['enable_virtual_account'] ?? '1') === '1',
         ];
     }
 
@@ -47,25 +53,37 @@ class PaymentService
      * Hitung biaya admin / MDR berdasarkan pengaturan aktif dan metode pembayaran yang dipilih.
      */
     public function calculateAdminFee(
-        Siswa $siswa,
+        ?Siswa $siswa,
         float $baseAmount,
         ?string $paymentType = null,
-        ?string $activeGateway = null
+        ?string $activeGateway = null,
+        string $module = 'spp'
     ): float {
         $activeGateway = $activeGateway ?? config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
         $mdrConfig = self::getMdrConfig();
 
         if ($mdrConfig['enabled'] && in_array($activeGateway, ['midtrans', 'midtrans_custom', 'gapura'])) {
-            $type = strtoupper($paymentType ?: ($mdrConfig['enable_va'] ? 'VA' : 'QRIS'));
-            if ($type === 'QRIS') {
-                return (float) ceil($baseAmount * ($mdrConfig['qris_percent'] / 100));
-            }
-            if ($type === 'VA') {
-                return (float) round($mdrConfig['va_flat']);
+            $isModuleEnabled = match ($module) {
+                'pendaftaran' => $mdrConfig['enable_pendaftaran'],
+                'store', 'pembelian' => $mdrConfig['enable_store'],
+                'spp' => $mdrConfig['enable_spp'],
+                default => false,
+            };
+
+            if ($isModuleEnabled) {
+                $type = strtoupper($paymentType ?: ($mdrConfig['enable_va'] ? 'VA' : 'QRIS'));
+                if ($type === 'QRIS') {
+                    return (float) ceil($baseAmount * ($mdrConfig['qris_percent'] / 100));
+                }
+                if ($type === 'VA') {
+                    return (float) round($mdrConfig['va_flat']);
+                }
+            } else {
+                return 0.0;
             }
         }
 
-        return (float) ($siswa->admin_fee_custom ?? 0);
+        return (float) ($siswa?->admin_fee_custom ?? 0);
     }
 
     /**

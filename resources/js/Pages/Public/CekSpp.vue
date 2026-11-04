@@ -216,6 +216,9 @@ const calculatedAdminFee = computed(() => {
     if (selectedPeriods.value.length === 0) return 0;
     const isMdrGateway = ['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway);
     if (isMdrGateway && props.mdr_config?.enabled) {
+        if (!props.mdr_config.enable_spp) {
+            return 0;
+        }
         if (paymentForm.paymentType === 'QRIS') {
             const pct = Number(props.mdr_config.qris_percent ?? 0.7);
             return Math.ceil(selectedSppAmount.value * (pct / 100));
@@ -656,11 +659,13 @@ const formatPeriod = (dateStr) => {
                         <div class="flex justify-between text-gray-600 dark:text-gray-400">
                             <span>
                                 Biaya Layanan
-                                <template v-if="mdr_config?.enabled">
+                                <template v-if="mdr_config?.enabled && mdr_config?.enable_spp">
                                     ({{ paymentForm.paymentType === 'QRIS' ? `QRIS ${mdr_config.qris_percent}%` : `VA ${paymentForm.bankCode}` }})
                                 </template>
                             </span>
-                            <span class="font-medium text-gray-900 dark:text-gray-200">{{ formatCurrency(calculatedAdminFee) }}</span>
+                            <span class="font-medium" :class="calculatedAdminFee === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-900 dark:text-gray-200'">
+                                {{ calculatedAdminFee === 0 ? 'Gratis (Rp 0)' : formatCurrency(calculatedAdminFee) }}
+                            </span>
                         </div>
                         <div class="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center font-bold text-base text-gray-900 dark:text-white">
                             <span>Total Bayar</span>

@@ -141,10 +141,17 @@ class StoreCheckoutController extends Controller
 
             $order->update(['total_amount' => $totalAmount]);
 
-            // Ambil admin fee dari pengaturan siswa atau default global
-            $feeAmount = $siswa ? (float) ($siswa->admin_fee_custom ?? 0) : 0;
+            // Ambil admin fee dari pengaturan MDR toko, pengaturan siswa, atau default global
+            $mdrConfig = \App\Services\PaymentService::getMdrConfig();
+            $feeAmount = 0.0;
+            if ($mdrConfig['enabled'] && $mdrConfig['enable_store']) {
+                $feeAmount = (float) round($mdrConfig['va_flat']);
+            }
             if ($feeAmount === 0.0) {
-                $feeAmount = (float) (\App\Models\Setting::where('key', 'default_admin_fee')->value('value') ?? 0);
+                $feeAmount = $siswa ? (float) ($siswa->admin_fee_custom ?? 0) : 0;
+                if ($feeAmount === 0.0) {
+                    $feeAmount = (float) (\App\Models\Setting::where('key', 'default_admin_fee')->value('value') ?? 0);
+                }
             }
 
             // External ID menggunakan prefix UNIF- yang konsisten dengan webhook
