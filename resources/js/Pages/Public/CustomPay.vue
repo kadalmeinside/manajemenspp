@@ -590,6 +590,41 @@ const paymentInstructions = computed(() => {
                     }
                 ]
             };
+        } else if (bank === 'CIMB') {
+            return {
+                title: 'Cara Bayar CIMB Niaga Virtual Account',
+                icon: 'bank',
+                tabs: [
+                    {
+                        name: 'OCTO Mobile',
+                        steps: [
+                            'Login ke aplikasi OCTO Mobile.',
+                            'Pilih menu Transfer → Transfer ke CIMB Niaga Lain atau Pembayaran Tagihan → Virtual Account.',
+                            'Masukkan nomor Virtual Account: ' + vaNumber.value + '.',
+                            'Periksa rincian tagihan dan nama penerima.',
+                            'Konfirmasi dan masukkan PIN OCTO Mobile untuk menyelesaikan pembayaran.'
+                        ]
+                    },
+                    {
+                        name: 'OCTO Clicks',
+                        steps: [
+                            'Login ke OCTO Clicks (https://www.octoclicks.co.id).',
+                            'Pilih menu Pembayaran Tagihan → Virtual Account.',
+                            'Pilih rekening sumber dana dan masukkan nomor Virtual Account: ' + vaNumber.value + '.',
+                            'Klik Lanjut untuk verifikasi detail, lalu konfirmasi pembayaran.'
+                        ]
+                    },
+                    {
+                        name: 'ATM CIMB Niaga',
+                        steps: [
+                            'Masukkan Kartu ATM dan PIN CIMB Niaga.',
+                            'Pilih menu Pembayaran → Lanjut → Virtual Account.',
+                            'Masukkan nomor Virtual Account: ' + vaNumber.value + '.',
+                            'Pilih rekening sumber dana, periksa rincian tagihan, lalu pilih Proses/OK.'
+                        ]
+                    }
+                ]
+            };
         }
     }
     

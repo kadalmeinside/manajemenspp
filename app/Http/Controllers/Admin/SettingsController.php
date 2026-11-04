@@ -60,6 +60,13 @@ class SettingsController extends Controller
             'kop_surat_kontak' => 'nullable|string',
             'enable_parent_login' => 'nullable|in:0,1',
             'enable_virtual_account' => 'nullable|in:0,1',
+            'enable_bank_bca' => 'nullable|in:0,1',
+            'enable_bank_bni' => 'nullable|in:0,1',
+            'enable_bank_bri' => 'nullable|in:0,1',
+            'enable_bank_mandiri' => 'nullable|in:0,1',
+            'enable_bank_permata' => 'nullable|in:0,1',
+            'enable_bank_cimb' => 'nullable|in:0,1',
+            'enable_payment_qris' => 'nullable|in:0,1',
             'enable_mdr_fee' => 'nullable|in:0,1',
             'enable_mdr_pendaftaran' => 'nullable|in:0,1',
             'enable_mdr_spp' => 'nullable|in:0,1',
@@ -81,16 +88,22 @@ class SettingsController extends Controller
         // Simpan atau update pengaturan teks
         $textSettings = [
             'app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak', 
-            'enable_parent_login', 'enable_virtual_account', 'enable_mdr_fee', 'enable_mdr_pendaftaran', 'enable_mdr_spp', 'enable_mdr_store', 'mdr_va_flat', 'mdr_qris_percent',
+            'enable_parent_login', 'enable_virtual_account',
+            'enable_bank_bca', 'enable_bank_bni', 'enable_bank_bri', 'enable_bank_mandiri', 'enable_bank_permata', 'enable_bank_cimb', 'enable_payment_qris',
+            'enable_mdr_fee', 'enable_mdr_pendaftaran', 'enable_mdr_spp', 'enable_mdr_store', 'mdr_va_flat', 'mdr_qris_percent',
             'active_payment_gateway', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production',
             'gapura_client_id', 'gapura_client_secret', 'gapura_merchant_id', 'gapura_private_key', 'gapura_dana_public_key',
             'id_card_back_text'
         ];
         foreach ($textSettings as $key) {
             if ($request->has($key)) {
+                $val = $validated[$key] ?? '';
+                if (in_array($key, ['midtrans_server_key', 'midtrans_client_key', 'gapura_client_id', 'gapura_client_secret', 'gapura_merchant_id']) && is_string($val)) {
+                    $val = trim($val);
+                }
                 Setting::updateOrCreate(
                     ['key' => $key],
-                    ['value' => $validated[$key] ?? '']
+                    ['value' => $val]
                 );
             }
         }

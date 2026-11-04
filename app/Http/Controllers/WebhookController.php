@@ -243,12 +243,21 @@ class WebhookController extends Controller
     {
         $payload = $request->all();
         $dbServerKey = \App\Models\Setting::where('key', 'midtrans_server_key')->value('value');
-        $serverKey = !empty($dbServerKey) ? $dbServerKey : config('midtrans.server_key');
+        $serverKey = trim((string) (!empty($dbServerKey) ? $dbServerKey : config('midtrans.server_key')));
         
         $orderId = $payload['order_id'] ?? null;
         $statusCode = $payload['status_code'] ?? null;
         $grossAmount = $payload['gross_amount'] ?? null;
         $signatureKey = $payload['signature_key'] ?? null;
+
+        // Tangani Test Notification dari Dashboard Midtrans ("payment_notif_test_...")
+        if (is_string($orderId) && str_starts_with($orderId, 'payment_notif_test_')) {
+            Log::info('[Midtrans Webhook] Test notification diterima dari Dashboard Midtrans.', [
+                'order_id' => $orderId,
+                'ip'       => $request->ip(),
+            ]);
+            return response()->json(['message' => 'Midtrans test notification received successfully'], 200);
+        }
         
         // Verifikasi Signature Key Midtrans
         $calculatedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);

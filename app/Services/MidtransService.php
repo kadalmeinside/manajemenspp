@@ -16,7 +16,7 @@ class MidtransService implements PaymentGatewayInterface
     public function __construct()
     {
         $dbServerKey = \App\Models\Setting::where('key', 'midtrans_server_key')->value('value');
-        $this->serverKey = !empty($dbServerKey) ? $dbServerKey : config('midtrans.server_key');
+        $this->serverKey = trim((string) (!empty($dbServerKey) ? $dbServerKey : config('midtrans.server_key')));
 
         $dbIsProd = \App\Models\Setting::where('key', 'midtrans_is_production')->value('value');
         if ($dbIsProd !== null && $dbIsProd !== '') {
@@ -168,14 +168,37 @@ class MidtransService implements PaymentGatewayInterface
 
     public function getPaymentMethods(): array
     {
-        $methods = ['gopay', 'qris'];
+        $settings = \App\Models\Setting::whereIn('key', [
+            'enable_virtual_account',
+            'enable_bank_bca',
+            'enable_bank_bni',
+            'enable_bank_bri',
+            'enable_bank_mandiri',
+            'enable_bank_permata',
+            'enable_bank_cimb',
+            'enable_payment_qris',
+        ])->pluck('value', 'key');
 
-        $enableVa = \App\Models\Setting::where('key', 'enable_virtual_account')->value('value') ?? '1';
+        $methods = [];
 
-        if ($enableVa === '1') {
-            $methods = array_merge($methods, [
-                'bca_va', 'bni_va', 'bri_va', 'echannel', 'permata_va'
-            ]);
+        if (($settings['enable_payment_qris'] ?? '1') === '1') {
+            $methods[] = 'gopay';
+            $methods[] = 'qris';
+        }
+
+        $enableVa = ($settings['enable_virtual_account'] ?? '1') === '1';
+
+        if ($enableVa) {
+            if (($settings['enable_bank_bca'] ?? '1') === '1') $methods[] = 'bca_va';
+            if (($settings['enable_bank_bni'] ?? '1') === '1') $methods[] = 'bni_va';
+            if (($settings['enable_bank_bri'] ?? '1') === '1') $methods[] = 'bri_va';
+            if (($settings['enable_bank_mandiri'] ?? '1') === '1') $methods[] = 'echannel';
+            if (($settings['enable_bank_permata'] ?? '1') === '1') $methods[] = 'permata_va';
+            if (($settings['enable_bank_cimb'] ?? '1') === '1') $methods[] = 'cimb_va';
+        }
+
+        if (empty($methods)) {
+            $methods = ['qris'];
         }
 
         return $methods;
@@ -238,10 +261,11 @@ class MidtransService implements PaymentGatewayInterface
         if ($paymentType === 'VA') {
             $bank = strtolower($bankCode);
             if ($bank === 'mandiri') {
+                $cleanInfo = preg_replace('/[^a-zA-Z0-9\s\-]/', '', $itemName) ?: 'Pembayaran SPP';
                 $payload['payment_type'] = 'echannel';
                 $payload['echannel'] = [
-                    'bill_info1' => 'Payment For:',
-                    'bill_info2' => mb_substr($itemName, 0, 30),
+                    'bill_info1' => 'Payment For',
+                    'bill_info2' => mb_substr($cleanInfo, 0, 30),
                 ];
             } else {
                 $payload['payment_type'] = 'bank_transfer';
@@ -330,14 +354,28 @@ class MidtransService implements PaymentGatewayInterface
             ];
         }
 
+        $statusMessage = $data['status_message'] ?? 'Unknown Midtrans Error';
+        $validationMessages = isset($data['validation_messages']) && is_array($data['validation_messages'])
+            ? ' (' . implode(', ', $data['validation_messages']) . ')'
+            : '';
+
         Log::error('Midtrans Core API Creation Failed', [
             'external_id' => $externalId,
             'http_status' => $response->status(),
             'midtrans_status_code' => $statusCode,
+            'status_message' => $statusMessage . $validationMessages,
             'body' => $response->body(),
-            'sent_payload' => $payload
         ]);
+
+        if ($statusCode === '402' || str_contains(strtolower($statusMessage), 'channel is not activated')) {
+            $channelName = $paymentType === 'QRIS' ? 'QRIS' : ('VA ' . strtoupper($bankCode));
+            throw new \Exception("Metode pembayaran {$channelName} belum aktif untuk Core API di akun Midtrans Production Anda (Kode 402: {$statusMessage}). Silakan pilih metode pembayaran lain atau matikan channel ini di Pengaturan Aplikasi.");
+        }
+
+        if ($response->status() === 401 || $statusCode === '401') {
+            throw new \Exception("Kredensial Midtrans Server Key tidak valid atau tidak sesuai dengan mode Production/Sandbox (Kode 401). Silakan periksa kembali Server Key di Pengaturan Aplikasi.");
+        }
         
-        return null;
+        throw new \Exception("Midtrans menolak pembuatan tagihan (Kode {$statusCode}: {$statusMessage}{$validationMessages}).");
     }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import Modal from '@/Components/Modal.vue';
 import BankLogo from '@/Components/BankLogo.vue';
 import { XMarkIcon, CreditCardIcon } from '@heroicons/vue/24/outline';
@@ -25,9 +25,21 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
+    subtotal: {
+        type: Number,
+        default: null,
+    },
     baseAmountLabel: {
         type: String,
         default: 'Total Tagihan',
+    },
+    subtotalLabel: {
+        type: String,
+        default: '',
+    },
+    customAdminFee: {
+        type: Number,
+        default: 0,
     },
     paymentType: {
         type: String,
@@ -51,11 +63,19 @@ const emit = defineEmits([
     'update:show',
     'update:paymentType',
     'update:bankCode',
+    'close',
     'submit',
+    'confirm',
 ]);
 
 const closeModal = () => {
     emit('update:show', false);
+    emit('close');
+};
+
+const handleConfirm = () => {
+    emit('submit');
+    emit('confirm');
 };
 
 const selectMethod = (type, bank = '') => {
@@ -71,7 +91,59 @@ const formatCurrency = (val) => {
     }).format(val || 0);
 };
 
+const effectiveBaseAmount = computed(() => {
+    return props.subtotal !== null && props.subtotal !== undefined ? props.subtotal : props.baseAmount;
+});
+
+const effectiveLabel = computed(() => {
+    return props.subtotalLabel || props.baseAmountLabel || 'Total Tagihan';
+});
+
 const isVaEnabled = computed(() => props.mdrConfig?.enable_va !== false);
+const isQrisEnabled = computed(() => props.mdrConfig?.enable_qris !== false && props.mdrConfig?.enabled_channels?.QRIS !== false);
+
+const isBankEnabled = (bank) => {
+    if (!isVaEnabled.value) return false;
+    const ch = props.mdrConfig?.enabled_channels;
+    if (ch && ch[bank] !== undefined) {
+        return !!ch[bank];
+    }
+    return true;
+};
+
+const availableMethods = computed(() => {
+    const list = [];
+    const isMidtrans = ['midtrans', 'midtrans_custom'].includes(props.activeGateway);
+
+    if (isVaEnabled.value) {
+        if (isBankEnabled('BCA')) list.push({ type: 'VA', bank: 'BCA' });
+        if (isBankEnabled('MANDIRI')) list.push({ type: 'VA', bank: 'MANDIRI' });
+        if (isBankEnabled('BNI')) list.push({ type: 'VA', bank: 'BNI' });
+        if (isMidtrans && isBankEnabled('BRI')) list.push({ type: 'VA', bank: 'BRI' });
+        if (isMidtrans && isBankEnabled('PERMATA')) list.push({ type: 'VA', bank: 'PERMATA' });
+        if (isMidtrans && isBankEnabled('CIMB')) list.push({ type: 'VA', bank: 'CIMB' });
+    }
+    if (isQrisEnabled.value) {
+        list.push({ type: 'QRIS', bank: '' });
+    }
+    return list;
+});
+
+// Auto-select metode pertama yang aktif jika metode saat ini dinonaktifkan di pengaturan
+watch(
+    () => [props.show, availableMethods.value],
+    () => {
+        if (!props.show || availableMethods.value.length === 0) return;
+        const currentlyValid = availableMethods.value.some(
+            (m) => m.type === props.paymentType && (m.type === 'QRIS' || m.bank === props.bankCode)
+        );
+        if (!currentlyValid) {
+            const first = availableMethods.value[0];
+            selectMethod(first.type, first.bank);
+        }
+    },
+    { immediate: true }
+);
 
 const isMdrEnabled = computed(() => {
     if (!props.mdrConfig?.enabled) return false;
@@ -91,10 +163,10 @@ const isMdrEnabled = computed(() => {
 });
 
 const calculatedAdminFee = computed(() => {
-    if (!isMdrEnabled.value) return 0;
+    if (!isMdrEnabled.value) return Number(props.customAdminFee || 0);
     if (props.paymentType === 'QRIS') {
         const pct = Number(props.mdrConfig?.qris_percent ?? 0.7);
-        return Math.ceil(props.baseAmount * (pct / 100));
+        return Math.ceil(effectiveBaseAmount.value * (pct / 100));
     }
     if (props.paymentType === 'VA') {
         return Math.round(Number(props.mdrConfig?.va_flat ?? 4440));
@@ -102,7 +174,7 @@ const calculatedAdminFee = computed(() => {
     return 0;
 });
 
-const totalAmount = computed(() => props.baseAmount + calculatedAdminFee.value);
+const totalAmount = computed(() => effectiveBaseAmount.value + calculatedAdminFee.value);
 
 const isSelected = (type, bank = '') => {
     if (type === 'QRIS') {
@@ -139,59 +211,22 @@ const getButtonClass = (type, bank = '') => {
             <div v-if="['midtrans', 'midtrans_custom', 'gapura'].includes(activeGateway)" class="w-full">
                 <!-- Grid Pilihan Bank & QRIS -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-5">
-                    <template v-if="isVaEnabled">
-                        <button
-                            type="button"
-                            @click="selectMethod('VA', 'BCA')"
-                            :class="['p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer', getButtonClass('VA', 'BCA')]"
-                        >
-                            <BankLogo bank="BCA" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button
-                            type="button"
-                            @click="selectMethod('VA', 'MANDIRI')"
-                            :class="['p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer', getButtonClass('VA', 'MANDIRI')]"
-                        >
-                            <BankLogo bank="MANDIRI" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button
-                            type="button"
-                            @click="selectMethod('VA', 'BNI')"
-                            :class="['p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer', getButtonClass('VA', 'BNI')]"
-                        >
-                            <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button
-                            v-if="['midtrans', 'midtrans_custom'].includes(activeGateway)"
-                            type="button"
-                            @click="selectMethod('VA', 'BRI')"
-                            :class="['p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer', getButtonClass('VA', 'BRI')]"
-                        >
-                            <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button
-                            v-if="['midtrans', 'midtrans_custom'].includes(activeGateway)"
-                            type="button"
-                            @click="selectMethod('VA', 'PERMATA')"
-                            :class="['p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer', getButtonClass('VA', 'PERMATA')]"
-                        >
-                            <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                    </template>
                     <button
+                        v-for="method in availableMethods"
+                        :key="method.type === 'QRIS' ? 'QRIS' : method.bank"
                         type="button"
-                        @click="selectMethod('QRIS', '')"
-                        :class="['p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer', getButtonClass('QRIS')]"
+                        @click="selectMethod(method.type, method.bank)"
+                        :class="['p-3 rounded-xl border transition-all flex items-center justify-center cursor-pointer', getButtonClass(method.type, method.bank)]"
                     >
-                        <BankLogo bank="QRIS" class="h-6 w-auto max-w-[80px]" />
+                        <BankLogo :bank="method.type === 'QRIS' ? 'QRIS' : method.bank" class="h-6 w-auto max-w-[80px]" />
                     </button>
                 </div>
 
                 <!-- Rincian Tagihan & Biaya Layanan (MDR) -->
                 <div class="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 space-y-2 text-sm">
                     <div class="flex justify-between text-gray-600 dark:text-gray-400">
-                        <span>{{ baseAmountLabel }}</span>
-                        <span class="font-medium text-gray-900 dark:text-gray-200">{{ formatCurrency(baseAmount) }}</span>
+                        <span>{{ effectiveLabel }}</span>
+                        <span class="font-medium text-gray-900 dark:text-gray-200">{{ formatCurrency(effectiveBaseAmount) }}</span>
                     </div>
                     <div class="flex justify-between text-gray-600 dark:text-gray-400">
                         <span>
@@ -215,8 +250,8 @@ const getButtonClass = (type, bank = '') => {
                 <!-- Tombol Lanjutkan Pembayaran -->
                 <button
                     type="button"
-                    @click="emit('submit')"
-                    :disabled="processing"
+                    @click="handleConfirm"
+                    :disabled="processing || availableMethods.length === 0"
                     class="w-full relative group overflow-hidden rounded-2xl p-[2px] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                     <span

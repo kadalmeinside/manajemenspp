@@ -7,6 +7,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import Toast from '@/Components/Toast.vue';
+import BankLogo from '@/Components/BankLogo.vue';
 
 const props = defineProps({
     settings: Object,
@@ -42,6 +43,13 @@ const form = useForm({
     id_card_back_text: props.settings.id_card_back_text || '',
     enable_parent_login: props.settings.enable_parent_login ?? '1',
     enable_virtual_account: props.settings.enable_virtual_account ?? '1',
+    enable_bank_bca: props.settings.enable_bank_bca ?? '1',
+    enable_bank_bni: props.settings.enable_bank_bni ?? '1',
+    enable_bank_bri: props.settings.enable_bank_bri ?? '1',
+    enable_bank_mandiri: props.settings.enable_bank_mandiri ?? '1',
+    enable_bank_permata: props.settings.enable_bank_permata ?? '1',
+    enable_bank_cimb: props.settings.enable_bank_cimb ?? '1',
+    enable_payment_qris: props.settings.enable_payment_qris ?? '1',
     enable_mdr_fee: props.settings.enable_mdr_fee ?? '1',
     enable_mdr_pendaftaran: props.settings.enable_mdr_pendaftaran ?? '0',
     enable_mdr_spp: props.settings.enable_mdr_spp ?? '0',
@@ -293,22 +301,215 @@ function submit() {
                                     </div>
                                 </div>
 
-                                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                    <InputLabel for="enable_virtual_account" value="Metode Pembayaran Virtual Account (VA)" />
-                                    <div class="mt-2 flex items-center space-x-4">
-                                        <label class="inline-flex items-center">
-                                            <input type="radio" v-model="form.enable_virtual_account" value="1" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Aktifkan (Virtual Account + QRIS / Gopay)</span>
-                                        </label>
-                                        <label class="inline-flex items-center">
-                                            <input type="radio" v-model="form.enable_virtual_account" value="0" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Nonaktifkan (Hanya QRIS / Gopay)</span>
-                                        </label>
+                                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                                    <div>
+                                        <InputLabel for="enable_virtual_account" value="Metode Pembayaran Virtual Account (VA)" />
+                                        <div class="mt-2 flex items-center space-x-4">
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="radio" v-model="form.enable_virtual_account" value="1" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Aktifkan Virtual Account</span>
+                                            </label>
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="radio" v-model="form.enable_virtual_account" value="0" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Nonaktifkan Semua VA (Hanya QRIS)</span>
+                                            </label>
+                                        </div>
+                                        <InputError class="mt-2" :message="form.errors.enable_virtual_account" />
+                                        <p class="text-xs text-gray-500 italic mt-2">
+                                            Jika dinonaktifkan, seluruh pilihan Bank VA akan disembunyikan dan siswa hanya dapat membayar melalui QRIS.
+                                        </p>
                                     </div>
-                                    <InputError class="mt-2" :message="form.errors.enable_virtual_account" />
-                                    <p class="text-xs text-gray-500 italic mt-2">
-                                        Jika dinonaktifkan, siswa hanya bisa membayar menggunakan metode pembayaran non-VA untuk menghindari biaya admin bank yang besar.
-                                    </p>
+
+                                    <!-- Daftar Channel Pembayaran (On/Off per Bank VA & QRIS) -->
+                                    <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                                        <h4 class="font-medium text-sm text-gray-800 dark:text-gray-200 mb-1">Daftar Metode Pembayaran Aktif (Custom Checkout & Midtrans)</h4>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                                            Pilih metode pembayaran (VA & QRIS) yang sudah aktif di akun Midtrans / DANA Anda agar tidak terjadi error saat pembuatan tagihan.
+                                        </p>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            <!-- BCA -->
+                                            <label
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border transition cursor-pointer"
+                                                :class="[
+                                                    form.enable_virtual_account === '0' ? 'opacity-50 pointer-events-none border-gray-200 dark:border-gray-700' : (form.enable_bank_bca === '1' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-gray-700')
+                                                ]"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-14 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600 p-1">
+                                                        <BankLogo bank="BCA" class="max-h-5 w-auto" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">BCA</div>
+                                                        <div class="text-[11px] text-gray-500">Virtual Account</div>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    true-value="1"
+                                                    false-value="0"
+                                                    v-model="form.enable_bank_bca"
+                                                    :disabled="form.enable_virtual_account === '0'"
+                                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5"
+                                                />
+                                            </label>
+
+                                            <!-- BNI -->
+                                            <label
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border transition cursor-pointer"
+                                                :class="[
+                                                    form.enable_virtual_account === '0' ? 'opacity-50 pointer-events-none border-gray-200 dark:border-gray-700' : (form.enable_bank_bni === '1' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-gray-700')
+                                                ]"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-14 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600 p-1">
+                                                        <BankLogo bank="BNI" class="max-h-5 w-auto" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">BNI</div>
+                                                        <div class="text-[11px] text-gray-500">Virtual Account</div>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    true-value="1"
+                                                    false-value="0"
+                                                    v-model="form.enable_bank_bni"
+                                                    :disabled="form.enable_virtual_account === '0'"
+                                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5"
+                                                />
+                                            </label>
+
+                                            <!-- BRI -->
+                                            <label
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border transition cursor-pointer"
+                                                :class="[
+                                                    form.enable_virtual_account === '0' ? 'opacity-50 pointer-events-none border-gray-200 dark:border-gray-700' : (form.enable_bank_bri === '1' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-gray-700')
+                                                ]"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-14 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600 p-1">
+                                                        <BankLogo bank="BRI" class="max-h-5 w-auto" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">BRI</div>
+                                                        <div class="text-[11px] text-gray-500">Virtual Account (BRIVA)</div>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    true-value="1"
+                                                    false-value="0"
+                                                    v-model="form.enable_bank_bri"
+                                                    :disabled="form.enable_virtual_account === '0'"
+                                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5"
+                                                />
+                                            </label>
+
+                                            <!-- Mandiri -->
+                                            <label
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border transition cursor-pointer"
+                                                :class="[
+                                                    form.enable_virtual_account === '0' ? 'opacity-50 pointer-events-none border-gray-200 dark:border-gray-700' : (form.enable_bank_mandiri === '1' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-gray-700')
+                                                ]"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-14 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600 p-1">
+                                                        <BankLogo bank="MANDIRI" class="max-h-5 w-auto" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">Mandiri</div>
+                                                        <div class="text-[11px] text-gray-500">Mandiri Bill / VA</div>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    true-value="1"
+                                                    false-value="0"
+                                                    v-model="form.enable_bank_mandiri"
+                                                    :disabled="form.enable_virtual_account === '0'"
+                                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5"
+                                                />
+                                            </label>
+
+                                            <!-- Permata -->
+                                            <label
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border transition cursor-pointer"
+                                                :class="[
+                                                    form.enable_virtual_account === '0' ? 'opacity-50 pointer-events-none border-gray-200 dark:border-gray-700' : (form.enable_bank_permata === '1' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-gray-700')
+                                                ]"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-14 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600 p-1">
+                                                        <BankLogo bank="PERMATA" class="max-h-5 w-auto" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">Permata</div>
+                                                        <div class="text-[11px] text-gray-500">Virtual Account</div>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    true-value="1"
+                                                    false-value="0"
+                                                    v-model="form.enable_bank_permata"
+                                                    :disabled="form.enable_virtual_account === '0'"
+                                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5"
+                                                />
+                                            </label>
+
+                                            <!-- CIMB Niaga -->
+                                            <label
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border transition cursor-pointer"
+                                                :class="[
+                                                    form.enable_virtual_account === '0' ? 'opacity-50 pointer-events-none border-gray-200 dark:border-gray-700' : (form.enable_bank_cimb === '1' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-gray-700')
+                                                ]"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-14 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600 p-1">
+                                                        <BankLogo bank="CIMB" class="max-h-5 w-auto" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">CIMB Niaga</div>
+                                                        <div class="text-[11px] text-gray-500">Virtual Account</div>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    true-value="1"
+                                                    false-value="0"
+                                                    v-model="form.enable_bank_cimb"
+                                                    :disabled="form.enable_virtual_account === '0'"
+                                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5"
+                                                />
+                                            </label>
+
+                                            <!-- QRIS -->
+                                            <label
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border transition cursor-pointer"
+                                                :class="[
+                                                    form.enable_payment_qris === '1' ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-gray-200 dark:border-gray-700'
+                                                ]"
+                                            >
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-14 h-8 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded border border-gray-100 dark:border-gray-600 p-1">
+                                                        <BankLogo bank="QRIS" class="max-h-5 w-auto" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">QRIS</div>
+                                                        <div class="text-[11px] text-gray-500">E-Wallet & m-Banking</div>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    true-value="1"
+                                                    false-value="0"
+                                                    v-model="form.enable_payment_qris"
+                                                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 h-5 w-5"
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">

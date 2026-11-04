@@ -34,9 +34,29 @@ class PaymentService
             'mdr_va_flat',
             'mdr_qris_percent',
             'enable_virtual_account',
+            'enable_bank_bca',
+            'enable_bank_bni',
+            'enable_bank_bri',
+            'enable_bank_mandiri',
+            'enable_bank_permata',
+            'enable_bank_cimb',
+            'enable_payment_qris',
         ])->pluck('value', 'key');
 
         $isExplicitlyDisabled = isset($settings['enable_mdr_fee']) && $settings['enable_mdr_fee'] === '0';
+
+        $enabledChannels = [
+            'BCA'     => ($settings['enable_bank_bca'] ?? '1') === '1',
+            'BNI'     => ($settings['enable_bank_bni'] ?? '1') === '1',
+            'BRI'     => ($settings['enable_bank_bri'] ?? '1') === '1',
+            'MANDIRI' => ($settings['enable_bank_mandiri'] ?? '1') === '1',
+            'PERMATA' => ($settings['enable_bank_permata'] ?? '1') === '1',
+            'CIMB'    => ($settings['enable_bank_cimb'] ?? '1') === '1',
+            'QRIS'    => ($settings['enable_payment_qris'] ?? '1') === '1',
+        ];
+
+        $anyBankEnabled = $enabledChannels['BCA'] || $enabledChannels['BNI'] || $enabledChannels['BRI'] || $enabledChannels['MANDIRI'] || $enabledChannels['PERMATA'] || $enabledChannels['CIMB'];
+        $enableVa = (($settings['enable_virtual_account'] ?? '1') === '1') && $anyBankEnabled;
 
         return [
             'enabled'            => !$isExplicitlyDisabled,
@@ -45,7 +65,9 @@ class PaymentService
             'enable_store'       => ($settings['enable_mdr_store'] ?? '1') === '1',
             'va_flat'            => (float) (isset($settings['mdr_va_flat']) && $settings['mdr_va_flat'] !== '' ? $settings['mdr_va_flat'] : 4440),
             'qris_percent'       => (float) (isset($settings['mdr_qris_percent']) && $settings['mdr_qris_percent'] !== '' ? $settings['mdr_qris_percent'] : 0.7),
-            'enable_va'          => ($settings['enable_virtual_account'] ?? '1') === '1',
+            'enable_va'          => $enableVa,
+            'enable_qris'        => $enabledChannels['QRIS'],
+            'enabled_channels'   => $enabledChannels,
         ];
     }
 
