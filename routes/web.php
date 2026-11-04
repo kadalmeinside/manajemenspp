@@ -246,6 +246,7 @@ Route::controller(CekSppController::class)->group(function () {
     Route::post('/cek-spp/{siswa}/pay', 'createSppPayment')->middleware('throttle:20,1')->name('tagihan.spp.pay');
     Route::get('/cek-spp/checkout/{invoice}', [\App\Http\Controllers\Siswa\TagihanController::class, 'customPay'])->name('tagihan.spp.custom_pay');
     Route::get('/cek-spp/sukses/{siswa}', 'showSuccess')->name('tagihan.spp.success');
+    Route::get('/cek-spp/bukti/{siswa}', 'showSuccess')->name('tagihan.spp.sukses');
 });
 
 Route::post('/cek-spp/agreements', [\App\Http\Controllers\UserAgreementController::class, 'storePublic'])->name('tagihan.spp.agreements.store');

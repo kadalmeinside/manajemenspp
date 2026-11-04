@@ -43,6 +43,15 @@ class Invoice extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
+    protected $appends = [
+        'siswa_id',
+    ];
+
+    public function getSiswaIdAttribute()
+    {
+        return $this->attributes['id_siswa'] ?? null;
+    }
+
     protected $fillable = [
         'id',
         'id_siswa',
