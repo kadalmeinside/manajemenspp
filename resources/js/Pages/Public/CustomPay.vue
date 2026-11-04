@@ -268,7 +268,7 @@ const downloadQR = async () => {
 
         ctx.fillStyle = '#6B7280';
         ctx.font = '500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillText('Pembayaran Resmi SPP', leftTextX, topY + 38);
+        ctx.fillText(props.invoice?.is_pendaftaran ? 'Pembayaran Pendaftaran Siswa' : 'Pembayaran Resmi SPP', leftTextX, topY + 38);
 
         // Teks QRIS di Ujung Kanan Atas
         ctx.textAlign = 'right';
@@ -337,8 +337,8 @@ const downloadQR = async () => {
         ctx.fillText(amountFormatted.value, 320, 576);
 
         // Deskripsi & Nama Siswa
-        const studentName = props.invoice?.siswa?.nama_siswa || '';
-        const desc = props.invoice?.description || 'Pembayaran SPP';
+        const studentName = props.invoice?.siswa?.nama_siswa || props.invoice?.nama_siswa || '';
+        const desc = props.invoice?.description || (props.invoice?.is_pendaftaran ? 'Biaya Pendaftaran' : 'Pembayaran SPP');
         ctx.fillStyle = '#334155';
         ctx.font = '600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
         const displayDesc = studentName ? `${studentName} — ${desc}` : desc;
@@ -637,10 +637,10 @@ const activeTab = ref(0);
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <Link :href="route('tagihan.spp.success', { siswa: invoice.id_siswa || invoice.siswa_id, invoice_id: invoice.id })" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition-all active:scale-95">
+                    <Link :href="invoice.is_pendaftaran ? route('registration.success.pending', { pending: invoice.id }) : route('tagihan.spp.success', { siswa: invoice.id_siswa || invoice.siswa_id, invoice_id: invoice.id })" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition-all active:scale-95">
                         Lihat Bukti Pembayaran
                     </Link>
-                    <Link :href="route('tagihan.spp.form')" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600 transition-all">
+                    <Link :href="invoice.is_pendaftaran ? '/' : route('tagihan.spp.form')" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600 transition-all">
                         Kembali
                     </Link>
                 </div>
@@ -654,8 +654,8 @@ const activeTab = ref(0);
                 <h2 class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-2">Waktu Habis</h2>
                 <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">Waktu pembayaran untuk tagihan ini telah berakhir.</p>
                 <div>
-                    <Link :href="route('tagihan.spp.form')" class="w-full sm:w-auto inline-flex justify-center rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-all dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
-                        Buat Tagihan Baru
+                    <Link :href="invoice.is_pendaftaran ? '/' : route('tagihan.spp.form')" class="w-full sm:w-auto inline-flex justify-center rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-all dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
+                        {{ invoice.is_pendaftaran ? 'Kembali ke Beranda' : 'Buat Tagihan Baru' }}
                     </Link>
                 </div>
             </div>

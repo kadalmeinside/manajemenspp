@@ -31,6 +31,8 @@ class StoreRegistrationRequest extends FormRequest
             'terms'                => 'accepted',
             'legal_document_id'    => 'required|exists:legal_documents,id',
             'kode_promo'           => 'nullable|string|exists:promos,kode_promo',
+            'payment_type'         => 'nullable|string|in:VA,QRIS',
+            'bank_code'            => 'nullable|string|max:20',
         ];
     }
 

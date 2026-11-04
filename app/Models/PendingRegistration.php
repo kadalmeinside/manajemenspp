@@ -32,6 +32,9 @@ class PendingRegistration extends Model
         'xendit_external_id',
         'xendit_invoice_id',
         'xendit_payment_url',
+        'payment_gateway',
+        'payment_method',
+        'checkout_data',
         'status',
         'expires_at',
     ];
@@ -41,6 +44,7 @@ class PendingRegistration extends Model
         'amount' => 'decimal:2',
         'admin_fee' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'checkout_data' => 'array',
         'expires_at' => 'datetime',
     ];
 }

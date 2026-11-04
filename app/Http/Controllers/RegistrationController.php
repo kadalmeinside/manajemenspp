@@ -44,6 +44,9 @@ class RegistrationController extends Controller
         $docId = \App\Models\Setting::where('key', 'legal_doc_registration_academy')->value('value');
         $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
 
+        $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? config('payment.active_gateway', 'xendit');
+        $mdrConfig = \App\Services\PaymentService::getMdrConfig();
+
         return Inertia::render('Public/RegisterAcademy', [
             'pageTitle' => 'Formulir Pendaftaran Siswa Academy',
             'academyClass' => [
@@ -53,6 +56,8 @@ class RegistrationController extends Controller
                 'biaya_pendaftaran_saat_ini' => $academyClass->getBiayaPendaftaranSaatIni(),
             ],
             'termsDocument' => $terms,
+            'active_gateway' => $activeGateway,
+            'mdr_config' => $mdrConfig,
         ]);
     }
 
@@ -68,6 +73,9 @@ class RegistrationController extends Controller
             ->orderBy('nama_kelas')
             ->get();
 
+        $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? config('payment.active_gateway', 'xendit');
+        $mdrConfig = \App\Services\PaymentService::getMdrConfig();
+
         return Inertia::render('Public/RegisterSs', [
             'pageTitle' => 'Formulir Pendaftaran Siswa Soccer School',
             'allKelas' => $allKelas->map(function ($kelas) {
@@ -80,6 +88,8 @@ class RegistrationController extends Controller
                 ];
             }),
             'termsDocument' => $terms,
+            'active_gateway' => $activeGateway,
+            'mdr_config' => $mdrConfig,
         ]);
     }
 
@@ -96,6 +106,9 @@ class RegistrationController extends Controller
             ->orderBy('nama_kelas')
             ->get();
 
+        $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? config('payment.active_gateway', 'xendit');
+        $mdrConfig = \App\Services\PaymentService::getMdrConfig();
+
         return Inertia::render('Public/RegisterSs', [
             'pageTitle' => 'Formulir Pendaftaran Women Soccer School',
             'branchLabel' => 'Pilih Cabang Women Soccer School',
@@ -109,6 +122,8 @@ class RegistrationController extends Controller
                 ];
             }),
             'termsDocument' => $terms,
+            'active_gateway' => $activeGateway,
+            'mdr_config' => $mdrConfig,
         ]);
     }
 
@@ -198,14 +213,17 @@ class RegistrationController extends Controller
             ->where('status', '!=', 'paid')
             ->first();
 
+        $paymentType = $request->validated('payment_type') ?: 'VA';
+        $bankCode = $request->validated('bank_code') ?: 'BCA';
+
         $biayaFinal = $kelas->getBiayaPendaftaranSaatIni($kodePromoInput);
         $adminFee = (float) ($kelas->admin_fee_custom ?? 0);
-        $mdrConfig = \App\Services\PaymentService::getMdrConfig();
-        if ($mdrConfig['enabled'] && $mdrConfig['enable_pendaftaran']) {
-            $adminFee += (float) round($mdrConfig['va_flat']);
-        }
+        $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? config('payment.active_gateway', 'xendit');
+        $paymentService = app(\App\Services\PaymentService::class);
+        $adminFee += $paymentService->calculateAdminFee(null, $biayaFinal, $paymentType, $activeGateway, 'pendaftaran');
         $totalAmount = $biayaFinal + $adminFee;
         $externalId = 'PREG-'.strtoupper(Str::random(10));
+        $paymentMethod = $paymentType . ($paymentType === 'VA' && $bankCode ? ' ' . strtoupper($bankCode) : '');
 
         if ($pendingReg) {
             // Update existing pending registration
@@ -232,6 +250,9 @@ class RegistrationController extends Controller
                 'xendit_external_id' => $externalId,
                 'status' => 'pending',
                 'expires_at' => now()->addMinutes(30),
+                'payment_gateway' => $activeGateway,
+                'payment_method' => $paymentMethod,
+                'checkout_data' => null,
             ]);
         } else {
             // Create new pending registration
@@ -251,6 +272,9 @@ class RegistrationController extends Controller
                 'xendit_external_id' => $externalId,
                 'status' => 'pending',
                 'expires_at' => now()->addMinutes(30),
+                'payment_gateway' => $activeGateway,
+                'payment_method' => $paymentMethod,
+                'checkout_data' => null,
             ]);
         }
 
@@ -266,34 +290,65 @@ class RegistrationController extends Controller
             ];
             $deskripsi = "Biaya Pendaftaran - {$pendingReg->nama_siswa}";
 
-            $pgInvoiceData = $gatewayService->createInvoice(
-                $pendingReg->amount,
-                $pendingReg->admin_fee,
-                $deskripsi,
-                $payerInfo,
-                $pendingReg->xendit_external_id,
-                $successUrl,
-                route('payment.failure'),
-                now()->addMinutes(30),
-                ['email', 'whatsapp']
-            );
+            if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && $paymentType) {
+                $pgInvoiceData = $gatewayService->createCustomPayment(
+                    $pendingReg->amount,
+                    $pendingReg->admin_fee,
+                    $deskripsi,
+                    $payerInfo,
+                    $pendingReg->xendit_external_id,
+                    now()->addMinutes(30),
+                    $paymentType,
+                    $bankCode ?? ''
+                );
 
-            if (! $pgInvoiceData || ! isset($pgInvoiceData['invoice_url'])) {
-                throw new \Exception('Payment Gateway tidak mengembalikan invoice_url yang valid.');
+                if (! $pgInvoiceData) {
+                    throw new \Exception("Gagal membuat tagihan custom {$activeGateway}.");
+                }
+
+                $pendingReg->update([
+                    'xendit_invoice_id' => $pgInvoiceData['id'] ?? $pendingReg->xendit_external_id,
+                    'xendit_payment_url' => route('pendaftaran.custom_pay', ['pending' => $pendingReg->id]),
+                    'checkout_data' => $pgInvoiceData,
+                ]);
+
+                // Increment kuota promo yang dipakai (Hold Quota)
+                $appliedPromos = $kelas->getAppliedPromos($kodePromoInput);
+                foreach ($appliedPromos as $promo) {
+                    $promo->increment('current_uses');
+                }
+
+                return Inertia::location(route('pendaftaran.custom_pay', ['pending' => $pendingReg->id]));
+            } else {
+                $pgInvoiceData = $gatewayService->createInvoice(
+                    $pendingReg->amount,
+                    $pendingReg->admin_fee,
+                    $deskripsi,
+                    $payerInfo,
+                    $pendingReg->xendit_external_id,
+                    $successUrl,
+                    route('payment.failure'),
+                    now()->addMinutes(30),
+                    ['email', 'whatsapp']
+                );
+
+                if (! $pgInvoiceData || ! isset($pgInvoiceData['invoice_url'])) {
+                    throw new \Exception('Payment Gateway tidak mengembalikan invoice_url yang valid.');
+                }
+
+                $pendingReg->update([
+                    'xendit_invoice_id' => $pgInvoiceData['id'],
+                    'xendit_payment_url' => $pgInvoiceData['invoice_url'],
+                ]);
+
+                // Increment kuota promo yang dipakai (Hold Quota)
+                $appliedPromos = $kelas->getAppliedPromos($kodePromoInput);
+                foreach ($appliedPromos as $promo) {
+                    $promo->increment('current_uses');
+                }
+
+                return Inertia::location($pgInvoiceData['invoice_url']);
             }
-
-            $pendingReg->update([
-                'xendit_invoice_id' => $pgInvoiceData['id'],
-                'xendit_payment_url' => $pgInvoiceData['invoice_url'],
-            ]);
-
-            // Increment kuota promo yang dipakai (Hold Quota)
-            $appliedPromos = $kelas->getAppliedPromos($kodePromoInput);
-            foreach ($appliedPromos as $promo) {
-                $promo->increment('current_uses');
-            }
-
-            return Inertia::location($pgInvoiceData['invoice_url']);
 
         } catch (Throwable $e) {
             Log::error('[Pendaftaran] Gagal panggil Payment Gateway.', [
@@ -305,5 +360,38 @@ class RegistrationController extends Controller
                 'general' => 'Gagal membuat link pembayaran. Silakan coba beberapa saat lagi.',
             ]);
         }
+    }
+
+    /**
+     * Menampilkan halaman instruksi pembayaran kustom (VA / QRIS) untuk pendaftaran.
+     */
+    public function customPay(Request $request, PendingRegistration $pending)
+    {
+        if (!in_array($pending->payment_gateway, ['gapura', 'midtrans_custom']) || empty($pending->checkout_data)) {
+            return redirect()->route('register-academy.create')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk pendaftaran ini.']);
+        }
+
+        $pending->load('kelas');
+
+        $invoiceData = [
+            'id' => $pending->id,
+            'amount' => (float) $pending->amount,
+            'admin_fee' => (float) $pending->admin_fee,
+            'total_amount' => (float) $pending->total_amount,
+            'status' => strtoupper($pending->status) === 'PAID' ? 'PAID' : (now()->gt($pending->expires_at) ? 'EXPIRED' : 'PENDING'),
+            'due_date' => $pending->expires_at ? $pending->expires_at->toIso8601String() : now()->addMinutes(30)->toIso8601String(),
+            'description' => "Biaya Pendaftaran - {$pending->nama_siswa}" . ($pending->kelas ? " ({$pending->kelas->nama_kelas})" : ''),
+            'external_id_xendit' => $pending->xendit_external_id,
+            'payment_method' => $pending->payment_method,
+            'nama_siswa' => $pending->nama_siswa,
+            'is_pendaftaran' => true,
+            'kelas' => $pending->kelas,
+        ];
+
+        return Inertia::render('Public/CustomPay', [
+            'invoice' => $invoiceData,
+            'checkoutData' => $pending->checkout_data,
+            'pageTitle' => 'Pembayaran Pendaftaran Siswa',
+        ]);
     }
 }

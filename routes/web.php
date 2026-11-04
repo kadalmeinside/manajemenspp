@@ -72,6 +72,7 @@ Route::post('/pendaftaran', [RegistrationController::class, 'store'])->middlewar
 Route::post('/pendaftaran/check-email', [RegistrationController::class, 'checkEmail'])->middleware('throttle:30,1')->name('pendaftaran.check-email');
 Route::get('/pendaftaran/sukses/{siswa}', [RegistrationSuccessController::class, 'show'])->name('registration.success');
 Route::get('/pendaftaran/pending/{pending}', [RegistrationSuccessController::class, 'showPending'])->name('registration.success.pending');
+Route::get('/pendaftaran/checkout/{pending}', [RegistrationController::class, 'customPay'])->name('pendaftaran.custom_pay');
 Route::post('/promo/validate', [RegistrationController::class, 'validatePromoCode'])->middleware('throttle:30,1')->name('promo.validate');
 
 // Google OAuth Routes

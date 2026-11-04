@@ -9,6 +9,7 @@ import FormStepper from '@/Components/FormStepper.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
+import BankLogo from '@/Components/BankLogo.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -16,10 +17,14 @@ const props = defineProps({
     academyClass: Object, 
     termsDocument: Object,
     errors: Object,
+    active_gateway: String,
+    mdr_config: Object,
 });
 
 const page = usePage();
 const flash = computed(() => page.props.flash);
+
+const isVaEnabled = computed(() => props.mdr_config?.enable_va !== false);
 
 const form = useForm({
     nama_siswa: '',
@@ -31,6 +36,8 @@ const form = useForm({
     terms: false,
     legal_document_id: props.termsDocument?.id || null,
     kode_promo: '',
+    payment_type: isVaEnabled.value ? 'VA' : 'QRIS',
+    bank_code: isVaEnabled.value ? 'BCA' : '',
 });
 
 // --- State untuk Harga & Promo ---
@@ -83,6 +90,27 @@ const promoCodeDiscountAmount = computed(() => {
     if (!appliedPromoCodeData.value) return 0;
     return biayaSetelahPromoOtomatis.value - biayaSaatIni.value;
 });
+
+const isCustomGateway = computed(() => ['midtrans_custom', 'gapura'].includes(props.active_gateway));
+
+const calculatedAdminFee = computed(() => {
+    const isMdrGateway = ['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway);
+    if (isMdrGateway && props.mdr_config?.enabled) {
+        if (!props.mdr_config.enable_pendaftaran) {
+            return 0;
+        }
+        if (form.payment_type === 'QRIS') {
+            const pct = Number(props.mdr_config.qris_percent ?? 0.7);
+            return Math.ceil(biayaSaatIni.value * (pct / 100));
+        }
+        if (form.payment_type === 'VA') {
+            return Math.round(Number(props.mdr_config.va_flat ?? 4440));
+        }
+    }
+    return 0;
+});
+
+const totalAmount = computed(() => biayaSaatIni.value + calculatedAdminFee.value);
 
 const applyPromoCode = async () => {
     if (!inputKodePromo.value) return;
@@ -274,9 +302,20 @@ const submit = () => {
                         <span>{{ appliedPromoCodeData.name }}</span>
                         <span>- {{ formatCurrency(promoCodeDiscountAmount) }}</span>
                     </div>
+                    <div v-if="isCustomGateway" class="flex justify-between items-center text-gray-600 dark:text-gray-300">
+                        <span>
+                            Biaya Layanan
+                            <template v-if="mdr_config?.enabled && mdr_config?.enable_pendaftaran">
+                                ({{ form.payment_type === 'QRIS' ? `QRIS ${mdr_config.qris_percent}%` : `VA ${form.bank_code}` }})
+                            </template>
+                        </span>
+                        <span class="font-medium" :class="calculatedAdminFee === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-900 dark:text-gray-200'">
+                            {{ calculatedAdminFee === 0 ? 'Gratis (Rp 0)' : formatCurrency(calculatedAdminFee) }}
+                        </span>
+                    </div>
                     <div class="flex justify-between items-center text-xl font-bold text-gray-900 dark:text-white pt-3 border-t border-gray-200 dark:border-gray-700">
                         <span>Total Biaya</span>
-                        <span class="text-red-600">{{ formatCurrency(biayaSaatIni) }}</span>
+                        <span class="text-red-600">{{ formatCurrency(totalAmount) }}</span>
                     </div>
                     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <InputLabel for="kode_promo" value="Punya Kode Promo?" />
@@ -288,6 +327,37 @@ const submit = () => {
                             <button v-else @click="removePromoCode" type="button" class="text-sm font-medium text-red-600 hover:text-red-500">Hapus</button>
                         </div>
                         <p v-if="promoMessage.text" class="mt-2 text-sm" :class="promoMessage.type === 'success' ? 'text-green-600' : 'text-red-600'">{{ promoMessage.text }}</p>
+                    </div>
+                </div>
+
+                <!-- Pemilihan Metode Pembayaran (Jika Gateway Custom / Midtrans Core API) -->
+                <div v-if="isCustomGateway" class="mt-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div class="mb-3">
+                        <label class="block text-sm font-bold text-gray-900 dark:text-white">Pilih Metode Pembayaran</label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pembayaran akan langsung diverifikasi otomatis</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        <template v-if="isVaEnabled">
+                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'BCA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'BCA' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="BCA" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'MANDIRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'MANDIRI' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="MANDIRI" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'BNI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'BNI' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'BRI' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'PERMATA' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                        </template>
+                        <button type="button" @click="form.payment_type = 'QRIS'; form.bank_code = ''" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'QRIS' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                            <BankLogo bank="QRIS" class="h-6 w-auto max-w-[80px]" />
+                        </button>
                     </div>
                 </div>
             
