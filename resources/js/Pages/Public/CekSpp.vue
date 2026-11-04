@@ -13,6 +13,7 @@ import Checkbox from '@/Components/Checkbox.vue';
 import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import BankLogo from '@/Components/BankLogo.vue';
+import PaymentMethodModal from '@/Components/PaymentMethodModal.vue';
 
 const props = defineProps({
     pageTitle: String,
@@ -616,77 +617,23 @@ const formatPeriod = (dateStr) => {
             </transition>
         </main>
 
-        <!-- Modal Pilihan Pembayaran -->
-        <Modal :show="isPaymentModalOpen" @close="isPaymentModalOpen = false" maxWidth="md">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">Pilih Metode Pembayaran</h2>
-                    <button @click="isPaymentModalOpen = false" class="text-gray-400 hover:text-gray-500">
-                        <XMarkIcon class="h-6 w-6" />
-                    </button>
-                </div>
-                
-                <div v-if="['midtrans', 'midtrans_custom', 'gapura'].includes(active_gateway)" class="w-full">
-                    <div class="grid grid-cols-2 gap-3 mb-5">
-                        <template v-if="isVaEnabled">
-                            <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="BCA" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="MANDIRI" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button v-if="['midtrans', 'midtrans_custom'].includes(active_gateway)" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button v-if="['midtrans', 'midtrans_custom'].includes(active_gateway)" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                        </template>
-                        <button type="button" @click="paymentForm.paymentType = 'QRIS'; paymentForm.bankCode = ''" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'QRIS' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                            <BankLogo bank="QRIS" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                    </div>
-
-                    <!-- Rincian Tagihan & Biaya Layanan (MDR) -->
-                    <div class="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 space-y-2 text-sm">
-                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
-                            <span>Tagihan SPP ({{ selectedPeriods.length }} bulan)</span>
-                            <span class="font-medium text-gray-900 dark:text-gray-200">{{ formatCurrency(selectedSppAmount) }}</span>
-                        </div>
-                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
-                            <span>
-                                Biaya Layanan
-                                <template v-if="mdr_config?.enabled && mdr_config?.enable_spp">
-                                    ({{ paymentForm.paymentType === 'QRIS' ? `QRIS ${mdr_config.qris_percent}%` : `VA ${paymentForm.bankCode}` }})
-                                </template>
-                            </span>
-                            <span class="font-medium" :class="calculatedAdminFee === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-900 dark:text-gray-200'">
-                                {{ calculatedAdminFee === 0 ? 'Gratis (Rp 0)' : formatCurrency(calculatedAdminFee) }}
-                            </span>
-                        </div>
-                        <div class="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center font-bold text-base text-gray-900 dark:text-white">
-                            <span>Total Bayar</span>
-                            <span class="text-emerald-600 dark:text-emerald-400">{{ totalSelectedAmountFormatted }}</span>
-                        </div>
-                    </div>
-
-                    <button @click="submitPayment" :disabled="paymentForm.processing" class="w-full relative group overflow-hidden rounded-2xl p-[2px]">
-                        <span class="absolute inset-0 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-2xl opacity-70 group-hover:opacity-100 blur transition-opacity duration-300"></span>
-                        <div class="relative bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold px-8 py-3.5 rounded-[14px] flex items-center justify-center transition-all shadow-inner border border-white/20">
-                            <CreditCardIcon v-if="!paymentForm.processing" class="h-5 w-5 mr-2 group-hover:animate-pulse" />
-                            <svg v-else class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span class="tracking-wide">{{ paymentForm.processing ? 'Memproses...' : 'Lanjutkan Pembayaran' }}</span>
-                        </div>
-                    </button>
-                </div>
-                <div v-else class="text-center py-6 text-gray-500">
-                    Sistem pembayaran sedang tidak tersedia.
-                </div>
-            </div>
-        </Modal>
+        <!-- Modal Pilihan Pembayaran Reusable -->
+        <PaymentMethodModal
+            :show="isPaymentModalOpen"
+            :activeGateway="active_gateway"
+            :mdrConfig="mdr_config"
+            module="spp"
+            :baseAmount="selectedSppAmount"
+            :baseAmountLabel="`Tagihan SPP (${selectedPeriods.length} bulan)`"
+            :paymentType="paymentForm.paymentType"
+            :bankCode="paymentForm.bankCode"
+            :processing="paymentForm.processing"
+            themeColor="emerald"
+            @update:show="isPaymentModalOpen = $event"
+            @update:paymentType="paymentForm.paymentType = $event"
+            @update:bankCode="paymentForm.bankCode = $event"
+            @submit="submitPayment"
+        />
 
         <footer class="w-full max-w-4xl mx-auto mt-8 text-center text-sm text-gray-600 dark:text-gray-400 relative transition-all duration-700 pb-8">
             <p>Contact Center: 0811-2626-323</p>

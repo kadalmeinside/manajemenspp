@@ -10,6 +10,7 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import BankLogo from '@/Components/BankLogo.vue';
+import PaymentMethodModal from '@/Components/PaymentMethodModal.vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -192,19 +193,26 @@ const prevStep = () => {
     }
 };
 
-const submit = () => {
+const isPaymentModalOpen = ref(false);
+
+const handleDaftarClick = () => {
     let hasClientErrors = false;
     form.clearErrors();
 
     if (!form.email_wali) { form.setError('email_wali', 'Email wajib diisi.'); hasClientErrors = true; }
-    
-
     if (!form.terms) { form.setError('terms', 'Anda harus menyetujui syarat dan ketentuan.'); hasClientErrors = true; }
     
     if (hasClientErrors) return;
 
-    form.post(route('pendaftaran.store'), {
-    });
+    if (['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway)) {
+        isPaymentModalOpen.value = true;
+    } else {
+        submit();
+    }
+};
+
+const submit = () => {
+    form.post(route('pendaftaran.store'));
 };
 </script>
 
@@ -218,7 +226,7 @@ const submit = () => {
             <p class="mt-4 text-lg font-medium text-gray-700 dark:text-gray-300">Memproses Pendaftaran...</p>
         </div>
 
-        <form v-if="!flash?.success" @submit.prevent="submit" novalidate class="space-y-6">
+        <form v-if="!flash?.success" @submit.prevent="handleDaftarClick" novalidate class="space-y-6">
             <div v-if="errors.general" class="p-4 bg-red-100 text-red-700 rounded-md">{{ errors.general }}</div>
             
             <FormStepper :steps="steps" :currentStep="currentStep" />
@@ -302,20 +310,9 @@ const submit = () => {
                         <span>{{ appliedPromoCodeData.name }}</span>
                         <span>- {{ formatCurrency(promoCodeDiscountAmount) }}</span>
                     </div>
-                    <div v-if="isCustomGateway" class="flex justify-between items-center text-gray-600 dark:text-gray-300">
-                        <span>
-                            Biaya Layanan
-                            <template v-if="mdr_config?.enabled && mdr_config?.enable_pendaftaran">
-                                ({{ form.payment_type === 'QRIS' ? `QRIS ${mdr_config.qris_percent}%` : `VA ${form.bank_code}` }})
-                            </template>
-                        </span>
-                        <span class="font-medium" :class="calculatedAdminFee === 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-900 dark:text-gray-200'">
-                            {{ calculatedAdminFee === 0 ? 'Gratis (Rp 0)' : formatCurrency(calculatedAdminFee) }}
-                        </span>
-                    </div>
                     <div class="flex justify-between items-center text-xl font-bold text-gray-900 dark:text-white pt-3 border-t border-gray-200 dark:border-gray-700">
                         <span>Total Biaya</span>
-                        <span class="text-red-600">{{ formatCurrency(totalAmount) }}</span>
+                        <span class="text-red-600">{{ formatCurrency(biayaSaatIni) }}</span>
                     </div>
                     <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <InputLabel for="kode_promo" value="Punya Kode Promo?" />
@@ -330,37 +327,6 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- Pemilihan Metode Pembayaran (Jika Gateway Custom / Midtrans Core API) -->
-                <div v-if="isCustomGateway" class="mt-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <div class="mb-3">
-                        <label class="block text-sm font-bold text-gray-900 dark:text-white">Pilih Metode Pembayaran</label>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Pembayaran akan langsung diverifikasi otomatis</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                        <template v-if="isVaEnabled">
-                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'BCA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'BCA' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="BCA" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'MANDIRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'MANDIRI' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="MANDIRI" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'BNI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'BNI' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'BRI' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                            <button type="button" @click="form.payment_type = 'VA'; form.bank_code = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'VA' && form.bank_code === 'PERMATA' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                                <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
-                            </button>
-                        </template>
-                        <button type="button" @click="form.payment_type = 'QRIS'; form.bank_code = ''" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', form.payment_type === 'QRIS' ? 'border-red-500 bg-red-50 ring-2 ring-red-500/20 shadow-sm dark:bg-red-950/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                            <BankLogo bank="QRIS" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                    </div>
-                </div>
-            
                 <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-900 border-2 rounded-lg transition-all duration-700" :class="!form.terms ? 'border-red-300 dark:border-red-800 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'border-gray-200 dark:border-gray-700'">
                     <div class="mb-3">
                         <span class="text-xs font-bold uppercase tracking-wider" :class="!form.terms ? 'text-red-500' : 'text-green-600'">
@@ -405,4 +371,22 @@ const submit = () => {
             </div>
         </div>
     </Modal>
+
+    <!-- Modal Pilihan Pembayaran Reusable -->
+    <PaymentMethodModal
+        :show="isPaymentModalOpen"
+        :activeGateway="active_gateway"
+        :mdrConfig="mdr_config"
+        module="pendaftaran"
+        :baseAmount="biayaSaatIni"
+        baseAmountLabel="Biaya Pendaftaran"
+        :paymentType="form.payment_type"
+        :bankCode="form.bank_code"
+        :processing="form.processing"
+        themeColor="red"
+        @update:show="isPaymentModalOpen = $event"
+        @update:paymentType="form.payment_type = $event"
+        @update:bankCode="form.bank_code = $event"
+        @submit="submit"
+    />
 </template>
