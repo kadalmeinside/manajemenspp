@@ -242,3 +242,4 @@ const getButtonClass = (type, bank = '') => {
         </div>
     </Modal>
 </template>
+

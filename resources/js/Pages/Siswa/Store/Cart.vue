@@ -1,10 +1,11 @@
 <script setup>
 import SiswaLayout from '@/Layouts/SiswaLayout.vue';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import InputError from '@/Components/InputError.vue';
 import Modal from '@/Components/Modal.vue';
+import PaymentMethodModal from '@/Components/PaymentMethodModal.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { TrashIcon, ArrowLeftIcon, ShoppingBagIcon } from '@heroicons/vue/24/outline';
@@ -12,6 +13,8 @@ import { TrashIcon, ArrowLeftIcon, ShoppingBagIcon } from '@heroicons/vue/24/out
 const props = defineProps({
     cart: Object,
     siswas: Array,
+    active_gateway: String,
+    mdr_config: Object,
 });
 
 const formatRupiah = (number) => {
@@ -24,8 +27,34 @@ const subtotal = computed(() => {
     return items.value.reduce((total, item) => total + (item.variant.price * item.quantity), 0);
 });
 
-const feeAmount = 4500; // Hardcoded for now, or get from config
-const grandTotal = computed(() => subtotal.value > 0 ? subtotal.value + feeAmount : 0);
+const isCustomGateway = computed(() => ['midtrans_custom', 'gapura'].includes(props.active_gateway));
+const isVaEnabled = computed(() => props.mdr_config?.enable_va !== false);
+const showPaymentModal = ref(false);
+
+const checkoutForm = useForm({
+    siswa_id: props.siswas && props.siswas.length === 1 ? props.siswas[0].id_siswa : '',
+    payment_type: isVaEnabled.value ? 'VA' : 'QRIS',
+    bank_code: isVaEnabled.value ? 'BCA' : '',
+    force: false,
+});
+
+const feeAmount = computed(() => {
+    if (subtotal.value <= 0) return 0;
+    const isMdrGateway = ['midtrans', 'midtrans_custom', 'gapura'].includes(props.active_gateway);
+    if (isMdrGateway) {
+        if (!props.mdr_config?.enabled || !props.mdr_config?.enable_store) {
+            return 0;
+        }
+        if (checkoutForm.payment_type === 'QRIS') {
+            const pct = Number(props.mdr_config.qris_percent ?? 0.7);
+            return Math.ceil(subtotal.value * (pct / 100));
+        }
+        return Math.round(Number(props.mdr_config.va_flat ?? 4440));
+    }
+    return 4500;
+});
+
+const grandTotal = computed(() => subtotal.value > 0 ? subtotal.value + feeAmount.value : 0);
 
 const updateQuantity = (item, newQuantity) => {
     if (newQuantity < 1) return;
@@ -48,12 +77,8 @@ const getMainImage = (product) => {
     return product.image_path;
 };
 
-const checkoutForm = useForm({
-    siswa_id: props.siswas && props.siswas.length === 1 ? props.siswas[0].id_siswa : '',
-    force: false,
-});
-
-const checkout = () => {
+const submitCheckout = () => {
+    showPaymentModal.value = false;
     checkoutForm.post(route('siswa.store.checkout'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -62,6 +87,19 @@ const checkout = () => {
             }
         },
     });
+};
+
+const checkout = () => {
+    checkoutForm.clearErrors();
+    if (!checkoutForm.siswa_id) {
+        checkoutForm.setError('siswa_id', 'Silakan pilih siswa terlebih dahulu.');
+        return;
+    }
+    if (isCustomGateway.value) {
+        showPaymentModal.value = true;
+        return;
+    }
+    submitCheckout();
 };
 
 const forceCheckout = () => {
@@ -166,8 +204,8 @@ const forceCheckout = () => {
                                     <span class="font-bold text-gray-900 dark:text-white">{{ formatRupiah(subtotal) }}</span>
                                 </div>
                                 <div class="flex justify-between text-gray-600 dark:text-gray-400 font-medium pb-4 border-b border-gray-100 dark:border-gray-700/60">
-                                    <span>Biaya Layanan (Xendit)</span>
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ subtotal > 0 ? formatRupiah(feeAmount) : formatRupiah(0) }}</span>
+                                    <span>Biaya Layanan</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{ subtotal > 0 ? (feeAmount > 0 ? formatRupiah(feeAmount) : 'Gratis') : formatRupiah(0) }}</span>
                                 </div>
                                 <div class="flex justify-between items-center pt-3">
                                     <span class="font-bold text-gray-900 dark:text-white text-base md:text-lg">Total Tagihan</span>
@@ -190,7 +228,7 @@ const forceCheckout = () => {
                             
                             <div class="mt-8">
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center">
-                                    Dengan menekan tombol Checkout, Anda akan diarahkan ke halaman pembayaran aman Xendit.
+                                    Dengan menekan tombol Checkout, Anda akan diarahkan ke halaman instruksi pembayaran resmi.
                                 </p>
                                 <button 
                                     @click="checkout"
@@ -206,6 +244,20 @@ const forceCheckout = () => {
                 
             </div>
         </div>
+
+        <PaymentMethodModal
+            :show="showPaymentModal"
+            :active-gateway="active_gateway"
+            :mdr-config="mdr_config"
+            module="store"
+            :subtotal="subtotal"
+            subtotal-label="Subtotal Belanja"
+            v-model:payment-type="checkoutForm.payment_type"
+            v-model:bank-code="checkoutForm.bank_code"
+            :processing="checkoutForm.processing"
+            @close="showPaymentModal = false"
+            @confirm="submitCheckout"
+        />
 
         <!-- Modal Konfirmasi Override Pesanan Pending -->
         <Modal :show="$page.props.flash && $page.props.flash.pending_order_conflict" maxWidth="md">

@@ -7,6 +7,7 @@ import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import Modal from '@/Components/Modal.vue';
+import PaymentMethodModal from '@/Components/PaymentMethodModal.vue';
 import FormStepper from '@/Components/FormStepper.vue';
 import AnimatedBackground from '@/Components/AnimatedBackground.vue';
 import axios from 'axios';
@@ -15,8 +16,15 @@ const props = defineProps({
     pageTitle: String,
     allKelas: Array,
     registrationFee: Number,
+    termsDocument: Object,
+    active_gateway: String,
+    mdr_config: Object,
     errors: Object,
 });
+
+const isCustomGateway = computed(() => ['midtrans_custom', 'gapura'].includes(props.active_gateway));
+const isVaEnabled = computed(() => props.mdr_config?.enable_va !== false);
+const showPaymentModal = ref(false);
 
 const form = useForm({
     nama_siswa: '',
@@ -26,6 +34,9 @@ const form = useForm({
     email_wali: '',
     nomor_telepon_wali: '',
     terms: false,
+    legal_document_id: props.termsDocument?.id || '',
+    payment_type: isVaEnabled.value ? 'VA' : 'QRIS',
+    bank_code: isVaEnabled.value ? 'BCA' : '',
 });
 
 // State untuk modal Syarat & Ketentuan
@@ -105,6 +116,15 @@ const prevStep = () => {
         currentStep.value--;
     }
 };
+const submitRegistration = () => {
+    showPaymentModal.value = false;
+    form.post(route('pendaftaran.store'), {
+        onError: () => {
+            // form reset
+        },
+    });
+};
+
 const submit = () => {
     let hasClientErrors = false;
     form.clearErrors();
@@ -115,18 +135,21 @@ const submit = () => {
         return; // Hentikan proses jika ada error di frontend
     }
 
-    form.post(route('pendaftaran.store'), {
-        onError: () => {
-            // form reset
-        },
-    });
+    if (isCustomGateway.value) {
+        showPaymentModal.value = true;
+        return;
+    }
+
+    submitRegistration();
 };
 
+const selectedKelasPrice = computed(() => {
+    const k = props.allKelas?.find(item => item.id_kelas === form.id_kelas);
+    return Number(k?.biaya_pendaftaran || props.registrationFee || 0);
+});
+
 const formattedFee = computed(() => {
-    if (props.registrationFee === undefined || props.registrationFee === null) {
-        return 'Rp 0';
-    }
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(props.registrationFee);
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(selectedKelasPrice.value);
 });
 </script>
 
@@ -286,6 +309,20 @@ const formattedFee = computed(() => {
             </div>
         </Modal>
         
+        <PaymentMethodModal
+            :show="showPaymentModal"
+            :active-gateway="active_gateway"
+            :mdr-config="mdr_config"
+            module="pendaftaran"
+            :subtotal="selectedKelasPrice"
+            subtotal-label="Biaya Pendaftaran"
+            v-model:payment-type="form.payment_type"
+            v-model:bank-code="form.bank_code"
+            :processing="form.processing"
+            @close="showPaymentModal = false"
+            @confirm="submitRegistration"
+        />
+
         <!-- Loading Overlay Layar Penuh -->
         <transition enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
             <div v-if="form.processing" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">

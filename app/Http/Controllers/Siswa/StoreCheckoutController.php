@@ -27,13 +27,17 @@ class StoreCheckoutController extends Controller
     public function checkout(Request $request)
     {
         $request->validate([
-            'siswa_id' => 'required|exists:siswa,id_siswa',
+            'siswa_id'     => 'required|exists:siswa,id_siswa',
+            'payment_type' => 'nullable|string|in:VA,QRIS',
+            'bank_code'    => 'nullable|string',
         ], [
             'siswa_id.required' => 'Silakan pilih siswa terlebih dahulu.',
         ]);
 
         $user = Auth::user();
         $force = $request->boolean('force');
+        $paymentType = $request->input('payment_type') ?: 'VA';
+        $bankCode = $request->input('bank_code') ?: 'BCA';
 
         // Validasi Anti-Hoarding: Cek apakah user masih punya pesanan PENDING
         $pendingOrders = Order::with('items.variant')
@@ -90,7 +94,7 @@ class StoreCheckoutController extends Controller
             $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
             $siswa         = Siswa::find($request->siswa_id);
 
-            $totalAmount = 0;
+            $subtotalAmount = 0;
             $orderNumber = 'ORD-WEB-' . date('Ymd') . '-' . strtoupper(Str::random(5));
 
             $order = Order::create([
@@ -126,8 +130,8 @@ class StoreCheckoutController extends Controller
                     ]);
                 }
 
-                $subtotal     = $variant->price * $item->quantity;
-                $totalAmount += $subtotal;
+                $subtotal        = $variant->price * $item->quantity;
+                $subtotalAmount += $subtotal;
 
                 OrderItem::create([
                     'order_id'          => $order->id,
@@ -139,23 +143,15 @@ class StoreCheckoutController extends Controller
                 ]);
             }
 
-            $order->update(['total_amount' => $totalAmount]);
+            // Hitung biaya layanan toko berdasarkan konfigurasi MDR & metode pembayaran
+            $paymentService = app(\App\Services\PaymentService::class);
+            $feeAmount = $paymentService->calculateAdminFee(null, $subtotalAmount, $paymentType, $activeGateway, 'store');
 
-            // Ambil admin fee dari pengaturan MDR toko, pengaturan siswa, atau default global
-            $mdrConfig = \App\Services\PaymentService::getMdrConfig();
-            $feeAmount = 0.0;
-            if ($mdrConfig['enabled'] && $mdrConfig['enable_store']) {
-                $feeAmount = (float) round($mdrConfig['va_flat']);
-            }
-            if ($feeAmount === 0.0) {
-                $feeAmount = $siswa ? (float) ($siswa->admin_fee_custom ?? 0) : 0;
-                if ($feeAmount === 0.0) {
-                    $feeAmount = (float) (\App\Models\Setting::where('key', 'default_admin_fee')->value('value') ?? 0);
-                }
-            }
+            $grandTotal = $subtotalAmount + $feeAmount;
+            $order->update(['total_amount' => $grandTotal]);
 
-            // External ID menggunakan prefix UNIF- yang konsisten dengan webhook
-            $externalId = 'UNIF-' . substr($siswa->id_siswa ?? $order->id, 0, 8) . '-' . strtoupper(Str::random(8));
+            // External ID menggunakan prefix STORE_INV_ yang konsisten dengan webhook
+            $externalId = 'STORE_INV_' . strtoupper(Str::random(12));
 
             $payerInfo = [
                 'email' => $user->email,
@@ -163,10 +159,63 @@ class StoreCheckoutController extends Controller
                 'phone' => $siswa?->nomor_telepon_wali ?? '081234567890',
             ];
 
+            $description = "Pembayaran Toko/Merchandise (Order: $orderNumber)";
+
+            if (in_array($activeGateway, ['midtrans_custom', 'gapura']) && $paymentType) {
+                $pgData = $this->gateway->createCustomPayment(
+                    $subtotalAmount,
+                    $feeAmount,
+                    $description,
+                    $payerInfo,
+                    $externalId,
+                    now()->addHours(24),
+                    $paymentType,
+                    $bankCode ?? ''
+                );
+
+                if (!$pgData) {
+                    throw new \Exception("Gagal membuat tagihan custom {$activeGateway}.");
+                }
+
+                $safeCheckoutData = collect($pgData)->only([
+                    'id',
+                    'payment_type',
+                    'bank_code',
+                    'va_number',
+                    'virtual_account_number',
+                    'biller_code',
+                    'bill_key',
+                    'qris_string',
+                    'qr_url',
+                    'amount',
+                    'expiry_date',
+                ])->toArray();
+
+                $paymentUrl = route('siswa.store.orders.custom_pay', ['order' => $order->id]);
+                $methodLabel = $paymentType . ($paymentType === 'VA' && $bankCode ? ' ' . strtoupper($bankCode) : '');
+
+                $order->update([
+                    'external_id'    => $externalId,
+                    'payment_url'    => $paymentUrl,
+                    'payment_method' => $methodLabel,
+                    'notes'          => json_encode([
+                        'gateway'       => $activeGateway,
+                        'fee_amount'    => $feeAmount,
+                        'subtotal'      => $subtotalAmount,
+                        'checkout_data' => $safeCheckoutData,
+                    ]),
+                ]);
+
+                $cart->items()->delete();
+                DB::commit();
+
+                return \Inertia\Inertia::location($paymentUrl);
+            }
+
             $invoice = $this->gateway->createInvoice(
-                $totalAmount,
+                $subtotalAmount,
                 $feeAmount,
-                "Pembayaran Toko/Merchandise (Order: $orderNumber)",
+                $description,
                 $payerInfo,
                 $externalId,
                 route('siswa.store.orders.index'),
@@ -184,18 +233,17 @@ class StoreCheckoutController extends Controller
                 'external_id'    => $externalId,
                 'payment_url'    => $paymentUrl,
                 'payment_method' => strtoupper($activeGateway),
+                'notes'          => json_encode([
+                    'gateway'    => $activeGateway,
+                    'fee_amount' => $feeAmount,
+                    'subtotal'   => $subtotalAmount,
+                ]),
             ]);
 
             // Kosongkan keranjang
             $cart->items()->delete();
 
             DB::commit();
-
-            // Redirect berdasarkan gateway yang aktif
-            // Midtrans Custom / Gapura → halaman custom checkout
-            if (in_array($activeGateway, ['midtrans_custom', 'gapura']) && !empty($invoice['checkout_data'])) {
-                return \Inertia\Inertia::location(route('tagihan.spp.custom_pay', ['invoice' => $order->id]));
-            }
 
             // Xendit / Midtrans Snap → langsung redirect ke payment URL
             return \Inertia\Inertia::location($paymentUrl);
@@ -204,5 +252,53 @@ class StoreCheckoutController extends Controller
             DB::rollBack();
             return back()->with('error', 'Gagal memproses checkout: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Menampilkan halaman instruksi pembayaran kustom (VA / QRIS) untuk Order Toko.
+     */
+    public function customPay(Request $request, Order $order)
+    {
+        if ($order->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $meta = json_decode($order->notes ?? '{}', true) ?: [];
+        $checkoutData = $meta['checkout_data'] ?? null;
+
+        if (empty($checkoutData)) {
+            return redirect()->route('siswa.store.orders.show', $order->id);
+        }
+
+        $order->load('siswa.kelas');
+
+        $dueDate = !empty($checkoutData['expiry_date'])
+            ? \Carbon\Carbon::parse($checkoutData['expiry_date'])->toIso8601String()
+            : $order->created_at->addHours(24)->toIso8601String();
+
+        $invoiceData = [
+            'id'                 => $order->id,
+            'id_siswa'           => $order->siswa_id,
+            'amount'             => (float) ($meta['subtotal'] ?? $order->total_amount),
+            'admin_fee'          => (float) ($meta['fee_amount'] ?? 0),
+            'total_amount'       => (float) $order->total_amount,
+            'status'             => in_array($order->status, ['PAID', 'COMPLETED']) ? 'PAID' : (in_array($order->status, ['EXPIRED', 'CANCELLED', 'FAILED']) ? 'EXPIRED' : 'PENDING'),
+            'due_date'           => $dueDate,
+            'description'        => "Pembayaran Toko/Merchandise ({$order->order_number})",
+            'external_id_xendit' => $order->external_id,
+            'payment_method'     => $order->payment_method,
+            'is_store_order'     => true,
+            'siswa'              => $order->siswa ? [
+                'id_siswa'   => $order->siswa->id_siswa,
+                'nama_siswa' => $order->siswa->nama_siswa,
+                'nis'        => $order->siswa->nis,
+            ] : null,
+        ];
+
+        return \Inertia\Inertia::render('Public/CustomPay', [
+            'invoice'      => $invoiceData,
+            'checkoutData' => $checkoutData,
+            'pageTitle'    => 'Pembayaran Merchandise',
+        ]);
     }
 }

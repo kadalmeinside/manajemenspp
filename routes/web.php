@@ -225,6 +225,7 @@ Route::middleware(['auth', 'verified', 'role:siswa'])->prefix('siswa')
         Route::delete('/toko/keranjang/{cartItem}', [\App\Http\Controllers\Siswa\StoreController::class, 'removeCartItem'])->name('store.cart.remove');
         // Checkout & Orders
         Route::post('/toko/checkout', [\App\Http\Controllers\Siswa\StoreCheckoutController::class, 'checkout'])->name('store.checkout');
+        Route::get('/toko/pesanan/{order}/checkout', [\App\Http\Controllers\Siswa\StoreCheckoutController::class, 'customPay'])->name('store.orders.custom_pay');
         Route::get('/toko/pesanan', [\App\Http\Controllers\Siswa\StoreOrderController::class, 'index'])->name('store.orders.index');
         Route::get('/toko/pesanan/{order}', [\App\Http\Controllers\Siswa\StoreOrderController::class, 'show'])->name('store.orders.show');
         

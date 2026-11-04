@@ -25,12 +25,16 @@ class RegistrationController extends Controller
         $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
 
         $allKelas = Kelas::orderBy('nama_kelas')->get();
+        $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? config('payment.active_gateway', 'xendit');
+        $mdrConfig = \App\Services\PaymentService::getMdrConfig();
 
         return Inertia::render('Public/Registration', [
             'pageTitle' => 'Formulir Pendaftaran Umum',
             'allKelas' => $allKelas,
             'registrationFee' => 0,
             'termsDocument' => $terms,
+            'active_gateway' => $activeGateway,
+            'mdr_config' => $mdrConfig,
         ]);
     }
 
@@ -226,6 +230,19 @@ class RegistrationController extends Controller
         $paymentMethod = $paymentType . ($paymentType === 'VA' && $bankCode ? ' ' . strtoupper($bankCode) : '');
 
         if ($pendingReg) {
+            // Kembalikan kuota promo lama jika sebelumnya masih berstatus pending agar tidak double-increment
+            if ($pendingReg->status === 'pending' && $pendingReg->kode_promo) {
+                $oldKelas = Kelas::find($pendingReg->id_kelas);
+                if ($oldKelas) {
+                    $oldPromos = $oldKelas->getAppliedPromos($pendingReg->kode_promo);
+                    foreach ($oldPromos as $oldPromo) {
+                        if ($oldPromo->current_uses > 0) {
+                            $oldPromo->decrement('current_uses');
+                        }
+                    }
+                }
+            }
+
             // Update existing pending registration
             // Jika ada invoice xendit lama yang pending, expire dulu
             if ($pendingReg->xendit_invoice_id && $pendingReg->status === 'pending') {
@@ -373,6 +390,20 @@ class RegistrationController extends Controller
 
         $pending->load('kelas');
 
+        $safeCheckoutData = collect($pending->checkout_data)->only([
+            'id',
+            'payment_type',
+            'bank_code',
+            'va_number',
+            'virtual_account_number',
+            'biller_code',
+            'bill_key',
+            'qris_string',
+            'qr_url',
+            'amount',
+            'expiry_date',
+        ])->toArray();
+
         $invoiceData = [
             'id' => $pending->id,
             'amount' => (float) $pending->amount,
@@ -385,12 +416,15 @@ class RegistrationController extends Controller
             'payment_method' => $pending->payment_method,
             'nama_siswa' => $pending->nama_siswa,
             'is_pendaftaran' => true,
-            'kelas' => $pending->kelas,
+            'kelas' => $pending->kelas ? [
+                'id_kelas' => $pending->kelas->id_kelas,
+                'nama_kelas' => $pending->kelas->nama_kelas,
+            ] : null,
         ];
 
         return Inertia::render('Public/CustomPay', [
             'invoice' => $invoiceData,
-            'checkoutData' => $pending->checkout_data,
+            'checkoutData' => $safeCheckoutData,
             'pageTitle' => 'Pembayaran Pendaftaran Siswa',
         ]);
     }

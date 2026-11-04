@@ -51,10 +51,14 @@ class StoreController extends Controller
             ->firstOrCreate(['user_id' => Auth::id()]);
 
         $siswas = Auth::user()->siswas;
+        $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? config('payment.active_gateway', 'xendit');
+        $mdrConfig = \App\Services\PaymentService::getMdrConfig();
 
         return Inertia::render('Siswa/Store/Cart', [
             'cart' => $cart,
             'siswas' => $siswas,
+            'active_gateway' => $activeGateway,
+            'mdr_config' => $mdrConfig,
         ]);
     }
 

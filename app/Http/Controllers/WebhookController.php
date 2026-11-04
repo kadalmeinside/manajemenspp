@@ -49,7 +49,7 @@ class WebhookController extends Controller
         $xenditCallbackToken = $request->header('x-callback-token');
         $storedCallbackToken = config('xendit.callback_verification_token');
 
-        if (!$storedCallbackToken || $xenditCallbackToken !== $storedCallbackToken) {
+        if (!$storedCallbackToken || !$xenditCallbackToken || !hash_equals((string) $storedCallbackToken, (string) $xenditCallbackToken)) {
             Log::warning('[Xendit Webhook] TOKEN VERIFICATION FAILED.', [
                 'ip' => $request->ip(),
             ]);
@@ -120,7 +120,22 @@ class WebhookController extends Controller
                 return response()->json(['message' => 'Non-PAID event recorded']);
             }
 
-            // === 7. UPDATE INVOICE UTAMA ===
+            // === 7. VALIDASI NOMINAL & UPDATE INVOICE UTAMA ===
+            $paidAmount = $payload['paid_amount'] ?? $payload['amount'] ?? null;
+            if ($paidAmount !== null && is_numeric($paidAmount)) {
+                $expectedAmount = (int) round((float) $invoice->total_amount);
+                $receivedAmount = (int) round((float) $paidAmount);
+                if ($receivedAmount < $expectedAmount) {
+                    DB::rollBack();
+                    Log::error('[Xendit Webhook] AMOUNT MISMATCH! Pembayaran kurang dari tagihan.', [
+                        'invoice_id'      => $invoice->id,
+                        'expected_amount' => $expectedAmount,
+                        'received_amount' => $receivedAmount,
+                    ]);
+                    return response()->json(['message' => 'Amount mismatch'], 400);
+                }
+            }
+
             $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now())->setTimezone(config('app.timezone'));
             $paymentMethod = $payload['payment_channel'] ?? $payload['payment_method'] ?? null;
 
@@ -310,6 +325,21 @@ class WebhookController extends Controller
 
             // Jika belum lunas dan status dari webhook adalah PAID
             if ($payloadStatus === 'PAID') {
+                if ($grossAmount !== null && is_numeric($grossAmount)) {
+                    $expectedAmount = (int) round((float) $invoice->total_amount);
+                    $receivedAmount = (int) round((float) $grossAmount);
+                    if ($receivedAmount < $expectedAmount) {
+                        DB::rollBack();
+                        Log::error('[Midtrans Webhook] AMOUNT MISMATCH! Pembayaran kurang dari tagihan.', [
+                            'invoice_id'      => $invoice->id,
+                            'order_id'        => $orderId,
+                            'expected_amount' => $expectedAmount,
+                            'received_amount' => $receivedAmount,
+                        ]);
+                        return response()->json(['message' => 'Amount mismatch'], 400);
+                    }
+                }
+
                 $paidTimeStr = $payload['settlement_time'] ?? $payload['transaction_time'] ?? null;
                 $now = $paidTimeStr ? Carbon::parse($paidTimeStr)->setTimezone(config('app.timezone')) : Carbon::now();
 

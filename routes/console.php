@@ -26,3 +26,7 @@ Schedule::command('queue:work database --stop-when-empty --tries=3 --timeout=60'
 // 2. Jalankan otomatis setiap tanggal 25 jam 00:00 (Generate tagihan SPP bulanan)
 Schedule::command('spp:auto-generate')->monthlyOn(25, '00:00');
 
+// 3. Bersihkan pendaftaran & pesanan toko yang melewati batas waktu pembayaran setiap 5 menit
+Schedule::command('payment:expire-pending')->everyFiveMinutes()->withoutOverlapping();
+
+

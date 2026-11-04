@@ -303,20 +303,56 @@ class TagihanController extends Controller
 
     public function customPay(Request $request, Invoice $invoice)
     {
-        // Pastikan invoice ini gapura dan punya checkout_data
+        // Pastikan invoice ini gapura / midtrans_custom dan punya checkout_data
         if (!in_array($invoice->payment_gateway, ['gapura', 'midtrans_custom']) || empty($invoice->checkout_data)) {
-            // redirect to appropriate page
             if (auth()->check() && auth()->user()->hasRole(['siswa', 'siswa_wali'])) {
                 return redirect()->route('siswa.invoices.index')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk tagihan ini.']);
             }
             return redirect()->route('tagihan.spp.form')->withErrors(['error' => 'Metode pembayaran ini tidak didukung untuk tagihan ini.']);
         }
 
-        $invoice->load(['siswa.kelas', 'childInvoices']);
+        $invoice->load(['siswa.kelas']);
+
+        $safeCheckoutData = collect($invoice->checkout_data)->only([
+            'id',
+            'payment_type',
+            'bank_code',
+            'va_number',
+            'virtual_account_number',
+            'biller_code',
+            'bill_key',
+            'qris_string',
+            'qr_url',
+            'amount',
+            'expiry_date',
+        ])->toArray();
+
+        $safeInvoice = [
+            'id' => $invoice->id,
+            'id_siswa' => $invoice->id_siswa,
+            'type' => $invoice->type,
+            'amount' => (float) $invoice->amount,
+            'admin_fee' => (float) $invoice->admin_fee,
+            'total_amount' => (float) $invoice->total_amount,
+            'status' => $invoice->status,
+            'due_date' => $invoice->due_date ? (\Carbon\Carbon::parse($invoice->due_date)->toIso8601String()) : null,
+            'description' => $invoice->description,
+            'external_id_xendit' => $invoice->external_id_xendit,
+            'payment_method' => $invoice->payment_method,
+            'siswa' => $invoice->siswa ? [
+                'id_siswa' => $invoice->siswa->id_siswa,
+                'nama_siswa' => $invoice->siswa->nama_siswa,
+                'nis' => $invoice->siswa->nis,
+                'kelas' => $invoice->siswa->kelas ? [
+                    'id_kelas' => $invoice->siswa->kelas->id_kelas,
+                    'nama_kelas' => $invoice->siswa->kelas->nama_kelas,
+                ] : null,
+            ] : null,
+        ];
 
         return Inertia::render('Public/CustomPay', [
-            'invoice' => $invoice,
-            'checkoutData' => $invoice->checkout_data,
+            'invoice' => $safeInvoice,
+            'checkoutData' => $safeCheckoutData,
             'pageTitle' => 'Pembayaran Tagihan',
         ]);
     }

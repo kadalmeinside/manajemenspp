@@ -54,7 +54,7 @@ class PendaftaranHandler
                 if (in_array($payloadStatus, ['EXPIRED', 'FAILED'])) {
                     // Release quota promo jika pembayaran kadaluarsa
                     $kelas = Kelas::find($pending->id_kelas);
-                    if ($kelas) {
+                    if ($kelas && $pending->kode_promo) {
                         $appliedPromos = $kelas->getAppliedPromos($pending->kode_promo);
                         foreach ($appliedPromos as $promo) {
                             if ($promo->current_uses > 0) {
@@ -66,6 +66,22 @@ class PendaftaranHandler
                 }
                 DB::commit();
                 return response()->json(['message' => 'Non-PAID event recorded']);
+            }
+
+            // Validasi kecocokan nominal (gross_amount / amount)
+            $paidAmount = $payload['gross_amount'] ?? $payload['amount']['value'] ?? $payload['amount'] ?? null;
+            if ($paidAmount !== null && is_numeric($paidAmount)) {
+                $expectedAmount = (int) round((float) $pending->total_amount);
+                $receivedAmount = (int) round((float) $paidAmount);
+                if ($receivedAmount < $expectedAmount) {
+                    DB::rollBack();
+                    Log::error('[Webhook PendingReg] AMOUNT MISMATCH! Pembayaran kurang dari tagihan.', [
+                        'external_id'     => $externalId,
+                        'expected_amount' => $expectedAmount,
+                        'received_amount' => $receivedAmount,
+                    ]);
+                    return response()->json(['message' => 'Amount mismatch'], 400);
+                }
             }
 
             // === PROSES PEMBUATAN AKUN & SISWA ===
@@ -99,7 +115,7 @@ class PendaftaranHandler
                 'status_siswa'       => 'Aktif', // Langsung aktif karena sudah bayar!
                 'tanggal_bergabung'  => now(),
                 'jumlah_spp_custom'  => $biayaSppDefault,
-                'admin_fee_custom'   => $pending->admin_fee,
+                'admin_fee_custom'   => 0,
             ]);
             $siswa->generateNis();
 
@@ -112,9 +128,10 @@ class PendaftaranHandler
             ]);
 
             $isMidtrans = isset($payload['transaction_status']) || isset($payload['signature_key']);
-            $paymentGateway = $isMidtrans
-                ? 'midtrans'
-                : (\App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit');
+            $paymentGateway = $pending->payment_gateway
+                ?: ($isMidtrans
+                    ? 'midtrans'
+                    : (\App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit'));
 
             $paymentMethod = $payload['payment_channel'] ?? $payload['payment_method'] ?? null;
             if (!$paymentMethod && isset($payload['payment_type'])) {
@@ -128,6 +145,9 @@ class PendaftaranHandler
                 } else {
                     $paymentMethod = strtoupper($pType);
                 }
+            }
+            if (!$paymentMethod && $pending->payment_method) {
+                $paymentMethod = $pending->payment_method;
             }
 
             $deskripsi = "Biaya Pendaftaran - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
@@ -175,6 +195,20 @@ class PendaftaranHandler
             }
 
             DB::commit();
+
+            // Kirim notifikasi real-time ke Admin
+            try {
+                $gatewayLabel = strtoupper(str_replace('_', ' ', $paymentGateway));
+                app(\App\Services\NotificationService::class)->sendToAdmins([
+                    'title'   => 'Pendaftaran & Pembayaran Berhasil',
+                    'message' => "Siswa baru {$siswa->nama_siswa} telah mendaftar dan membayar ({$gatewayLabel}).",
+                    'type'    => 'payment_success',
+                    'url'     => '/admin/siswa/pendaftar-lunas',
+                ], $siswa->id_kelas ?? null);
+            } catch (Throwable $e) {
+                Log::error('[Webhook PendingReg] Gagal mengirim notifikasi admin.', ['error' => $e->getMessage()]);
+            }
+
             return response()->json(['message' => 'Pending registration processed successfully']);
 
         } catch (Throwable $e) {

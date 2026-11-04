@@ -29,6 +29,10 @@ class StoreOrderController extends Controller
         }
 
         $order->load(['items.product', 'items.variant']);
+        $meta = json_decode($order->notes ?? '{}', true) ?: [];
+        if (isset($meta['fee_amount'])) {
+            $order->setAttribute('fee_amount', (float) $meta['fee_amount']);
+        }
 
         return Inertia::render('Siswa/Orders/Show', [
             'order' => $order,

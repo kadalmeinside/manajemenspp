@@ -637,10 +637,10 @@ const activeTab = ref(0);
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <Link :href="invoice.is_pendaftaran ? route('registration.success.pending', { pending: invoice.id }) : route('tagihan.spp.success', { siswa: invoice.id_siswa || invoice.siswa_id, invoice_id: invoice.id })" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition-all active:scale-95">
-                        Lihat Bukti Pembayaran
+                    <Link :href="invoice.is_pendaftaran ? route('registration.success.pending', { pending: invoice.id }) : (invoice.is_store_order ? route('siswa.store.orders.show', invoice.id) : route('tagihan.spp.success', { siswa: invoice.id_siswa || invoice.siswa_id, invoice_id: invoice.id }))" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 transition-all active:scale-95">
+                        {{ invoice.is_store_order ? 'Lihat Detail Pesanan' : 'Lihat Bukti Pembayaran' }}
                     </Link>
-                    <Link :href="invoice.is_pendaftaran ? '/' : route('tagihan.spp.form')" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600 transition-all">
+                    <Link :href="invoice.is_pendaftaran ? '/' : (invoice.is_store_order ? route('siswa.store.orders.index') : route('tagihan.spp.form'))" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600 transition-all">
                         Kembali
                     </Link>
                 </div>
@@ -654,8 +654,8 @@ const activeTab = ref(0);
                 <h2 class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-2">Waktu Habis</h2>
                 <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">Waktu pembayaran untuk tagihan ini telah berakhir.</p>
                 <div>
-                    <Link :href="invoice.is_pendaftaran ? '/' : route('tagihan.spp.form')" class="w-full sm:w-auto inline-flex justify-center rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-all dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
-                        {{ invoice.is_pendaftaran ? 'Kembali ke Beranda' : 'Buat Tagihan Baru' }}
+                    <Link :href="invoice.is_pendaftaran ? '/' : (invoice.is_store_order ? route('siswa.store.index') : route('tagihan.spp.form'))" class="w-full sm:w-auto inline-flex justify-center rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-all dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
+                        {{ invoice.is_pendaftaran ? 'Kembali ke Beranda' : (invoice.is_store_order ? 'Kembali ke Toko' : 'Buat Tagihan Baru') }}
                     </Link>
                 </div>
             </div>

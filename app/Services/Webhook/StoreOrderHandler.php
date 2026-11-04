@@ -68,7 +68,26 @@ class StoreOrderHandler
 
             // === PAID ===
             if ($payloadStatus === 'PAID') {
-                $order->update(['status' => 'PAID']);
+                $paidAmount = $payload['gross_amount'] ?? $payload['paid_amount'] ?? $payload['amount']['value'] ?? $payload['amount'] ?? null;
+                if ($paidAmount !== null && is_numeric($paidAmount)) {
+                    $expectedAmount = (int) round((float) $order->total_amount);
+                    $receivedAmount = (int) round((float) $paidAmount);
+                    if ($receivedAmount < $expectedAmount) {
+                        DB::rollBack();
+                        Log::error('[Webhook StoreOrder] AMOUNT MISMATCH! Pembayaran kurang dari tagihan.', [
+                            'order_id'        => $order->id,
+                            'external_id'     => $externalId,
+                            'expected_amount' => $expectedAmount,
+                            'received_amount' => $receivedAmount,
+                        ]);
+                        return response()->json(['message' => 'Amount mismatch'], 400);
+                    }
+                }
+
+                $order->update([
+                    'status'  => 'PAID',
+                    'paid_at' => now(),
+                ]);
                 DB::commit();
                 return response()->json(['message' => 'Order successfully marked as PAID']);
             }
