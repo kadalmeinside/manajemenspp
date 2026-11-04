@@ -218,6 +218,7 @@ class CekSppController extends Controller
             'pendingLeaveMonths' => $pendingLeaveMonths,
             'lastPeriod'         => $lastPeriod ? $lastPeriod->format('Y-m-d') : null,
             'active_gateway'     => config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit',
+            'mdr_config'         => \App\Services\PaymentService::getMdrConfig(),
         ]);
     }
     

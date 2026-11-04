@@ -26,7 +26,16 @@ const openInstructions = ref(false);
 const paymentType = computed(() => props.checkoutData?.payment_type || '');
 const bankCode = computed(() => props.checkoutData?.bank_code || '');
 const vaNumber = computed(() => props.checkoutData?.va_number || props.checkoutData?.virtual_account_number || '');
+const billerCode = computed(() => props.checkoutData?.biller_code || '');
+const billKey = computed(() => props.checkoutData?.bill_key || '');
 const qrisString = computed(() => props.checkoutData?.qris_string || '');
+const qrImageSrc = computed(() => {
+    if (!qrisString.value) return props.checkoutData?.qr_url || '';
+    if (/^https?:\/\//i.test(qrisString.value)) {
+        return qrisString.value;
+    }
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrisString.value)}`;
+});
 const amount = computed(() => props.invoice?.total_amount || 0);
 const amountFormatted = computed(() => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount.value));
 
@@ -101,7 +110,9 @@ const copyToClipboard = async (text) => {
 
 const downloadQR = () => {
     const link = document.createElement('a');
-    link.href = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(qrisString.value)}`;
+    link.href = /^https?:\/\//i.test(qrisString.value)
+        ? qrisString.value
+        : `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(qrisString.value)}`;
     link.download = `QRIS-${props.invoice.external_id_xendit || props.invoice.id}.png`;
     document.body.appendChild(link);
     link.click();
@@ -405,16 +416,28 @@ const activeTab = ref(0);
                             </div>
                         </div>
 
-                        <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-2 shadow-sm">
-                            <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nomor Virtual Account</p>
-                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                                <p class="text-lg sm:text-xl font-mono font-black text-gray-900 dark:text-white tracking-wide break-all">
-                                    {{ vaNumber }}
-                                </p>
-                                <button @click="copyToClipboard(vaNumber)" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-bold text-sm hover:bg-indigo-100 transition-colors shadow-sm dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50">
-                                    <DocumentDuplicateIcon class="w-4 h-4 mr-1.5" />
-                                    {{ copySuccess ? 'Tersalin!' : 'Salin' }}
-                                </button>
+                        <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-2 shadow-sm space-y-3">
+                            <div v-if="billerCode && billKey" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3 border-b border-gray-100 dark:border-gray-600">
+                                <div>
+                                    <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Kode Perusahaan (Biller Code)</p>
+                                    <p class="text-base font-mono font-bold text-gray-900 dark:text-white">{{ billerCode }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Kode Bayar (Bill Key)</p>
+                                    <p class="text-base font-mono font-bold text-gray-900 dark:text-white">{{ billKey }}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Nomor Virtual Account</p>
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                    <p class="text-lg sm:text-xl font-mono font-black text-gray-900 dark:text-white tracking-wide break-all">
+                                        {{ vaNumber }}
+                                    </p>
+                                    <button @click="copyToClipboard(vaNumber)" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-bold text-sm hover:bg-indigo-100 transition-colors shadow-sm dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50">
+                                        <DocumentDuplicateIcon class="w-4 h-4 mr-1.5" />
+                                        {{ copySuccess ? 'Tersalin!' : 'Salin' }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -432,7 +455,7 @@ const activeTab = ref(0);
                         </div>
 
                         <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-3xl p-6 mb-2 inline-block shadow-sm">
-                            <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrisString)}`" alt="QRIS" class="w-48 h-48 sm:w-64 sm:h-64 mx-auto rounded-xl shadow-sm">
+                            <img :src="qrImageSrc" alt="QRIS" class="w-48 h-48 sm:w-64 sm:h-64 mx-auto rounded-xl shadow-sm">
                             
                             <div class="mt-6 flex justify-center">
                                 <button @click="downloadQR" class="inline-flex items-center justify-center px-5 py-2.5 bg-pink-50 text-pink-700 rounded-xl font-bold hover:bg-pink-100 transition-colors shadow-sm dark:bg-pink-900/30 dark:text-pink-400 dark:hover:bg-pink-900/50">

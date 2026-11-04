@@ -2,18 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreRegistrationRequest;
+use App\Http\Requests\ValidatePromoRequest;
 use App\Models\Kelas;
 use App\Models\LegalDocument;
 use App\Models\PendingRegistration;
 use App\Models\User;
-use App\Services\XenditService;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Http\Requests\StoreRegistrationRequest;
-use App\Http\Requests\ValidatePromoRequest;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Throwable;
@@ -31,10 +27,10 @@ class RegistrationController extends Controller
         $allKelas = Kelas::orderBy('nama_kelas')->get();
 
         return Inertia::render('Public/Registration', [
-            'pageTitle'       => 'Formulir Pendaftaran Umum',
-            'allKelas'        => $allKelas,
+            'pageTitle' => 'Formulir Pendaftaran Umum',
+            'allKelas' => $allKelas,
             'registrationFee' => 0,
-            'termsDocument'   => $terms,
+            'termsDocument' => $terms,
         ]);
     }
 
@@ -49,11 +45,11 @@ class RegistrationController extends Controller
         $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
 
         return Inertia::render('Public/RegisterAcademy', [
-            'pageTitle'   => 'Formulir Pendaftaran Siswa Academy',
+            'pageTitle' => 'Formulir Pendaftaran Siswa Academy',
             'academyClass' => [
-                'id_kelas'                  => $academyClass->id_kelas,
-                'nama_kelas'                => $academyClass->nama_kelas,
-                'biaya_pendaftaran_normal'   => (float) $academyClass->biaya_pendaftaran,
+                'id_kelas' => $academyClass->id_kelas,
+                'nama_kelas' => $academyClass->nama_kelas,
+                'biaya_pendaftaran_normal' => (float) $academyClass->biaya_pendaftaran,
                 'biaya_pendaftaran_saat_ini' => $academyClass->getBiayaPendaftaranSaatIni(),
             ],
             'termsDocument' => $terms,
@@ -69,17 +65,17 @@ class RegistrationController extends Controller
         $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
 
         $allKelas = Kelas::where('deskripsi', 'Soccer School')
-                         ->orderBy('nama_kelas')
-                         ->get();
+            ->orderBy('nama_kelas')
+            ->get();
 
         return Inertia::render('Public/RegisterSs', [
-            'pageTitle'     => 'Formulir Pendaftaran Siswa Soccer School',
-            'allKelas'      => $allKelas->map(function ($kelas) {
+            'pageTitle' => 'Formulir Pendaftaran Siswa Soccer School',
+            'allKelas' => $allKelas->map(function ($kelas) {
                 return [
-                    'id_kelas'                  => $kelas->id_kelas,
-                    'nama_kelas'                => $kelas->nama_kelas,
-                    'kode_cabang'               => $kelas->kode_cabang,
-                    'biaya_pendaftaran_normal'   => (float) $kelas->biaya_pendaftaran,
+                    'id_kelas' => $kelas->id_kelas,
+                    'nama_kelas' => $kelas->nama_kelas,
+                    'kode_cabang' => $kelas->kode_cabang,
+                    'biaya_pendaftaran_normal' => (float) $kelas->biaya_pendaftaran,
                     'biaya_pendaftaran_saat_ini' => $kelas->getBiayaPendaftaranSaatIni(),
                 ];
             }),
@@ -97,18 +93,18 @@ class RegistrationController extends Controller
         $terms = $docId ? LegalDocument::find($docId) : LegalDocument::latest('published_at')->first();
 
         $allKelas = Kelas::where('deskripsi', 'Women Soccer School')
-                         ->orderBy('nama_kelas')
-                         ->get();
+            ->orderBy('nama_kelas')
+            ->get();
 
         return Inertia::render('Public/RegisterSs', [
-            'pageTitle'     => 'Formulir Pendaftaran Women Soccer School',
-            'branchLabel'   => 'Pilih Cabang Women Soccer School',
-            'allKelas'      => $allKelas->map(function ($kelas) {
+            'pageTitle' => 'Formulir Pendaftaran Women Soccer School',
+            'branchLabel' => 'Pilih Cabang Women Soccer School',
+            'allKelas' => $allKelas->map(function ($kelas) {
                 return [
-                    'id_kelas'                  => $kelas->id_kelas,
-                    'nama_kelas'                => $kelas->nama_kelas,
-                    'kode_cabang'               => $kelas->kode_cabang,
-                    'biaya_pendaftaran_normal'   => (float) $kelas->biaya_pendaftaran,
+                    'id_kelas' => $kelas->id_kelas,
+                    'nama_kelas' => $kelas->nama_kelas,
+                    'kode_cabang' => $kelas->kode_cabang,
+                    'biaya_pendaftaran_normal' => (float) $kelas->biaya_pendaftaran,
                     'biaya_pendaftaran_saat_ini' => $kelas->getBiayaPendaftaranSaatIni(),
                 ];
             }),
@@ -123,14 +119,14 @@ class RegistrationController extends Controller
     {
         $validated = $request->validated();
 
-        $kelas          = Kelas::findOrFail($validated['id_kelas']);
-        $hargaNormal    = (float) $kelas->biaya_pendaftaran;
+        $kelas = Kelas::findOrFail($validated['id_kelas']);
+        $hargaNormal = (float) $kelas->biaya_pendaftaran;
         $hargaSetelahDiskon = $kelas->getBiayaPendaftaranSaatIni($request->validated('kode_promo'));
 
         if ($hargaSetelahDiskon < $hargaNormal) {
             return response()->json([
-                'success'   => true,
-                'message'   => 'Kode promo berhasil diterapkan!',
+                'success' => true,
+                'message' => 'Kode promo berhasil diterapkan!',
                 'new_price' => $hargaSetelahDiskon,
             ]);
         }
@@ -154,38 +150,39 @@ class RegistrationController extends Controller
 
         if ($user) {
             return response()->json([
-                'exists'   => true,
+                'exists' => true,
                 'children' => $user->siswas->pluck('nama_siswa')->toArray(),
             ]);
         }
 
         return response()->json([
-            'exists'   => false,
+            'exists' => false,
             'children' => [],
         ]);
     }
 
     /**
-     * Menyimpan aplikasi pendaftaran sementara dan memanggil Xendit.
-     * Tidak membuat User/Siswa/Invoice.
+     * Menyimpan aplikasi pendaftaran sementara dan memanggil Payment Gateway aktif.
+     * Tidak membuat User/Siswa/Invoice sebelum lunas.
      */
-    public function store(StoreRegistrationRequest $request, XenditService $xenditService)
+    public function store(StoreRegistrationRequest $request)
     {
+        $gatewayService = \App\Services\PaymentGatewayFactory::make();
         $validated = $request->validated();
-        
+
         // Format proper case
         $validated['nama_siswa'] = Str::title(strtolower(trim($validated['nama_siswa'])));
-        $validated['user_name']  = Str::title(strtolower(trim($validated['user_name'])));
+        $validated['user_name'] = Str::title(strtolower(trim($validated['user_name'])));
 
         $kelas = Kelas::findOrFail($validated['id_kelas']);
-        
+
         $kodePromoInput = $request->validated('kode_promo');
         // Deteksi existing user (Anak sudah ada dan aktif)
         $existingUser = User::where('email', $validated['email_wali'])->with('siswas')->first();
         if ($existingUser) {
             $existingChildren = $existingUser->siswas
                 ->pluck('nama_siswa')
-                ->map(fn($name) => strtolower(trim($name)))
+                ->map(fn ($name) => strtolower(trim($name)))
                 ->toArray();
 
             if (in_array(strtolower(trim($validated['nama_siswa'])), $existingChildren)) {
@@ -201,71 +198,71 @@ class RegistrationController extends Controller
             ->where('status', '!=', 'paid')
             ->first();
 
-        $biayaFinal  = $kelas->getBiayaPendaftaranSaatIni($kodePromoInput);
-        $adminFee    = (float)($kelas->admin_fee_custom ?? 0);
+        $biayaFinal = $kelas->getBiayaPendaftaranSaatIni($kodePromoInput);
+        $adminFee = (float) ($kelas->admin_fee_custom ?? 0);
         $totalAmount = $biayaFinal + $adminFee;
-        $externalId  = 'PREG-' . strtoupper(Str::random(10));
+        $externalId = 'PREG-'.strtoupper(Str::random(10));
 
         if ($pendingReg) {
             // Update existing pending registration
             // Jika ada invoice xendit lama yang pending, expire dulu
             if ($pendingReg->xendit_invoice_id && $pendingReg->status === 'pending') {
                 try {
-                    $xenditService->expireInvoice($pendingReg->xendit_invoice_id);
+                    $gatewayService->expireInvoice($pendingReg->xendit_invoice_id);
                 } catch (\Exception $e) {
-                    Log::warning('Failed to expire old xendit invoice: ' . $e->getMessage());
+                    Log::warning('Failed to expire old gateway invoice: '.$e->getMessage());
                 }
             }
-            
+
             $pendingReg->update([
-                'nama_wali'          => $validated['user_name'],
-                'tanggal_lahir'      => $validated['tanggal_lahir'],
-                'id_kelas'           => $kelas->id_kelas,
+                'nama_wali' => $validated['user_name'],
+                'tanggal_lahir' => $validated['tanggal_lahir'],
+                'id_kelas' => $kelas->id_kelas,
                 'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
-                'kode_promo'         => $kodePromoInput,
-                'legal_document_id'  => $validated['legal_document_id'],
-                'ip_address'         => $request->ip(),
-                'amount'             => $biayaFinal,
-                'admin_fee'          => $adminFee,
-                'total_amount'       => $totalAmount,
+                'kode_promo' => $kodePromoInput,
+                'legal_document_id' => $validated['legal_document_id'],
+                'ip_address' => $request->ip(),
+                'amount' => $biayaFinal,
+                'admin_fee' => $adminFee,
+                'total_amount' => $totalAmount,
                 'xendit_external_id' => $externalId,
-                'status'             => 'pending',
-                'expires_at'         => now()->addMinutes(30),
+                'status' => 'pending',
+                'expires_at' => now()->addMinutes(30),
             ]);
         } else {
             // Create new pending registration
             $pendingReg = PendingRegistration::create([
-                'email_wali'         => $validated['email_wali'],
-                'nama_wali'          => $validated['user_name'],
-                'nama_siswa'         => $validated['nama_siswa'],
-                'tanggal_lahir'      => $validated['tanggal_lahir'],
-                'id_kelas'           => $kelas->id_kelas,
+                'email_wali' => $validated['email_wali'],
+                'nama_wali' => $validated['user_name'],
+                'nama_siswa' => $validated['nama_siswa'],
+                'tanggal_lahir' => $validated['tanggal_lahir'],
+                'id_kelas' => $kelas->id_kelas,
                 'nomor_telepon_wali' => $validated['nomor_telepon_wali'],
-                'kode_promo'         => $kodePromoInput,
-                'legal_document_id'  => $validated['legal_document_id'],
-                'ip_address'         => $request->ip(),
-                'amount'             => $biayaFinal,
-                'admin_fee'          => $adminFee,
-                'total_amount'       => $totalAmount,
+                'kode_promo' => $kodePromoInput,
+                'legal_document_id' => $validated['legal_document_id'],
+                'ip_address' => $request->ip(),
+                'amount' => $biayaFinal,
+                'admin_fee' => $adminFee,
+                'total_amount' => $totalAmount,
                 'xendit_external_id' => $externalId,
-                'status'             => 'pending',
-                'expires_at'         => now()->addMinutes(30),
+                'status' => 'pending',
+                'expires_at' => now()->addMinutes(30),
             ]);
         }
 
         // =============================================================
-        // Panggil Xendit
+        // Panggil Payment Gateway Aktif
         // =============================================================
         try {
             $successUrl = route('registration.success.pending', ['pending' => $pendingReg->id]);
-            $payerInfo  = [
+            $payerInfo = [
                 'email' => $pendingReg->email_wali,
-                'name'  => $pendingReg->nama_wali,
+                'name' => $pendingReg->nama_wali,
                 'phone' => $pendingReg->nomor_telepon_wali,
             ];
             $deskripsi = "Biaya Pendaftaran - {$pendingReg->nama_siswa}";
 
-            $xenditInvoiceData = $xenditService->createInvoice(
+            $pgInvoiceData = $gatewayService->createInvoice(
                 $pendingReg->amount,
                 $pendingReg->admin_fee,
                 $deskripsi,
@@ -277,13 +274,13 @@ class RegistrationController extends Controller
                 ['email', 'whatsapp']
             );
 
-            if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
-                throw new \Exception('Xendit tidak mengembalikan invoice_url yang valid.');
+            if (! $pgInvoiceData || ! isset($pgInvoiceData['invoice_url'])) {
+                throw new \Exception('Payment Gateway tidak mengembalikan invoice_url yang valid.');
             }
 
             $pendingReg->update([
-                'xendit_invoice_id'  => $xenditInvoiceData['id'],
-                'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
+                'xendit_invoice_id' => $pgInvoiceData['id'],
+                'xendit_payment_url' => $pgInvoiceData['invoice_url'],
             ]);
 
             // Increment kuota promo yang dipakai (Hold Quota)
@@ -292,12 +289,12 @@ class RegistrationController extends Controller
                 $promo->increment('current_uses');
             }
 
-            return Inertia::location($xenditInvoiceData['invoice_url']);
+            return Inertia::location($pgInvoiceData['invoice_url']);
 
         } catch (Throwable $e) {
-            Log::error('[Pendaftaran] Gagal panggil Xendit.', [
+            Log::error('[Pendaftaran] Gagal panggil Payment Gateway.', [
                 'pending_id' => $pendingReg->id,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             return back()->withErrors([

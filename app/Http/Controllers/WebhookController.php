@@ -165,20 +165,24 @@ class WebhookController extends Controller
     /**
      * Kirim notifikasi real-time ke admin berdasarkan tipe invoice yang berhasil dibayar.
      */
-    private function sendPaymentNotification(Invoice $invoice): void
+    private function sendPaymentNotification(Invoice $invoice, string $gatewayLabel = 'Xendit'): void
     {
         $siswa   = $invoice->siswa;
+        if (!$siswa) {
+            return;
+        }
+
         $title   = 'Pembayaran Berhasil';
         $message = '';
         $url     = '/admin/invoices';
 
         if ($invoice->type === 'pendaftaran') {
             $title   = 'Pendaftaran & Pembayaran Berhasil';
-            $message = "Siswa baru {$siswa->nama_siswa} telah mendaftar dan membayar.";
+            $message = "Siswa baru {$siswa->nama_siswa} telah mendaftar dan membayar ({$gatewayLabel}).";
             $url     = '/admin/siswa/pendaftar-lunas';
         } elseif (in_array($invoice->type, ['spp', 'pembayaran_spp_gabungan'])) {
             $title   = 'Pembayaran SPP';
-            $message = "SPP untuk {$siswa->nama_siswa} telah dibayar (Xendit).";
+            $message = "SPP untuk {$siswa->nama_siswa} telah dibayar ({$gatewayLabel}).";
         }
 
         app(NotificationService::class)->sendToAdmins([
@@ -190,12 +194,41 @@ class WebhookController extends Controller
     }
 
     /**
+     * Ekstrak nama metode pembayaran spesifik dari payload Midtrans.
+     */
+    private function extractMidtransPaymentMethod(array $payload): string
+    {
+        $paymentType = strtolower($payload['payment_type'] ?? '');
+
+        if ($paymentType === 'bank_transfer') {
+            if (!empty($payload['va_numbers'][0]['bank'])) {
+                return strtoupper($payload['va_numbers'][0]['bank']) . '_VA';
+            }
+            if (!empty($payload['permata_va_number'])) {
+                return 'PERMATA_VA';
+            }
+            return 'BANK_TRANSFER';
+        }
+
+        if ($paymentType === 'echannel') {
+            return 'MANDIRI_VA';
+        }
+
+        if ($paymentType === 'cstore') {
+            return strtoupper($payload['store'] ?? 'CSTORE');
+        }
+
+        return strtoupper($paymentType ?: 'MIDTRANS');
+    }
+
+    /**
      * Menangani callback/webhook dari Midtrans.
      */
     public function handleMidtransCallback(Request $request)
     {
         $payload = $request->all();
-        $serverKey = config('midtrans.server_key') ?? \App\Models\Setting::where('key', 'midtrans_server_key')->value('value');
+        $dbServerKey = \App\Models\Setting::where('key', 'midtrans_server_key')->value('value');
+        $serverKey = !empty($dbServerKey) ? $dbServerKey : config('midtrans.server_key');
         
         $orderId = $payload['order_id'] ?? null;
         $statusCode = $payload['status_code'] ?? null;
@@ -205,34 +238,44 @@ class WebhookController extends Controller
         // Verifikasi Signature Key Midtrans
         $calculatedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
         
-        if ($signatureKey !== $calculatedSignature) {
+        if (!$signatureKey || !hash_equals($calculatedSignature, $signatureKey)) {
             Log::warning('[Midtrans Webhook] TOKEN VERIFICATION FAILED.', [
                 'ip' => $request->ip(),
-                'expected' => $calculatedSignature,
-                'received' => $signatureKey
+                'order_id' => $orderId,
             ]);
             return response()->json(['message' => 'Invalid signature key'], 403);
         }
-
-        $transactionStatus = $payload['transaction_status'] ?? '';
-        $payloadStatus = in_array($transactionStatus, ['settlement', 'capture']) ? 'PAID' : strtoupper($transactionStatus);
 
         if (!$orderId) {
             return response()->json(['message' => 'Missing order_id'], 400);
         }
 
-        // Delegasi Handler seperti Xendit
+        $transactionStatus = strtolower($payload['transaction_status'] ?? '');
+        $fraudStatus = strtolower($payload['fraud_status'] ?? 'accept');
+
+        if ($transactionStatus === 'settlement' || ($transactionStatus === 'capture' && $fraudStatus === 'accept')) {
+            $payloadStatus = 'PAID';
+        } elseif ($transactionStatus === 'expire') {
+            $payloadStatus = 'EXPIRED';
+        } elseif (in_array($transactionStatus, ['cancel', 'deny', 'failure'])) {
+            $payloadStatus = 'FAILED';
+        } else {
+            $payloadStatus = strtoupper($transactionStatus);
+        }
+
+        // Delegasi Handler untuk Pendaftaran Baru & Toko (Store Order)
         if (str_starts_with($orderId, 'PREG-')) {
             return $this->pendaftaranHandler->handlePendingRegistration($orderId, $payload, $payloadStatus);
         }
-        if (str_starts_with($orderId, 'STORE_INV_')) {
+
+        $isStoreOrder = str_starts_with($orderId, 'STORE_INV_') || \App\Models\Order::where('external_id', $orderId)->exists();
+        if ($isStoreOrder) {
             return $this->storeOrderHandler->handleStoreOrder($orderId, $payload, $payloadStatus);
         }
 
         // PROSES INVOICE BIASA
         DB::beginTransaction();
         try {
-            // Note: external_id_xendit refers to our order_id logically. (Bisa direname nanti)
             $invoice = Invoice::with(['siswa', 'childInvoices'])
                 ->where('external_id_xendit', $orderId)
                 ->lockForUpdate()
@@ -244,7 +287,7 @@ class WebhookController extends Controller
                 return response()->json(['message' => 'Invoice not found, skipping']);
             }
 
-            if ($invoice->payment_gateway !== 'midtrans') {
+            if (!in_array($invoice->payment_gateway, ['midtrans', 'midtrans_custom'])) {
                 DB::rollBack();
                 Log::warning('[Midtrans Webhook] Invoice bukan dari Midtrans.', ['order_id' => $orderId, 'gateway' => $invoice->payment_gateway]);
                 return response()->json(['message' => 'Not a Midtrans invoice, skipping']);
@@ -255,15 +298,26 @@ class WebhookController extends Controller
                 return response()->json(['message' => 'Already processed, skipping']);
             }
 
+            // Tangani status EXPIRED / FAILED
+            if (in_array($payloadStatus, ['EXPIRED', 'FAILED'])) {
+                $invoice->update([
+                    'status'                  => $payloadStatus,
+                    'xendit_callback_payload' => $payload,
+                ]);
+                DB::commit();
+                return response()->json(['message' => 'Midtrans non-PAID event recorded: ' . $payloadStatus]);
+            }
+
             // Jika belum lunas dan status dari webhook adalah PAID
             if ($payloadStatus === 'PAID') {
-                $now = Carbon::now();
+                $paidTimeStr = $payload['settlement_time'] ?? $payload['transaction_time'] ?? null;
+                $now = $paidTimeStr ? Carbon::parse($paidTimeStr)->setTimezone(config('app.timezone')) : Carbon::now();
 
                 // LUNASKAN INVOICE INDUK
                 $invoice->status = 'PAID';
                 $invoice->paid_at = $now;
-                // Kita simpan metode pembayaran jika ada
-                $invoice->payment_method = strtoupper($payload['payment_type'] ?? 'MIDTRANS'); 
+                $invoice->payment_method = $this->extractMidtransPaymentMethod($payload);
+                $invoice->xendit_callback_payload = $payload;
                 $invoice->save();
 
                 // Delegasi khusus berdasarkan tipe invoice
@@ -272,14 +326,14 @@ class WebhookController extends Controller
                 } elseif ($invoice->type === 'pembayaran_gabungan') {
                     $this->legacyBulkHandler->handle($invoice, $now);
                 } elseif ($invoice->type === 'pendaftaran') {
-                    // Aktifkan siswa dari status pending_payment -> Aktif (sama seperti Xendit)
                     $this->pendaftaranHandler->handleInvoicePendaftaran($invoice);
                 } else {
-                    // Update childs secara generik (spp individual, dll)
                     foreach ($invoice->childInvoices as $child) {
                         if ($child->status !== 'PAID') {
                             $child->status = 'PAID';
                             $child->paid_at = $now;
+                            $child->payment_method = $invoice->payment_method;
+                            $child->payment_gateway = $invoice->payment_gateway;
                             $child->save();
                         }
                     }
@@ -287,9 +341,9 @@ class WebhookController extends Controller
 
                 DB::commit();
 
-                // Kiri Notifikasi
+                // Kirim Notifikasi Real-time ke Admin
                 try {
-                    NotificationService::sendPaymentSuccessNotification($invoice);
+                    $this->sendPaymentNotification($invoice, 'Midtrans');
                 } catch (Throwable $e) {
                     Log::error('[Midtrans Webhook] Gagal mengirim notifikasi.', ['error' => $e->getMessage()]);
                 }
@@ -303,6 +357,7 @@ class WebhookController extends Controller
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('[Midtrans Webhook] GAGAL memproses.', [
+                'order_id' => $orderId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

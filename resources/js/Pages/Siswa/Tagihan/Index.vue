@@ -24,15 +24,18 @@ const props = defineProps({
     pageTitle: String,
     errors: Object,
     active_gateway: String,
+    mdr_config: Object,
 });
 
 const activeTab = ref('tagihan');
 const selectedPeriods = ref([]);
 
+const isVaEnabled = computed(() => props.mdr_config?.enable_va !== false);
+
 const paymentForm = useForm({
     periods: [],
-    paymentType: 'VA',
-    bankCode: 'BCA',
+    paymentType: isVaEnabled.value ? 'VA' : 'QRIS',
+    bankCode: isVaEnabled.value ? 'BCA' : '',
 });
 
 const displayList = computed(() => {
@@ -103,15 +106,31 @@ const displayList = computed(() => {
 });
 
 
-const totalSelectedAmount = computed(() => {
+const selectedSppAmount = computed(() => {
     if (selectedPeriods.value.length === 0) return 0;
-    
-    const totalSpp = displayList.value
+    return displayList.value
         .filter(item => selectedPeriods.value.includes(item.periode_tagihan))
         .reduce((total, item) => total + item.total_amount, 0);
-        
-    const adminFee = props.siswa.admin_fee_custom || 0;
-    return totalSpp + adminFee;
+});
+
+const calculatedAdminFee = computed(() => {
+    if (selectedPeriods.value.length === 0) return 0;
+    const isCustomGateway = ['gapura', 'midtrans_custom'].includes(props.active_gateway);
+    if (isCustomGateway && props.mdr_config?.enabled) {
+        if (paymentForm.paymentType === 'QRIS') {
+            const pct = Number(props.mdr_config.qris_percent ?? 0.7);
+            return Math.ceil(selectedSppAmount.value * (pct / 100));
+        }
+        if (paymentForm.paymentType === 'VA') {
+            return Math.round(Number(props.mdr_config.va_flat ?? 4440));
+        }
+    }
+    return Number(props.siswa?.admin_fee_custom || 0);
+});
+
+const totalSelectedAmount = computed(() => {
+    if (selectedPeriods.value.length === 0) return 0;
+    return selectedSppAmount.value + calculatedAdminFee.value;
 });
 
 
@@ -360,15 +379,23 @@ const isItemDisabled = (index) => {
                 <div class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-gray-200 dark:border-gray-700 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-none p-4 sm:p-6 pb-6 md:pb-6">
                     <div class="max-w-7xl mx-auto">
                         <div class="flex flex-col gap-4">
-                            <!-- Pilihan Metode Pembayaran Gapura -->
-                            <div v-if="active_gateway === 'gapura'" class="w-full pb-2 border-b border-gray-100 dark:border-gray-700">
-                                <p class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran (Gapura)</p>
+                            <!-- Pilihan Metode Pembayaran Custom Checkout (Gapura / Midtrans Custom) -->
+                            <div v-if="active_gateway === 'gapura' || active_gateway === 'midtrans_custom'" class="w-full pb-2 border-b border-gray-100 dark:border-gray-700">
+                                <p class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Pilih Metode Pembayaran</p>
                                 <div class="flex flex-wrap gap-2">
-                                    <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">BCA VA</button>
-                                    <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">Mandiri VA</button>
-                                    <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">BNI VA</button>
+                                    <template v-if="isVaEnabled">
+                                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">BCA VA</button>
+                                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">Mandiri VA</button>
+                                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">BNI VA</button>
+                                        <button v-if="active_gateway === 'midtrans_custom'" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">BRI VA</button>
+                                        <button v-if="active_gateway === 'midtrans_custom'" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">Permata VA</button>
+                                    </template>
                                     <button type="button" @click="paymentForm.paymentType = 'QRIS'; paymentForm.bankCode = ''" :class="['px-3 py-1.5 rounded-lg border text-sm font-medium transition-all', paymentForm.paymentType === 'QRIS' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-800']">QRIS</button>
                                 </div>
+                                <p v-if="calculatedAdminFee > 0" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                    SPP {{ formatCurrency(selectedSppAmount) }} + Biaya Layanan {{ formatCurrency(calculatedAdminFee) }}
+                                    <span v-if="mdr_config?.enabled">({{ paymentForm.paymentType === 'QRIS' ? `QRIS ${mdr_config.qris_percent}%` : `VA ${paymentForm.bankCode}` }})</span>
+                                </p>
                             </div>
                             
                             <div class="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">

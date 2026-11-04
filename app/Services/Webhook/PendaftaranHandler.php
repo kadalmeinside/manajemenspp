@@ -64,12 +64,13 @@ class PendaftaranHandler
                     }
                     $pending->update(['status' => 'expired']);
                 }
-                DB::rollBack();
+                DB::commit();
                 return response()->json(['message' => 'Non-PAID event recorded']);
             }
 
             // === PROSES PEMBUATAN AKUN & SISWA ===
-            $paidTimestamp = Carbon::parse($payload['paid_at'] ?? now())->setTimezone(config('app.timezone'));
+            $paidTimeStr = $payload['paid_at'] ?? $payload['settlement_time'] ?? $payload['transaction_time'] ?? null;
+            $paidTimestamp = Carbon::parse($paidTimeStr ?? now())->setTimezone(config('app.timezone'));
             $passwordPlain = Str::random(10);
 
             // Cek apakah user sudah ada (berdasarkan email)
@@ -110,6 +111,25 @@ class PendaftaranHandler
                 'ip_address'        => $pending->ip_address,
             ]);
 
+            $isMidtrans = isset($payload['transaction_status']) || isset($payload['signature_key']);
+            $paymentGateway = $isMidtrans
+                ? 'midtrans'
+                : (\App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit');
+
+            $paymentMethod = $payload['payment_channel'] ?? $payload['payment_method'] ?? null;
+            if (!$paymentMethod && isset($payload['payment_type'])) {
+                $pType = strtolower($payload['payment_type']);
+                if ($pType === 'bank_transfer') {
+                    $paymentMethod = !empty($payload['va_numbers'][0]['bank'])
+                        ? strtoupper($payload['va_numbers'][0]['bank']) . '_VA'
+                        : (!empty($payload['permata_va_number']) ? 'PERMATA_VA' : 'BANK_TRANSFER');
+                } elseif ($pType === 'echannel') {
+                    $paymentMethod = 'MANDIRI_VA';
+                } else {
+                    $paymentMethod = strtoupper($pType);
+                }
+            }
+
             $deskripsi = "Biaya Pendaftaran - {$siswa->nama_siswa} (NIS: {$siswa->nis})";
             $invoice = Invoice::create([
                 'id_siswa'                => $siswa->id_siswa,
@@ -122,7 +142,8 @@ class PendaftaranHandler
                 'due_date'                => $pending->expires_at,
                 'status'                  => 'PAID',
                 'paid_at'                 => $paidTimestamp,
-                'payment_method'          => $payload['payment_channel'] ?? $payload['payment_method'] ?? null,
+                'payment_gateway'         => $paymentGateway,
+                'payment_method'          => $paymentMethod,
                 'external_id_xendit'      => $externalId,
                 'xendit_invoice_id'       => $pending->xendit_invoice_id,
                 'xendit_payment_url'      => $pending->xendit_payment_url,

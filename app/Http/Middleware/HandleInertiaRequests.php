@@ -141,7 +141,12 @@ class HandleInertiaRequests extends Middleware
             'app_settings' => function () {
                 // Gunakan cache pendek atau non-forever agar versi bisa update tanpa perlu clear cache manual
                 $settings = Cache::remember('app_settings_db', 60, function () {
-                    return Setting::all()->pluck('value', 'key')->toArray();
+                    return Setting::whereNotIn('key', [
+                        'midtrans_server_key',
+                        'gapura_client_secret',
+                        'gapura_private_key',
+                        'gapura_dana_public_key',
+                    ])->pluck('value', 'key')->toArray();
                 });
 
                 // Auto-detect version dari composer.json

@@ -60,6 +60,9 @@ class SettingsController extends Controller
             'kop_surat_kontak' => 'nullable|string',
             'enable_parent_login' => 'nullable|in:0,1',
             'enable_virtual_account' => 'nullable|in:0,1',
+            'enable_mdr_fee' => 'nullable|in:0,1',
+            'mdr_va_flat' => 'nullable|numeric|min:0',
+            'mdr_qris_percent' => 'nullable|numeric|min:0|max:100',
             'active_payment_gateway' => 'nullable|in:xendit,midtrans,midtrans_custom,gapura',
             'midtrans_server_key' => 'nullable|string|max:255',
             'midtrans_client_key' => 'nullable|string|max:255',
@@ -75,7 +78,7 @@ class SettingsController extends Controller
         // Simpan atau update pengaturan teks
         $textSettings = [
             'app_name', 'app_version', 'app_build', 'kop_surat_nama', 'kop_surat_alamat', 'kop_surat_kontak', 
-            'enable_parent_login', 'enable_virtual_account',
+            'enable_parent_login', 'enable_virtual_account', 'enable_mdr_fee', 'mdr_va_flat', 'mdr_qris_percent',
             'active_payment_gateway', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production',
             'gapura_client_id', 'gapura_client_secret', 'gapura_merchant_id', 'gapura_private_key', 'gapura_dana_public_key',
             'id_card_back_text'
@@ -143,6 +146,7 @@ class SettingsController extends Controller
 
         // Hapus cache pengaturan agar yang baru digunakan
         Cache::forget('app_settings');
+        Cache::forget('app_settings_db');
 
         return Redirect::route('admin.settings.index')->with([
             'message' => 'Pengaturan berhasil diperbarui.',

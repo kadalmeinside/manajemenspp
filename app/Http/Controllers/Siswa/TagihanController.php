@@ -103,6 +103,7 @@ class TagihanController extends Controller
             ],
             'pageTitle' => 'Tagihan SPP',
             'active_gateway' => config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit',
+            'mdr_config' => \App\Services\PaymentService::getMdrConfig(),
         ]);
     }
 
@@ -210,6 +211,8 @@ class TagihanController extends Controller
                 $siswa = $childInvoices->first()->siswa;
                 $totalAmount = $childInvoices->sum('total_amount');
                 $invoiceCount = $childInvoices->count();
+                $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+                $gatewayService = \App\Services\PaymentGatewayFactory::make($activeGateway);
 
                 // Buat invoice induk baru
                 $parentInvoice = Invoice::create([
@@ -225,34 +228,35 @@ class TagihanController extends Controller
                     'due_date'         => now()->addDay(),
                     'status'           => 'PENDING',
                     'external_id_xendit' => 'BULK-'.substr($siswa->id_siswa, 0, 8).'-'.strtoupper(Str::random(8)),
+                    'payment_gateway'  => $activeGateway,
                 ]);
 
                 // Hubungkan invoice induk dengan invoice anak
                 $parentInvoice->childInvoices()->attach($childInvoices->pluck('id'));
 
-                // Buat invoice di Xendit
+                // Buat invoice di Gateway Aktif
                 $payerInfo = ['email' => $siswa->user?->email, 'name' => $siswa->nama_siswa, 'phone' => $siswa->nomor_telepon_wali];
                 
-                $xenditInvoiceData = $xenditService->createInvoice(
+                $pgInvoiceData = $gatewayService->createInvoice(
                     $totalAmount, 0, $parentInvoice->description, $payerInfo,
                     $parentInvoice->external_id_xendit, route('payment.success'),
                     route('payment.failure'), Carbon::parse($parentInvoice->due_date)
                 );
 
-                if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
-                    throw new \Exception('Gagal membuat link pembayaran gabungan di Xendit.');
+                if (!$pgInvoiceData || !isset($pgInvoiceData['invoice_url'])) {
+                    throw new \Exception('Gagal membuat link pembayaran gabungan di Payment Gateway.');
                 }
 
-                // Update invoice induk dengan detail dari Xendit
+                // Update invoice induk dengan detail dari Gateway
                 $parentInvoice->update([
-                    'xendit_invoice_id' => $xenditInvoiceData['id'],
-                    'xendit_payment_url' => $xenditInvoiceData['invoice_url'],
+                    'xendit_invoice_id' => $pgInvoiceData['id'],
+                    'xendit_payment_url' => $pgInvoiceData['invoice_url'],
                 ]);
 
                 return $parentInvoice;
             });
 
-            // Redirect ke halaman pembayaran Xendit
+            // Redirect ke halaman pembayaran
             return Inertia::location($parentInvoice->xendit_payment_url);
 
         } catch (Throwable $e) {
@@ -282,7 +286,7 @@ class TagihanController extends Controller
 
             $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
             
-            if ($activeGateway === 'gapura') {
+            if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && !empty($parentInvoice->checkout_data)) {
                 return Inertia::location(route('tagihan.spp.custom_pay', ['invoice' => $parentInvoice->id]));
             }
 

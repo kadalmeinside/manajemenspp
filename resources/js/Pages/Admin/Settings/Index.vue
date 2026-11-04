@@ -42,6 +42,9 @@ const form = useForm({
     id_card_back_text: props.settings.id_card_back_text || '',
     enable_parent_login: props.settings.enable_parent_login ?? '1',
     enable_virtual_account: props.settings.enable_virtual_account ?? '1',
+    enable_mdr_fee: props.settings.enable_mdr_fee ?? '0',
+    mdr_va_flat: props.settings.mdr_va_flat ?? '4440',
+    mdr_qris_percent: props.settings.mdr_qris_percent ?? '0.7',
     active_payment_gateway: props.settings.active_payment_gateway ?? 'xendit',
     midtrans_server_key: props.settings.midtrans_server_key || '',
     midtrans_client_key: props.settings.midtrans_client_key || '',
@@ -303,6 +306,58 @@ function submit() {
                                     <p class="text-xs text-gray-500 italic mt-2">
                                         Jika dinonaktifkan, siswa hanya bisa membayar menggunakan metode pembayaran non-VA untuk menghindari biaya admin bank yang besar.
                                     </p>
+                                </div>
+
+                                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                                    <div>
+                                        <InputLabel for="enable_mdr_fee" value="Skema Biaya Layanan / MDR Dinamis (Custom Checkout)" />
+                                        <div class="mt-2 flex items-center space-x-4">
+                                            <label class="inline-flex items-center">
+                                                <input type="radio" v-model="form.enable_mdr_fee" value="0" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Biaya Admin Flat Siswa (Default)</span>
+                                            </label>
+                                            <label class="inline-flex items-center">
+                                                <input type="radio" v-model="form.enable_mdr_fee" value="1" class="form-radio text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                                <span class="ml-2 text-gray-700 dark:text-gray-300">Dinamis Sesuai Metode (MDR VA vs QRIS)</span>
+                                            </label>
+                                        </div>
+                                        <InputError class="mt-2" :message="form.errors.enable_mdr_fee" />
+                                        <p class="text-xs text-gray-500 italic mt-1">
+                                            Aktifkan agar biaya layanan pada mode Custom Checkout (Midtrans Custom / Gapura) menyesuaikan metode yang dipilih siswa (Flat untuk VA, Persentase untuk QRIS).
+                                        </p>
+                                    </div>
+
+                                    <div v-if="form.enable_mdr_fee === '1'" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                                        <div>
+                                            <InputLabel for="mdr_va_flat" value="Biaya MDR Virtual Account (Rp Flat)" />
+                                            <TextInput
+                                                id="mdr_va_flat"
+                                                type="number"
+                                                step="1"
+                                                min="0"
+                                                class="mt-1 block w-full"
+                                                v-model="form.mdr_va_flat"
+                                                placeholder="Contoh: 4440"
+                                            />
+                                            <p class="text-xs text-gray-500 mt-1">Standar Midtrans VA: Rp 4.000 + PPN 11% = Rp 4.440</p>
+                                            <InputError class="mt-2" :message="form.errors.mdr_va_flat" />
+                                        </div>
+                                        <div>
+                                            <InputLabel for="mdr_qris_percent" value="Biaya MDR QRIS (%)" />
+                                            <TextInput
+                                                id="mdr_qris_percent"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                class="mt-1 block w-full"
+                                                v-model="form.mdr_qris_percent"
+                                                placeholder="Contoh: 0.7"
+                                            />
+                                            <p class="text-xs text-gray-500 mt-1">Standar Midtrans QRIS: 0.7% dari nominal transaksi</p>
+                                            <InputError class="mt-2" :message="form.errors.mdr_qris_percent" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

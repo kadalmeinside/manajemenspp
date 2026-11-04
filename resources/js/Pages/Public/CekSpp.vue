@@ -26,6 +26,7 @@ const props = defineProps({
     lastPeriod: String,
     searchedPhone: String,
     active_gateway: String,
+    mdr_config: Object,
 });
 
 const page = usePage();
@@ -43,10 +44,12 @@ const showSuccessCard = computed(() => flashMessage.value && flashType.value ===
 const isSearching = ref(false);
 const isRedirecting = ref(false);
 
+const isVaEnabled = computed(() => props.mdr_config?.enable_va !== false);
+
 const paymentForm = useForm({
     periods: [],
-    paymentType: 'VA', // VA atau QRIS (untuk gapura)
-    bankCode: 'BCA', // BCA, MANDIRI, BNI (untuk gapura)
+    paymentType: isVaEnabled.value ? 'VA' : 'QRIS',
+    bankCode: isVaEnabled.value ? 'BCA' : '',
 });
 
 const lookupForm = useForm({
@@ -200,14 +203,36 @@ const displayList = computed(() => {
     return [...existingInvoices, ...projectedInvoices];
 });
 
-const totalSelectedAmount = computed(() => {
+const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val || 0);
+
+const selectedSppAmount = computed(() => {
     if (selectedPeriods.value.length === 0) return 0;
-    const totalSpp = displayList.value.filter(item => selectedPeriods.value.includes(item.periode_tagihan)).reduce((total, item) => total + item.total_amount, 0);
-    const adminFee = props.selectedSiswa.admin_fee_custom || 0;
-    return totalSpp + adminFee;
+    return displayList.value
+        .filter(item => selectedPeriods.value.includes(item.periode_tagihan))
+        .reduce((total, item) => total + item.total_amount, 0);
 });
 
-const totalSelectedAmountFormatted = computed(() => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalSelectedAmount.value));
+const calculatedAdminFee = computed(() => {
+    if (selectedPeriods.value.length === 0) return 0;
+    const isCustomGateway = ['gapura', 'midtrans_custom'].includes(props.active_gateway);
+    if (isCustomGateway && props.mdr_config?.enabled) {
+        if (paymentForm.paymentType === 'QRIS') {
+            const pct = Number(props.mdr_config.qris_percent ?? 0.7);
+            return Math.ceil(selectedSppAmount.value * (pct / 100));
+        }
+        if (paymentForm.paymentType === 'VA') {
+            return Math.round(Number(props.mdr_config.va_flat ?? 4440));
+        }
+    }
+    return Number(props.selectedSiswa?.admin_fee_custom || 0);
+});
+
+const totalSelectedAmount = computed(() => {
+    if (selectedPeriods.value.length === 0) return 0;
+    return selectedSppAmount.value + calculatedAdminFee.value;
+});
+
+const totalSelectedAmountFormatted = computed(() => formatCurrency(totalSelectedAmount.value));
 
 const submitLookup = () => {
     isSearching.value = true;
@@ -599,25 +624,48 @@ const formatPeriod = (dateStr) => {
                 </div>
                 
                 <div v-if="active_gateway === 'gapura' || active_gateway === 'midtrans_custom'" class="w-full">
-                    <div class="grid grid-cols-2 gap-3 mb-6">
-                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                            <BankLogo bank="BCA" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                            <BankLogo bank="MANDIRI" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                            <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                            <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
-                        </button>
-                        <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
-                            <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
-                        </button>
+                    <div class="grid grid-cols-2 gap-3 mb-5">
+                        <template v-if="isVaEnabled">
+                            <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BCA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BCA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="BCA" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'MANDIRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'MANDIRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="MANDIRI" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BNI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BNI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="BNI" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button v-if="active_gateway === 'midtrans_custom'" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'BRI'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'BRI' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="BRI" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                            <button v-if="active_gateway === 'midtrans_custom'" type="button" @click="paymentForm.paymentType = 'VA'; paymentForm.bankCode = 'PERMATA'" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'VA' && paymentForm.bankCode === 'PERMATA' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
+                                <BankLogo bank="PERMATA" class="h-6 w-auto max-w-[80px]" />
+                            </button>
+                        </template>
                         <button type="button" @click="paymentForm.paymentType = 'QRIS'; paymentForm.bankCode = ''" :class="['p-3 rounded-xl border transition-all flex items-center justify-center', paymentForm.paymentType === 'QRIS' ? 'border-emerald-500 bg-emerald-50 shadow-sm dark:bg-emerald-900/30' : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800']">
                             <BankLogo bank="QRIS" class="h-6 w-auto max-w-[80px]" />
                         </button>
+                    </div>
+
+                    <!-- Rincian Tagihan & Biaya Layanan (MDR) -->
+                    <div class="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 space-y-2 text-sm">
+                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
+                            <span>Tagihan SPP ({{ selectedPeriods.length }} bulan)</span>
+                            <span class="font-medium text-gray-900 dark:text-gray-200">{{ formatCurrency(selectedSppAmount) }}</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600 dark:text-gray-400">
+                            <span>
+                                Biaya Layanan
+                                <template v-if="mdr_config?.enabled">
+                                    ({{ paymentForm.paymentType === 'QRIS' ? `QRIS ${mdr_config.qris_percent}%` : `VA ${paymentForm.bankCode}` }})
+                                </template>
+                            </span>
+                            <span class="font-medium text-gray-900 dark:text-gray-200">{{ formatCurrency(calculatedAdminFee) }}</span>
+                        </div>
+                        <div class="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center font-bold text-base text-gray-900 dark:text-white">
+                            <span>Total Bayar</span>
+                            <span class="text-emerald-600 dark:text-emerald-400">{{ totalSelectedAmountFormatted }}</span>
+                        </div>
                     </div>
 
                     <button @click="submitPayment" :disabled="paymentForm.processing" class="w-full relative group overflow-hidden rounded-2xl p-[2px]">

@@ -138,7 +138,7 @@ class InvoiceController extends Controller
                     'payment_gateway' => $invoice->payment_gateway,
                     'due_date_formatted' => Carbon::parse($invoice->due_date)->isoFormat('D MMM YY'),
                     'paid_at_formatted' => $invoice->paid_at ? Carbon::parse($invoice->paid_at)->isoFormat('D MMM YY') : null,
-                    'xendit_payment_url' => $invoice->payment_gateway === 'gapura' 
+                    'xendit_payment_url' => in_array($invoice->payment_gateway, ['gapura', 'midtrans_custom'])
                                             ? route('tagihan.spp.custom_pay', ['invoice' => $invoice->id]) 
                                             : $invoice->xendit_payment_url,
                     'created_at_formatted' => $invoice->created_at->isoFormat('D MMM YY, HH:mm'),
@@ -186,7 +186,7 @@ class InvoiceController extends Controller
 
         return Inertia::render('Admin/Invoices/Show', [
             'invoice' => array_merge($invoice->toArray(), [
-                'xendit_payment_url_dynamic' => $invoice->payment_gateway === 'gapura' 
+                'xendit_payment_url_dynamic' => in_array($invoice->payment_gateway, ['gapura', 'midtrans_custom'])
                                                 ? route('tagihan.spp.custom_pay', ['invoice' => $invoice->id]) 
                                                 : $invoice->xendit_payment_url,
             ]),
@@ -443,7 +443,7 @@ class InvoiceController extends Controller
     }
 
 
-    public function recreate(Request $request, Invoice $invoice, XenditService $xenditService)
+    public function recreate(Request $request, Invoice $invoice)
     {
         if (!$request->user()->can('manage_all_tagihan')) {
             abort(403);
@@ -470,37 +470,40 @@ class InvoiceController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($request, $invoice, $xenditService) {
-                
+            DB::transaction(function () use ($request, $invoice, $originalInvoiceId) {
+                $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+                $gatewayService = \App\Services\PaymentGatewayFactory::make($activeGateway);
+
                 $lockedInvoice = Invoice::where('id', $invoice->id)->lockForUpdate()->first();
                 $recreatedInvoice = $lockedInvoice->replicate([
                     'id', 'xendit_invoice_id', 'xendit_payment_url', 'external_id_xendit', 
-                    'status', 'paid_at', 'recreated_from_id'
+                    'status', 'paid_at', 'recreated_from_id', 'checkout_data'
                 ]);
 
                 $recreatedInvoice->recreated_from_id = $originalInvoiceId; 
                 $recreatedInvoice->status = 'PENDING';
+                $recreatedInvoice->payment_gateway = $activeGateway;
                 $recreatedInvoice->due_date = now()->addDays(3)->endOfDay();
                 $recreatedInvoice->description = $lockedInvoice->description;
                 // Limit total length to 50 for Midtrans
                 $baseId = substr($lockedInvoice->external_id_xendit, 0, 30); 
                 $recreatedInvoice->external_id_xendit = 'RE-'.$baseId . '-' . strtoupper(Str::random(4));
 
-                // Panggil Xendit
+                // Panggil Payment Gateway Aktif
                 $payerInfo = ['email' => $lockedInvoice->siswa->user?->email, 'name' => $lockedInvoice->siswa->nama_siswa, 'phone' => $lockedInvoice->siswa->nomor_telepon_wali];
                 
-                $xenditInvoiceData = $xenditService->createInvoice(
+                $pgInvoiceData = $gatewayService->createInvoice(
                     (float)$recreatedInvoice->amount, (float)$recreatedInvoice->admin_fee, $recreatedInvoice->description,
                     $payerInfo, $recreatedInvoice->external_id_xendit, route('payment.success'),
                     route('payment.failure'), Carbon::parse($recreatedInvoice->due_date), ['email', 'whatsapp']
                 );
 
-                if (!$xenditInvoiceData || !isset($xenditInvoiceData['invoice_url'])) {
-                    throw new \Exception('Gagal membuat link pembayaran baru di Xendit.');
+                if (!$pgInvoiceData || !isset($pgInvoiceData['invoice_url'])) {
+                    throw new \Exception('Gagal membuat link pembayaran baru di Payment Gateway.');
                 }
 
-                $recreatedInvoice->xendit_invoice_id = $xenditInvoiceData['id'];
-                $recreatedInvoice->xendit_payment_url = $xenditInvoiceData['invoice_url'];
+                $recreatedInvoice->xendit_invoice_id = $pgInvoiceData['id'];
+                $recreatedInvoice->xendit_payment_url = $pgInvoiceData['invoice_url'];
                 $recreatedInvoice->save();
 
             });
@@ -516,7 +519,7 @@ class InvoiceController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, Invoice $invoice, XenditService $xenditService)
+    public function destroy(Request $request, Invoice $invoice)
     {
         if (!$request->user()->can('manage_all_tagihan')) { 
             abort(403);
@@ -529,8 +532,7 @@ class InvoiceController extends Controller
             ]);
         }
 
-        // Jika invoice tidak punya xendit_invoice_id, berarti dibuat manual (tidak via Xendit)
-        // Langsung cancel secara lokal tanpa perlu panggil API Xendit
+        // Jika invoice tidak punya xendit_invoice_id, berarti dibuat manual
         if (!$invoice->xendit_invoice_id) {
             $invoice->update(['status' => 'EXPIRED']);
             return Redirect::back()->with([
@@ -539,13 +541,17 @@ class InvoiceController extends Controller
             ]);
         }
 
-        // Invoice punya xendit_invoice_id — expire via Xendit API
-        $xenditResponse = $xenditService->expireInvoice($invoice->xendit_invoice_id);
+        // Expire via Payment Gateway sesuai gateway asal invoice
+        $gatewayService = \App\Services\PaymentGatewayFactory::make($invoice->payment_gateway);
+        $pgResponse = $gatewayService->expireInvoice($invoice->xendit_invoice_id);
 
-        if ($xenditResponse && isset($xenditResponse['status']) && $xenditResponse['status'] === 'EXPIRED') {
+        if ($pgResponse && (
+            (isset($pgResponse['status']) && $pgResponse['status'] === 'EXPIRED') ||
+            in_array((string) ($pgResponse['status_code'] ?? ''), ['200', '404', '412'])
+        )) {
             $invoice->update([
                 'status'                  => 'EXPIRED',
-                'xendit_callback_payload' => $xenditResponse,
+                'xendit_callback_payload' => $pgResponse,
             ]);
             return Redirect::back()->with([
                 'message' => 'Invoice berhasil dibatalkan.',
@@ -553,14 +559,14 @@ class InvoiceController extends Controller
             ]);
         }
 
-        Log::error('Gagal membatalkan invoice di Xendit.', ['invoice_id' => $invoice->id]);
+        Log::error('Gagal membatalkan invoice di Payment Gateway.', ['invoice_id' => $invoice->id, 'gateway' => $invoice->payment_gateway]);
         return Redirect::back()->with([
             'message' => 'Gagal membatalkan invoice di sisi penyedia pembayaran. Silakan coba lagi.',
             'type'    => 'error'
         ]);
     }
 
-    public function markAsPaid(Request $request, Invoice $invoice, \App\Services\XenditService $xenditService)
+    public function markAsPaid(Request $request, Invoice $invoice)
     {
         // Pastikan hanya admin yang berwenang yang bisa mengakses
         if (!$request->user()->can('manage_all_tagihan')) {
@@ -575,12 +581,13 @@ class InvoiceController extends Controller
             ]);
         }
 
-        // Expire Xendit invoice jika ada (Pencegahan Double Payment)
+        // Expire invoice di Payment Gateway jika ada (Pencegahan Double Payment)
         if ($invoice->xendit_invoice_id) {
             try {
-                $xenditService->expireInvoice($invoice->xendit_invoice_id);
+                $gatewayService = \App\Services\PaymentGatewayFactory::make($invoice->payment_gateway);
+                $gatewayService->expireInvoice($invoice->xendit_invoice_id);
             } catch (\Exception $e) {
-                Log::error('Gagal membatalkan invoice di Xendit saat Tandai Lunas manual.', [
+                Log::error('Gagal membatalkan invoice di Payment Gateway saat Tandai Lunas manual.', [
                     'invoice_id' => $invoice->id,
                     'error' => $e->getMessage()
                 ]);

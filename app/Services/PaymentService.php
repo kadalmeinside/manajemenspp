@@ -22,6 +22,51 @@ class PaymentService
     }
 
     /**
+     * Ambil konfigurasi MDR dan metode pembayaran untuk dikirim ke Frontend.
+     */
+    public static function getMdrConfig(): array
+    {
+        $settings = \App\Models\Setting::whereIn('key', [
+            'enable_mdr_fee',
+            'mdr_va_flat',
+            'mdr_qris_percent',
+            'enable_virtual_account',
+        ])->pluck('value', 'key');
+
+        return [
+            'enabled'      => ($settings['enable_mdr_fee'] ?? '0') === '1',
+            'va_flat'      => (float) (isset($settings['mdr_va_flat']) && $settings['mdr_va_flat'] !== '' ? $settings['mdr_va_flat'] : 4440),
+            'qris_percent' => (float) (isset($settings['mdr_qris_percent']) && $settings['mdr_qris_percent'] !== '' ? $settings['mdr_qris_percent'] : 0.7),
+            'enable_va'    => ($settings['enable_virtual_account'] ?? '1') === '1',
+        ];
+    }
+
+    /**
+     * Hitung biaya admin / MDR berdasarkan pengaturan aktif dan metode pembayaran yang dipilih.
+     */
+    public function calculateAdminFee(
+        Siswa $siswa,
+        float $baseAmount,
+        ?string $paymentType = null,
+        ?string $activeGateway = null
+    ): float {
+        $activeGateway = $activeGateway ?? config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
+        $mdrConfig = self::getMdrConfig();
+
+        if ($mdrConfig['enabled'] && in_array($activeGateway, ['midtrans_custom', 'gapura']) && !empty($paymentType)) {
+            $type = strtoupper($paymentType);
+            if ($type === 'QRIS') {
+                return (float) ceil($baseAmount * ($mdrConfig['qris_percent'] / 100));
+            }
+            if ($type === 'VA') {
+                return (float) round($mdrConfig['va_flat']);
+            }
+        }
+
+        return (float) ($siswa->admin_fee_custom ?? 0);
+    }
+
+    /**
      * Create a unified payment invoice (Pembayaran Gabungan) for multiple SPP periods.
      *
      * @param Siswa $siswa
@@ -40,43 +85,9 @@ class PaymentService
     {
         return DB::transaction(function () use ($periods, $siswa, $userId, $paymentType, $bankCode) {
             $periods = $periods->sort()->values();
+            $activeGateway = config('payment.active_gateway') ?? \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
 
-            // 1. Cek reuse invoice (Pencegahan Spam API Xendit/Midtrans)
-            $oldParentInvoices = Invoice::where('id_siswa', $siswa->id_siswa)
-                ->where('type', 'pembayaran_spp_gabungan')
-                ->where('status', 'PENDING')
-                ->get();
-
-            $activeGateway = \App\Models\Setting::where('key', 'active_payment_gateway')->value('value') ?? 'xendit';
-
-            foreach ($oldParentInvoices as $oldParent) {
-                $savedPeriods = collect($oldParent->selected_periods)->sort()->values();
-                // Jika periode sama persis, dan gateway-nya sama, gunakan kembali
-                // Catatan: Jika gapura (Custom Checkout), kita abaikan xendit_payment_url karena url tidak ada
-                if ($savedPeriods->diff($periods)->isEmpty() && 
-                    $periods->diff($savedPeriods)->isEmpty() && 
-                    $oldParent->payment_gateway === $activeGateway) {
-                    
-                    if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && $paymentType) {
-                        // Untuk gapura/midtrans custom checkout, pastikan paymentType-nya sama, jika ya return lama. Jika tidak, hapus dan buat baru.
-                        $oldCheckoutData = $oldParent->checkout_data ?? [];
-                        if (($oldCheckoutData['payment_type'] ?? '') === $paymentType && 
-                            ($oldCheckoutData['bank_code'] ?? '') === $bankCode) {
-                            return $oldParent;
-                        }
-                    } else if ($oldParent->xendit_payment_url) {
-                        return $oldParent;
-                    }
-                }
-
-                // Jika beda, expire-kan yang lama
-                if ($oldParent->xendit_invoice_id) {
-                    $this->gateway->expireInvoice($oldParent->xendit_invoice_id);
-                }
-                $oldParent->delete();
-            }
-
-            // 2. Hitung total SPP (existing invoices + projected periods)
+            // 1. Hitung total SPP (existing invoices + projected periods) terlebih dahulu
             $totalSpp = 0;
             $existingInvoices = $siswa->invoices()
                 ->whereIn('periode_tagihan', $periods->toArray())
@@ -113,12 +124,53 @@ class PaymentService
                 $totalSpp += $projectedPeriods->count() * $sppPerBulan;
             }
 
-            // 3. Tambahkan admin fee satu kali
-            $adminFee = (float)($siswa->admin_fee_custom ?? 0);
+            // 2. Hitung admin fee / MDR sesuai metode pembayaran yang dipilih
+            $adminFee = $this->calculateAdminFee($siswa, $totalSpp, $paymentType, $activeGateway);
             $totalAmount = $totalSpp + $adminFee;
 
             if ($totalAmount <= 0) {
                 throw new \Exception("Total tagihan tidak valid (Rp 0).");
+            }
+
+            // 3. Cek reuse invoice (Pencegahan Spam API Xendit/Midtrans)
+            $oldParentInvoices = Invoice::where('id_siswa', $siswa->id_siswa)
+                ->where('type', 'pembayaran_spp_gabungan')
+                ->where('status', 'PENDING')
+                ->get();
+
+            foreach ($oldParentInvoices as $oldParent) {
+                $savedPeriods = collect($oldParent->selected_periods)->sort()->values();
+                $isNotExpired = !$oldParent->due_date || Carbon::parse($oldParent->due_date)->isFuture();
+                $sameAmount   = abs((float) $oldParent->total_amount - $totalAmount) < 1;
+
+                // Jika periode, gateway, dan nominal sama persis serta belum kadaluarsa, gunakan kembali
+                if ($isNotExpired &&
+                    $sameAmount &&
+                    $savedPeriods->diff($periods)->isEmpty() && 
+                    $periods->diff($savedPeriods)->isEmpty() && 
+                    $oldParent->payment_gateway === $activeGateway) {
+                    
+                    if (in_array($activeGateway, ['gapura', 'midtrans_custom']) && $paymentType) {
+                        $oldCheckoutData = $oldParent->checkout_data ?? [];
+                        if (($oldCheckoutData['payment_type'] ?? '') === $paymentType && 
+                            ($oldCheckoutData['bank_code'] ?? '') === ($bankCode ?? '')) {
+                            return $oldParent;
+                        }
+                    } else if ($oldParent->xendit_payment_url) {
+                        return $oldParent;
+                    }
+                }
+
+                // Jika beda atau sudah kadaluarsa, expire-kan yang lama sesuai gateway asalnya
+                if ($oldParent->xendit_invoice_id) {
+                    try {
+                        $oldGateway = PaymentGatewayFactory::make($oldParent->payment_gateway);
+                        $oldGateway->expireInvoice($oldParent->xendit_invoice_id);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('[PaymentService] Gagal expire invoice lama: ' . $e->getMessage());
+                    }
+                }
+                $oldParent->delete();
             }
 
             // 4. Buat deskripsi yang sesuai (1 bulan vs Gabungan)
