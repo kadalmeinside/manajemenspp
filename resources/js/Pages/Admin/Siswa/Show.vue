@@ -1017,7 +1017,11 @@ const saveCrop = () => {
                                     <h4 class="text-base font-semibold text-gray-900 dark:text-white truncate" :title="invoice.description">{{ getShortDescription(invoice.description) }}</h4>
                                     <span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-600/20">PENDING</span>
                                 </div>
-                                <div class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ invoice.total_amount_formatted }}</div>
+                                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</div>
+                                <div v-if="invoice.admin_fee > 0" class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                    Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 dark:text-amber-400 font-medium">(+Admin {{ invoice.admin_fee_formatted }})</span>
+                                </div>
+                                <div v-else class="mb-4"></div>
                                 <div class="flex items-center justify-between text-sm mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                                     <span class="text-gray-500 dark:text-gray-400">Jatuh Tempo: {{ invoice.due_date_formatted }}</span>
                                     <div class="flex gap-2">
@@ -1044,7 +1048,11 @@ const saveCrop = () => {
                                     <h4 class="text-base font-semibold text-gray-900 dark:text-white truncate" :title="invoice.description">{{ getShortDescription(invoice.description) }}</h4>
                                     <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">LUNAS</span>
                                 </div>
-                                <div class="text-xl font-bold text-gray-900 dark:text-white mb-2">{{ invoice.total_amount_formatted }}</div>
+                                <div class="text-xl font-bold text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</div>
+                                <div v-if="invoice.admin_fee > 0" class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                    Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 dark:text-amber-400 font-medium">(+Admin {{ invoice.admin_fee_formatted }})</span>
+                                </div>
+                                <div v-else class="mb-2"></div>
                                 <div v-if="invoice.paymentParent" class="text-xs text-gray-500 flex items-center mb-4 bg-gray-50 dark:bg-gray-900/50 p-2 rounded">
                                     <LinkIcon class="h-3 w-3 mr-1 shrink-0" />
                                     <span class="truncate">Via: {{ getShortDescription(invoice.paymentParent.description) }}</span>

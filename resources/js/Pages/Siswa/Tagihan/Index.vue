@@ -376,7 +376,12 @@ const isItemDisabled = (index) => {
                                 </p>
                             </div>
                             <div class="flex items-center gap-4 flex-shrink-0 mt-3 sm:mt-0">
-                                <span class="text-xl font-black text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</span>
+                                <div class="text-right">
+                                    <span class="text-xl font-black text-gray-900 dark:text-white block">{{ invoice.total_amount_formatted }}</span>
+                                    <span v-if="invoice.admin_fee > 0" class="text-xs text-gray-500 dark:text-gray-400 block">
+                                        Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 dark:text-amber-400 font-medium">(+Fee {{ invoice.admin_fee_formatted }})</span>
+                                    </span>
+                                </div>
                                 <span class="px-3 py-1 text-xs font-bold uppercase rounded-full" :class="getHistoryStatusClass(invoice.status)">
                                     Lunas
                                 </span>

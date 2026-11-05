@@ -151,6 +151,8 @@ class LaporanController extends Controller
                     WHEN invoices.type = 'pendaftaran' AND invoices.status = 'PAID' THEN 'melunasi pendaftaran'
                     ELSE 'telah membayar tagihan' END) as description"),
                 'invoices.total_amount as amount',
+                'invoices.amount as net_amount',
+                'invoices.admin_fee as admin_fee',
                 DB::raw("COALESCE(invoices.paid_at, invoices.updated_at) as date"),
                 'siswa.id_siswa',
                 'siswa.nama_siswa',
@@ -179,6 +181,8 @@ class LaporanController extends Controller
                 DB::raw("'Cuti Disetujui' as title"),
                 DB::raw("CONCAT(siswa.nama_siswa, ' disetujui untuk cuti') as description"),
                 DB::raw("NULL as amount"),
+                DB::raw("NULL as net_amount"),
+                DB::raw("NULL as admin_fee"),
                 'student_leaves.updated_at as date',
                 'siswa.id_siswa',
                 'siswa.nama_siswa',
@@ -199,6 +203,8 @@ class LaporanController extends Controller
                 DB::raw("'Siswa Resign' as title"),
                 DB::raw("CONCAT(siswa.nama_siswa, ' telah resign') as description"),
                 DB::raw("NULL as amount"),
+                DB::raw("NULL as net_amount"),
+                DB::raw("NULL as admin_fee"),
                 'siswa.updated_at as date',
                 'siswa.id_siswa',
                 'siswa.nama_siswa',
@@ -278,6 +284,9 @@ class LaporanController extends Controller
                 'title' => $act->title,
                 'description' => $desc,
                 'amount' => $act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : null,
+                'net_amount' => $act->net_amount ? 'Rp ' . number_format($act->net_amount, 0, ',', '.') : null,
+                'admin_fee' => $act->admin_fee ? 'Rp ' . number_format($act->admin_fee, 0, ',', '.') : null,
+                'admin_fee_raw' => (float)($act->admin_fee ?? 0),
                 'date' => \Carbon\Carbon::parse($act->date)->diffForHumans(),
                 'date_full' => \Carbon\Carbon::parse($act->date)->isoFormat('D MMM YYYY, HH:mm'),
                 'id_siswa' => $act->id_siswa,
@@ -287,17 +296,17 @@ class LaporanController extends Controller
             ];
         });
 
-        // Hitung statistik bulanan & harian dari tabel aslinya
+        // Hitung statistik bulanan & harian dari tabel aslinya (pure revenue amount)
         $todayTotal = Invoice::whereIn('status', ['PAID', 'SETTLED'])
             ->whereDate('paid_at', Carbon::today())
             ->whereNull('parent_payment_id')
-            ->sum('total_amount');
+            ->sum('amount');
 
         $monthTotal = Invoice::whereIn('status', ['PAID', 'SETTLED'])
             ->whereMonth('paid_at', Carbon::now()->month)
             ->whereYear('paid_at', Carbon::now()->year)
             ->whereNull('parent_payment_id')
-            ->sum('total_amount');
+            ->sum('amount');
 
         $kelasList = Kelas::orderBy('nama_kelas')->get(['id_kelas', 'nama_kelas']);
 

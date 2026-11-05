@@ -271,9 +271,15 @@ const getTypeIcon = (type) => {
                                         
                                         <!-- Amount -->
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span v-if="act.amount" class="text-sm font-bold text-gray-900 dark:text-white">
-                                                {{ act.amount }}
-                                            </span>
+                                            <div v-if="act.amount" class="flex flex-col">
+                                                <span class="text-sm font-bold text-gray-900 dark:text-white">
+                                                    {{ act.amount }}
+                                                </span>
+                                                <div v-if="act.admin_fee_raw > 0" class="text-[11px] text-gray-500 dark:text-gray-400">
+                                                    <span>Pokok: {{ act.net_amount }}</span>
+                                                    <span class="text-amber-600 dark:text-amber-400 font-medium ml-1">(+Fee {{ act.admin_fee }})</span>
+                                                </div>
+                                            </div>
                                             <span v-else class="text-sm text-gray-400">-</span>
                                         </td>
                                         
@@ -309,7 +315,12 @@ const getTypeIcon = (type) => {
                                     </div>
                                     <div class="text-right">
                                         <p class="text-xs text-gray-500">{{ act.date }}</p>
-                                        <span v-if="act.amount" class="text-sm font-bold text-green-600 dark:text-green-400">{{ act.amount }}</span>
+                                        <div v-if="act.amount" class="flex flex-col items-end">
+                                            <span class="text-sm font-bold text-green-600 dark:text-green-400">{{ act.amount }}</span>
+                                            <span v-if="act.admin_fee_raw > 0" class="text-[10px] text-gray-500 dark:text-gray-400">
+                                                Pokok: {{ act.net_amount }} <span class="text-amber-600 font-medium">(+Fee {{ act.admin_fee }})</span>
+                                            </span>
+                                        </div>
                                         <span v-else class="text-xs text-gray-400">-</span>
                                     </div>
                                 </div>

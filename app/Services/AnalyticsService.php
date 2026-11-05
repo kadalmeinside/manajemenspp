@@ -32,7 +32,7 @@ class AnalyticsService
                 ->whereMonth('paid_at', $month)
                 ->whereYear('paid_at', $year)
                 ->join('siswa', 'invoices.id_siswa', '=', 'siswa.id_siswa')
-                ->selectRaw('siswa.id_kelas, SUM(invoices.total_amount) as total')
+                ->selectRaw('siswa.id_kelas, SUM(invoices.amount) as total')
                 ->groupBy('siswa.id_kelas');
             if ($managedKelasIds) {
                 $pendapatanQuery->whereIn('siswa.id_kelas', $managedKelasIds);
@@ -245,12 +245,12 @@ class AnalyticsService
             $currentRevenue = (clone $query)
                 ->whereMonth('paid_at', $currentDate->month)
                 ->whereYear('paid_at', $currentDate->year)
-                ->sum('total_amount');
+                ->sum('amount');
 
             $previousRevenue = (clone $query)
                 ->whereMonth('paid_at', $previousDate->month)
                 ->whereYear('paid_at', $previousDate->year)
-                ->sum('total_amount');
+                ->sum('amount');
 
             $percentageChange = 0;
             if ($previousRevenue > 0) {
@@ -286,7 +286,7 @@ class AnalyticsService
             }
 
             // Using application-level calculation for simplicity with SQLite compatibility
-            $invoices = $query->get(['payment_method', 'payment_gateway', 'total_amount']);
+            $invoices = $query->get(['payment_method', 'payment_gateway', 'amount']);
             
             $methodCounts = [];
             $methodRevenues = [];
@@ -309,7 +309,7 @@ class AnalyticsService
                 }
                 
                 $methodCounts[$group]++;
-                $methodRevenues[$group] += $inv->total_amount;
+                $methodRevenues[$group] += $inv->amount;
             }
 
             return [
@@ -516,7 +516,7 @@ class AnalyticsService
                 $query->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
             }
 
-            $invoices = $query->get(['id', 'total_amount', 'id_siswa']);
+            $invoices = $query->get(['id', 'amount', 'id_siswa']);
             
             $classRevenue = [];
             
@@ -526,7 +526,7 @@ class AnalyticsService
                 if (!isset($classRevenue[$kelasLabel])) {
                     $classRevenue[$kelasLabel] = 0;
                 }
-                $classRevenue[$kelasLabel] += $inv->total_amount;
+                $classRevenue[$kelasLabel] += $inv->amount;
             }
             
             return [
@@ -698,10 +698,10 @@ class AnalyticsService
                 ->join('siswa', 'invoices.id_siswa', '=', 'siswa.id_siswa');
                 
             if ($isSqlite) {
-                $revenueQuery->selectRaw('siswa.id_kelas, cast(strftime("%m", invoices.paid_at) as integer) as month, SUM(invoices.total_amount) as total')
+                $revenueQuery->selectRaw('siswa.id_kelas, cast(strftime("%m", invoices.paid_at) as integer) as month, SUM(invoices.amount) as total')
                              ->groupBy('siswa.id_kelas', DB::raw('cast(strftime("%m", invoices.paid_at) as integer)'));
             } else {
-                $revenueQuery->selectRaw('siswa.id_kelas, MONTH(invoices.paid_at) as month, SUM(invoices.total_amount) as total')
+                $revenueQuery->selectRaw('siswa.id_kelas, MONTH(invoices.paid_at) as month, SUM(invoices.amount) as total')
                              ->groupBy('siswa.id_kelas', 'month');
             }
             

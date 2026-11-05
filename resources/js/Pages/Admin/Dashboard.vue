@@ -309,9 +309,14 @@ const getJobStatusClass = (status) => {
                                         </div>
                                         <div class="flex flex-col items-end gap-1.5 ml-4">
                                             <div class="flex items-center gap-3">
-                                                <p v-if="aktivitas.amount_formatted" class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                                                    {{ aktivitas.amount_formatted }}
-                                                </p>
+                                                <div v-if="aktivitas.amount_formatted" class="flex flex-col items-end">
+                                                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                                                        {{ aktivitas.amount_formatted }}
+                                                    </p>
+                                                    <p v-if="aktivitas.admin_fee && aktivitas.admin_fee > 0" class="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                        Pokok: {{ aktivitas.net_amount_formatted }} <span class="text-amber-600 dark:text-amber-400 font-medium">(+Fee {{ aktivitas.admin_fee_formatted }})</span>
+                                                    </p>
+                                                </div>
                                                 <Link v-if="aktivitas.id_siswa" :href="route('admin.siswa.show', aktivitas.id_siswa)" class="hidden group-hover:flex p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-md transition-colors" title="Lihat Profil Siswa">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                                                 </Link>

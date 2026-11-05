@@ -79,16 +79,16 @@ class DashboardController extends Controller
         $totalSiswaAktif = $totalSiswaAktifQuery->count();
         $siswaBaruBulanIni = $siswaBaruBulanIniQuery->count();
         $siswaBaruBulanLalu = $siswaBaruBulanLaluQuery->count();
-        $pendapatanBulanIni = $pendapatanBulanIniQuery->sum('total_amount');
-        $pendapatanBulanLalu = $pendapatanBulanLaluQuery->sum('total_amount');
+        $pendapatanBulanIni = $pendapatanBulanIniQuery->sum('amount');
+        $pendapatanBulanLalu = $pendapatanBulanLaluQuery->sum('amount');
         
-        $pendapatanManualBulanIni = (clone $pendapatanBulanIniQuery)->where('payment_method', 'manual')->sum('total_amount');
+        $pendapatanManualBulanIni = (clone $pendapatanBulanIniQuery)->where('payment_method', 'manual')->sum('amount');
         $pendapatanOnlineBulanIni = (clone $pendapatanBulanIniQuery)->where(function($q) {
             $q->whereNull('payment_method')->orWhere('payment_method', '!=', 'manual');
-        })->sum('total_amount');
+        })->sum('amount');
         
         $tagihanTertundaBulanIniCount = $tagihanTertundaBulanIniQuery->count();
-        $tagihanTertundaBulanIniAmount = (clone $tagihanTertundaBulanIniQuery)->sum('total_amount');
+        $tagihanTertundaBulanIniAmount = (clone $tagihanTertundaBulanIniQuery)->sum('amount');
 
 
         
@@ -129,6 +129,8 @@ class DashboardController extends Controller
                     'date' => $inv->created_at,
                     'id_siswa' => $inv->id_siswa,
                     'amount' => $inv->total_amount,
+                    'net_amount' => $inv->amount,
+                    'admin_fee' => (float)($inv->admin_fee ?? 0),
                     'payment_method' => $inv->payment_method
                 ]);
             } elseif ($inv->type === 'pendaftaran' && $inv->status === 'PAID') {
@@ -139,6 +141,8 @@ class DashboardController extends Controller
                     'date' => $inv->paid_at ?? $inv->updated_at,
                     'id_siswa' => $inv->id_siswa,
                     'amount' => $inv->total_amount,
+                    'net_amount' => $inv->amount,
+                    'admin_fee' => (float)($inv->admin_fee ?? 0),
                     'payment_method' => $inv->payment_method
                 ]);
             } elseif ($inv->status === 'PAID') {
@@ -169,6 +173,8 @@ class DashboardController extends Controller
                     'date' => $inv->paid_at ?? $inv->updated_at,
                     'id_siswa' => $inv->id_siswa,
                     'amount' => $inv->total_amount,
+                    'net_amount' => $inv->amount,
+                    'admin_fee' => (float)($inv->admin_fee ?? 0),
                     'payment_method' => $inv->payment_method
                 ]);
             }
@@ -203,6 +209,8 @@ class DashboardController extends Controller
             $act['date_formatted'] = \Carbon\Carbon::parse($act['date'])->diffForHumans();
             if ($act['amount']) {
                 $act['amount_formatted'] = 'Rp ' . number_format($act['amount'], 0, ',', '.');
+                $act['net_amount_formatted'] = isset($act['net_amount']) ? 'Rp ' . number_format($act['net_amount'], 0, ',', '.') : $act['amount_formatted'];
+                $act['admin_fee_formatted'] = !empty($act['admin_fee']) ? 'Rp ' . number_format($act['admin_fee'], 0, ',', '.') : null;
             }
             return $act;
         });
@@ -280,7 +288,7 @@ class DashboardController extends Controller
         if ($managedKelasIds) {
             $totalTunggakanKeseluruhanQuery->whereHas('siswa', fn($q) => $q->whereIn('id_kelas', $managedKelasIds));
         }
-        $totalTunggakanKeseluruhanAmount = $totalTunggakanKeseluruhanQuery->sum('total_amount');
+        $totalTunggakanKeseluruhanAmount = $totalTunggakanKeseluruhanQuery->sum('amount');
         $totalTunggakanKeseluruhanCount = $totalTunggakanKeseluruhanQuery->count();
 
 

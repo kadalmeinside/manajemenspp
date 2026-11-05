@@ -393,7 +393,12 @@ const formatDescription = (desc) => {
                                         <div class="font-medium text-gray-900 dark:text-white">{{ formatDescription(invoice.description).main }}</div>
                                         <div class="text-gray-500">{{ formatDescription(invoice.description).detail }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500 ">{{ invoice.total_amount_formatted }}</td>
+                                    <td class="px-6 py-4 text-sm whitespace-nowrap">
+                                        <div class="font-bold text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</div>
+                                        <div v-if="invoice.admin_fee > 0" class="text-xs text-gray-500 dark:text-gray-400">
+                                            Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 dark:text-amber-400 font-medium">(+Fee {{ invoice.admin_fee_formatted }})</span>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">
                                         <span v-if="invoice.paid_at_formatted" class="text-green-600 dark:text-green-400 font-medium">{{ invoice.paid_at_formatted }}</span>
                                         <span v-else>{{ invoice.due_date_formatted }}</span>
@@ -454,7 +459,10 @@ const formatDescription = (desc) => {
                                         <p class="text-xs text-gray-500 mt-1">Metode: <span class="font-medium text-gray-700 dark:text-gray-300">{{ invoice.payment_method || '-' }}</span></p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-base font-bold text-green-600 dark:text-green-400">{{ invoice.amount_formatted }}</p>
+                                        <p class="text-base font-bold text-green-600 dark:text-green-400">{{ invoice.total_amount_formatted }}</p>
+                                        <p v-if="invoice.admin_fee > 0" class="text-[11px] text-gray-500 dark:text-gray-400">
+                                            Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 font-medium">(+Fee {{ invoice.admin_fee_formatted }})</span>
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">

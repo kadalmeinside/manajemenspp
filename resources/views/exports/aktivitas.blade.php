@@ -71,7 +71,9 @@
                         <th>Aktivitas</th>
                         <th>Keterangan</th>
                         <th>Siswa / Kelas</th>
-                        <th>Nominal</th>
+                        <th>Nominal Pokok</th>
+                        <th>Biaya Admin</th>
+                        <th>Total Bayar</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -84,6 +86,8 @@
                                 {{ $act->nama_siswa }}<br>
                                 <span style="font-size: 0.85em; color: #555;">{{ $act->nama_kelas }}</span>
                             </td>
+                            <td>{{ $act->net_amount ? 'Rp ' . number_format($act->net_amount, 0, ',', '.') : ($act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : '-') }}</td>
+                            <td>{{ ($act->admin_fee && $act->admin_fee > 0) ? 'Rp ' . number_format($act->admin_fee, 0, ',', '.') : '-' }}</td>
                             <td>{{ $act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : '-' }}</td>
                         </tr>
                     @endforeach
@@ -98,7 +102,9 @@
                     <th>Aktivitas</th>
                     <th>Keterangan</th>
                     <th>Siswa / Kelas</th>
-                    <th>Nominal</th>
+                    <th>Nominal Pokok</th>
+                    <th>Biaya Admin</th>
+                    <th>Total Bayar</th>
                 </tr>
             </thead>
             <tbody>
@@ -111,6 +117,8 @@
                             {{ $act->nama_siswa }}<br>
                             <span style="font-size: 0.85em; color: #555;">{{ $act->nama_kelas }}</span>
                         </td>
+                        <td>{{ $act->net_amount ? 'Rp ' . number_format($act->net_amount, 0, ',', '.') : ($act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : '-') }}</td>
+                        <td>{{ ($act->admin_fee && $act->admin_fee > 0) ? 'Rp ' . number_format($act->admin_fee, 0, ',', '.') : '-' }}</td>
                         <td>{{ $act->amount ? 'Rp ' . number_format($act->amount, 0, ',', '.') : '-' }}</td>
                     </tr>
                 @endforeach

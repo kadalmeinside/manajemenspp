@@ -71,6 +71,10 @@ class TagihanController extends Controller
                 return [
                     'id' => $invoice->id,
                     'description' => $invoice->description,
+                    'amount' => (float) $invoice->amount,
+                    'amount_formatted' => 'Rp ' . number_format($invoice->amount, 0, ',', '.'),
+                    'admin_fee' => (float) ($invoice->admin_fee ?? 0),
+                    'admin_fee_formatted' => $invoice->admin_fee ? 'Rp ' . number_format($invoice->admin_fee, 0, ',', '.') : null,
                     'total_amount' => (float) $invoice->total_amount,
                     'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
                     'status' => $invoice->status,
@@ -83,6 +87,10 @@ class TagihanController extends Controller
                 return [
                     'id' => $invoice->id,
                     'description' => $invoice->description,
+                    'amount' => (float) $invoice->amount,
+                    'amount_formatted' => 'Rp ' . number_format($invoice->amount, 0, ',', '.'),
+                    'admin_fee' => (float) ($invoice->admin_fee ?? 0),
+                    'admin_fee_formatted' => $invoice->admin_fee ? 'Rp ' . number_format($invoice->admin_fee, 0, ',', '.') : null,
                     'total_amount' => (float) $invoice->total_amount,
                     'total_amount_formatted' => 'Rp ' . number_format($invoice->total_amount, 0, ',', '.'),
                     'status' => $invoice->status,

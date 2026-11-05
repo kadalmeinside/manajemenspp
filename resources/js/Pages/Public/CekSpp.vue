@@ -593,7 +593,12 @@ const formatPeriod = (dateStr) => {
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-3 flex-shrink-0">
-                                    <span class="text-lg font-bold" :class="invoice.status === 'PAID' ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">{{ invoice.total_amount_formatted }}</span>
+                                    <div class="text-right">
+                                        <span class="text-lg font-bold block" :class="invoice.status === 'PAID' ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">{{ invoice.total_amount_formatted }}</span>
+                                        <span v-if="invoice.admin_fee > 0" class="text-[11px] text-gray-500 dark:text-gray-400 block">
+                                            Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 dark:text-amber-400">(+Fee {{ invoice.admin_fee_formatted }})</span>
+                                        </span>
+                                    </div>
                                     <span class="px-3 py-1 text-xs font-bold uppercase rounded-full" :class="getHistoryStatusClass(invoice.status)">
                                         {{ invoice.status === 'PAID' ? 'Lunas' : invoice.status }}
                                     </span>
