@@ -266,16 +266,16 @@ const formatDescription = (desc) => {
         <Toast :message="flashMessage" :type="flashType" />
 
         <div class="pb-12 pt-0 md:pt-4">
-            <div class="max-w-full mx-auto px-1 sm:px-0">
+            <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
                 <!-- MOBILE: Search & Info Card (Sticky) -->
-                <div class="sticky -top-4 z-10 bg-white dark:bg-gray-800 -mx-4 -mt-8 px-4 pt-4 pb-4 mb-4 border-b border-t-0 border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-b-2xl">
+                <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-3 py-3 mb-4 border-b border-gray-200 dark:border-gray-700 shadow-sm lg:hidden rounded-xl">
                     <div class="flex gap-2">
-                        <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700" aria-label="Cari invoice"/>
+                        <TextInput type="text" v-model="searchQuery" placeholder="Cari deskripsi, siswa..." class="w-full bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-700 text-xs sm:text-sm" aria-label="Cari invoice"/>
                         <SecondaryButton @click="showMobileFilters = true" class="px-3 shrink-0 flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>
                         </SecondaryButton>
                     </div>
-                    <div class="mt-3 text-center">
+                    <div class="mt-2 text-center">
                         <p class="text-[11px] text-gray-500 dark:text-gray-400">
                             <span v-if="invoiceList.total > 0">
                                 Menampilkan <span class="font-semibold text-gray-700 dark:text-gray-300">{{ invoiceList.from }}–{{ invoiceList.to }}</span>
@@ -364,124 +364,150 @@ const formatDescription = (desc) => {
                 </div>
 
                 <div class="bg-transparent sm:bg-white/80 sm:dark:bg-gray-800/80 sm:shadow-sm sm:rounded-lg">
-                    <div class="overflow-x-auto pb-4">
-                        <!-- Tampilan Desktop (Table) -->
-                        <div class="hidden md:block">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Siswa</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jatuh Tempo</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metode</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dibuat</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                <tr v-if="!invoiceList.data || invoiceList.data.length === 0">
-                                    <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data invoice.</td>
-                                </tr>
-                                <tr v-else v-for="invoice in invoiceList.data" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                                        {{ invoice.siswa_nama }} <br>
-                                        <span class="text-xs text-gray-500">{{ invoice.kelas_nama }}</span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <div class="font-medium text-gray-900 dark:text-white">{{ formatDescription(invoice.description).main }}</div>
-                                        <div class="text-gray-500">{{ formatDescription(invoice.description).detail }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm whitespace-nowrap">
-                                        <div class="font-bold text-gray-900 dark:text-white">{{ invoice.total_amount_formatted }}</div>
-                                        <div v-if="invoice.admin_fee > 0" class="text-xs text-gray-500 dark:text-gray-400">
-                                            Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 dark:text-amber-400 font-medium">(+Fee {{ invoice.admin_fee_formatted }})</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">
-                                        <span v-if="invoice.paid_at_formatted" class="text-green-600 dark:text-green-400 font-medium">{{ invoice.paid_at_formatted }}</span>
-                                        <span v-else>{{ invoice.due_date_formatted }}</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getStatusClass(invoice.status)">{{ invoice.status }}</span>
-                                    </td>
-                                    <!-- Kolom Metode Bayar -->
-                                    <td class="px-6 py-4 text-sm">
-                                        <span v-if="invoice.payment_method === 'manual'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Manual</span>
-                                        <span v-else-if="invoice.status === 'PAID'" class="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 capitalize">
-                                            {{ invoice.payment_gateway ? invoice.payment_gateway.toUpperCase() : 'Menunggu' }}
+                    <!-- Tampilan Desktop (Table) -->
+                    <div class="hidden md:block overflow-x-auto rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 text-xs sm:text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-700 text-[11px]">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Siswa & Kelas</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider max-w-xs">Deskripsi</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-500 uppercase tracking-wider">Pokok (Net)</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-500 uppercase tracking-wider">Biaya Admin</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-500 uppercase tracking-wider">Total (Gross)</th>
+                                <th class="px-4 py-3 text-center font-semibold text-gray-500 uppercase tracking-wider">Status & Metode</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-500 uppercase tracking-wider">Jatuh Tempo / Lunas</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr v-if="!invoiceList.data || invoiceList.data.length === 0">
+                                <td colspan="8" class="px-6 py-6 text-center text-sm text-gray-500">Tidak ada data invoice.</td>
+                            </tr>
+                            <tr v-else v-for="invoice in invoiceList.data" :key="invoice.id" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-4 py-3.5 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                    {{ invoice.siswa_nama }} <br>
+                                    <span class="text-xs text-gray-500">{{ invoice.kelas_nama }}</span>
+                                </td>
+                                <td class="px-4 py-3.5 max-w-[220px]">
+                                    <div class="font-medium text-gray-900 dark:text-white truncate">{{ formatDescription(invoice.description).main }}</div>
+                                    <div class="text-xs text-gray-500 truncate">{{ formatDescription(invoice.description).detail }}</div>
+                                </td>
+                                <td class="px-4 py-3.5 text-right whitespace-nowrap font-medium text-emerald-600 dark:text-emerald-400">
+                                    {{ invoice.amount_formatted }}
+                                </td>
+                                <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                                    <span v-if="invoice.admin_fee > 0" class="text-amber-600 dark:text-amber-400 font-medium">{{ invoice.admin_fee_formatted }}</span>
+                                    <span v-else class="text-gray-400 text-xs">Rp 0</span>
+                                </td>
+                                <td class="px-4 py-3.5 text-right whitespace-nowrap font-bold text-gray-900 dark:text-white">
+                                    {{ invoice.total_amount_formatted }}
+                                </td>
+                                <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span class="px-2 py-0.5 inline-flex text-[10px] leading-tight font-semibold rounded-full" :class="getStatusClass(invoice.status)">
+                                            {{ invoice.status }}
                                         </span>
-                                        <span v-else class="text-gray-400 text-xs">—</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-500">{{ invoice.created_at_formatted }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div class="flex items-center justify-end space-x-2">
-                                            <Link :href="route('admin.invoices.show', invoice.id)" class="text-blue-600 hover:text-blue-900 p-1" title="Lihat Detail Tagihan"><EyeIcon class="h-5 w-5" /></Link>
-                                            
-                                            <button v-if="invoice.status === 'PENDING' && can?.create_invoice" @click="confirmCancelInvoice(invoice)" class="text-gray-400 hover:text-red-600 p-1" title="Batalkan Invoice"><XCircleIcon class="h-5 w-5" /></button>
-                                            
-                                            <button v-if="invoice.status === 'EXPIRED' && can?.create_invoice" 
-                                                    @click="confirmRecreateInvoice(invoice)" 
-                                                    class="text-gray-400 hover:text-green-600 p-1" 
-                                                    title="Buat Ulang Invoice">
-                                                <ArrowPathIcon class="h-5 w-5" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Tampilan Mobile (Card) -->
-                        <div class="block md:hidden space-y-4 mt-2">
-                            <div v-if="!invoiceList.data || invoiceList.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                Tidak ada data invoice.
-                            </div>
-                            <div v-else v-for="invoice in invoiceList.data" :key="'mob-'+invoice.id" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm flex flex-col gap-3">
-                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2">
-                                    <div>
-                                        <h3 class="font-bold text-gray-900 dark:text-white leading-tight">{{ invoice.siswa_nama }}</h3>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ invoice.kelas_nama }}</p>
+                                        <span v-if="invoice.payment_method === 'manual'" class="px-1.5 py-0.5 inline-flex text-[9px] font-semibold rounded bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Manual</span>
+                                        <span v-else-if="invoice.status === 'PAID'" class="px-1.5 py-0.5 inline-flex text-[9px] font-semibold rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 uppercase">
+                                            {{ invoice.payment_gateway ? invoice.payment_gateway.toUpperCase() : 'Gateway' }}
+                                        </span>
                                     </div>
-                                    <span :class="['px-2 py-1 inline-flex text-[10px] leading-tight font-semibold rounded-full', getStatusClass(invoice.status)]">
+                                </td>
+                                <td class="px-4 py-3.5 whitespace-nowrap text-xs text-gray-500">
+                                    <div v-if="invoice.paid_at_formatted" class="text-green-600 dark:text-green-400 font-medium">
+                                        Lunas: {{ invoice.paid_at_formatted }}
+                                    </div>
+                                    <div v-else>
+                                        JT: {{ invoice.due_date_formatted }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 mt-0.5">Dibuat: {{ invoice.created_at_formatted }}</div>
+                                </td>
+                                <td class="px-4 py-3.5 whitespace-nowrap text-right text-xs font-medium">
+                                    <div class="flex items-center justify-end space-x-1.5">
+                                        <Link :href="route('admin.invoices.show', invoice.id)" class="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-950" title="Lihat Detail Tagihan"><EyeIcon class="h-4 w-4" /></Link>
+                                        
+                                        <button v-if="invoice.status === 'PENDING' && can?.create_invoice" @click="confirmCancelInvoice(invoice)" class="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950" title="Batalkan Invoice"><XCircleIcon class="h-4 w-4" /></button>
+                                        
+                                        <button v-if="invoice.status === 'EXPIRED' && can?.create_invoice" 
+                                                @click="confirmRecreateInvoice(invoice)" 
+                                                class="text-gray-400 hover:text-green-600 p-1 rounded hover:bg-green-50 dark:hover:bg-green-950" 
+                                                title="Buat Ulang Invoice">
+                                            <ArrowPathIcon class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Tampilan Mobile (Card) - Diletakkan mandiri tanpa overflow-x-auto agar tidak bergeser ke samping -->
+                    <div class="block md:hidden space-y-3 mt-2 px-1">
+                        <div v-if="!invoiceList.data || invoiceList.data.length === 0" class="text-center text-xs text-gray-500 py-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+                            Tidak ada data invoice.
+                        </div>
+                        <div v-else v-for="invoice in invoiceList.data" :key="'mob-'+invoice.id" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3.5 shadow-sm flex flex-col gap-2.5">
+                            <div class="flex justify-between items-start gap-2 border-b border-gray-100 dark:border-gray-700 pb-2">
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-bold text-xs text-gray-900 dark:text-white leading-tight truncate">{{ invoice.siswa_nama }}</h3>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{{ invoice.kelas_nama }}</p>
+                                </div>
+                                <div class="flex flex-col items-end gap-1 shrink-0">
+                                    <span :class="['px-2 py-0.5 inline-flex text-[10px] leading-tight font-semibold rounded-full', getStatusClass(invoice.status)]">
                                         {{ invoice.status }}
                                     </span>
+                                    <span v-if="invoice.payment_method === 'manual'" class="px-1.5 py-0.2 inline-flex text-[9px] font-semibold rounded bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Manual</span>
+                                    <span v-else-if="invoice.status === 'PAID' && invoice.payment_gateway" class="px-1.5 py-0.2 inline-flex text-[9px] font-semibold rounded bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 uppercase">
+                                        {{ invoice.payment_gateway }}
+                                    </span>
                                 </div>
-                                <div class="text-sm">
-                                    <p class="font-medium text-gray-900 dark:text-gray-100">{{ formatDescription(invoice.description).main }}</p>
-                                    <p class="text-xs text-gray-500">{{ formatDescription(invoice.description).detail }}</p>
+                            </div>
+                            <div class="text-xs">
+                                <p class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ formatDescription(invoice.description).main }}</p>
+                                <p v-if="formatDescription(invoice.description).detail" class="text-[11px] text-gray-500 truncate">{{ formatDescription(invoice.description).detail }}</p>
+                            </div>
+
+                            <!-- Mini Grid 3 Kolom: Pokok, Admin, Total -->
+                            <div class="grid grid-cols-3 gap-1.5 p-2 bg-gray-50 dark:bg-gray-900/60 rounded-lg text-center border border-gray-100 dark:border-gray-700/80">
+                                <div>
+                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Pokok</span>
+                                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200 block truncate">{{ invoice.amount_formatted }}</span>
                                 </div>
-                                <div class="flex justify-between items-end">
-                                    <div>
-                                        <p class="text-xs text-gray-500">Jatuh Tempo: {{ invoice.due_date_formatted }}</p>
-                                        <p class="text-xs text-gray-500 mt-1">Metode: <span class="font-medium text-gray-700 dark:text-gray-300">{{ invoice.payment_method || '-' }}</span></p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-base font-bold text-green-600 dark:text-green-400">{{ invoice.total_amount_formatted }}</p>
-                                        <p v-if="invoice.admin_fee > 0" class="text-[11px] text-gray-500 dark:text-gray-400">
-                                            Pokok: {{ invoice.amount_formatted }} <span class="text-amber-600 font-medium">(+Fee {{ invoice.admin_fee_formatted }})</span>
-                                        </p>
-                                    </div>
+                                <div>
+                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Admin</span>
+                                    <span class="text-xs font-bold text-amber-600 dark:text-amber-400 block truncate">{{ invoice.admin_fee > 0 ? invoice.admin_fee_formatted : 'Rp 0' }}</span>
                                 </div>
-                                <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
-                                    <a v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" :href="invoice.invoice_url" target="_blank" class="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md hover:bg-indigo-100" title="Buka Link Pembayaran">
-                                        <ArrowTopRightOnSquareIcon class="h-4 w-4" />
-                                    </a>
-                                    <button v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" @click="copyToClipboard(invoice.invoice_url)" class="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-200" title="Copy Link Pembayaran">
-                                        <DocumentDuplicateIcon class="h-4 w-4" />
-                                    </button>
-                                    <button v-if="can?.pay_manual_invoice && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" @click="payManual(invoice.id)" class="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-md hover:bg-green-100" title="Tandai Lunas Manual">
-                                        <CheckCircleIcon class="h-4 w-4" />
-                                    </button>
-                                    <button v-if="can?.void_invoice && (invoice.status === 'PENDING' || invoice.status === 'UNPAID')" @click="confirmCancelInvoice(invoice.id)" class="p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-md hover:bg-red-100" title="Batalkan Invoice">
-                                        <XCircleIcon class="h-4 w-4" />
-                                    </button>
-                                    <button v-if="can?.create_invoice && invoice.status === 'EXPIRED'" @click="confirmRecreateInvoice(invoice.id)" class="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-md hover:bg-blue-100" title="Buat Ulang Invoice">
-                                        <ArrowPathIcon class="h-4 w-4" />
-                                    </button>
+                                <div>
+                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Total</span>
+                                    <span class="text-xs font-black text-emerald-600 dark:text-emerald-400 block truncate">{{ invoice.total_amount_formatted }}</span>
                                 </div>
+                            </div>
+
+                            <div class="flex justify-between items-center text-[10px] text-gray-400 pt-0.5">
+                                <span v-if="invoice.paid_at_formatted" class="text-green-600 dark:text-green-400 font-medium">Lunas: {{ invoice.paid_at_formatted }}</span>
+                                <span v-else>JT: {{ invoice.due_date_formatted }}</span>
+                                <span>Dibuat: {{ invoice.created_at_formatted }}</span>
+                            </div>
+
+                            <div class="pt-2 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-1.5 items-center">
+                                <Link :href="route('admin.invoices.show', invoice.id)" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-lg flex items-center gap-1">
+                                    <EyeIcon class="h-3.5 w-3.5" /> Detail
+                                </Link>
+                                <a v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" :href="invoice.invoice_url" target="_blank" class="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100" title="Buka Link Pembayaran">
+                                    <ArrowTopRightOnSquareIcon class="h-3.5 w-3.5" />
+                                </a>
+                                <button v-if="invoice.invoice_url && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" @click="copyToClipboard(invoice.invoice_url)" class="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200" title="Copy Link Pembayaran">
+                                    <DocumentDuplicateIcon class="h-3.5 w-3.5" />
+                                </button>
+                                <button v-if="can?.pay_manual_invoice && invoice.status !== 'PAID' && invoice.status !== 'EXPIRED'" @click="payManual(invoice.id)" class="px-2.5 py-1 bg-green-50 hover:bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-semibold rounded-lg flex items-center gap-1" title="Tandai Lunas Manual">
+                                    <CheckCircleIcon class="h-3.5 w-3.5" /> Lunas
+                                </button>
+                                <button v-if="can?.void_invoice && (invoice.status === 'PENDING' || invoice.status === 'UNPAID')" @click="confirmCancelInvoice(invoice.id)" class="px-2.5 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-semibold rounded-lg flex items-center gap-1" title="Batalkan Invoice">
+                                    <XCircleIcon class="h-3.5 w-3.5" /> Batal
+                                </button>
+                                <button v-if="can?.create_invoice && invoice.status === 'EXPIRED'" @click="confirmRecreateInvoice(invoice.id)" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-lg flex items-center gap-1" title="Buat Ulang Invoice">
+                                    <ArrowPathIcon class="h-3.5 w-3.5" /> Buat Ulang
+                                </button>
                             </div>
                         </div>
                     </div>

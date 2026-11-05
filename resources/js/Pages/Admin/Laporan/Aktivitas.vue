@@ -150,7 +150,7 @@ const getTypeIcon = (type) => {
         </template>
 
         <div class="pb-12 pt-0 md:pt-4">
-            <div class="max-w-full mx-auto px-1 sm:px-0">
+            <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
 
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -200,13 +200,13 @@ const getTypeIcon = (type) => {
                                 />
                             </div>
                             
-                            <div class="flex items-center gap-4 w-full sm:w-auto">
-                                <select v-model="kelasFilter" class="block w-full sm:w-48 rounded-xl border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-900/50 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm transition-colors">
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                                <select v-model="kelasFilter" class="block w-full sm:w-44 rounded-xl border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-900/50 shadow-sm focus:border-red-500 focus:ring-red-500 text-xs sm:text-sm py-2">
                                     <option value="">Semua Kelas</option>
                                     <option v-for="k in kelasList" :key="k.id_kelas" :value="k.id_kelas">{{ k.nama_kelas }}</option>
                                 </select>
 
-                                <select v-model="typeFilter" class="block w-full sm:w-48 rounded-xl border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-900/50 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm transition-colors">
+                                <select v-model="typeFilter" class="block w-full sm:w-44 rounded-xl border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-900/50 shadow-sm focus:border-red-500 focus:ring-red-500 text-xs sm:text-sm py-2">
                                     <option value="">Semua Aktivitas</option>
                                     <option value="pendaftaran_pending">Pendaftaran (Menunggu)</option>
                                     <option value="pendaftaran_lunas">Pendaftaran (Lunas)</option>
@@ -215,7 +215,7 @@ const getTypeIcon = (type) => {
                                     <option value="siswa_resign">Siswa Resign</option>
                                 </select>
 
-                                <button @click="openExportModal" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-xl font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 whitespace-nowrap">
+                                <button @click="openExportModal" class="inline-flex justify-center items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-xl font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-500 active:bg-indigo-700 transition duration-150 whitespace-nowrap shadow-sm">
                                     Export Laporan
                                 </button>
                             </div>
@@ -226,74 +226,78 @@ const getTypeIcon = (type) => {
                 <!-- Card Content -->
                 <div class="bg-transparent sm:bg-white/80 sm:dark:bg-gray-800/80 sm:backdrop-blur-xl sm:shadow-sm sm:rounded-lg sm:border sm:border-gray-200/50 sm:dark:border-gray-700/50">
                     <!-- Desktop Table -->
-                    <div class="hidden md:block p-6">
+                    <div class="hidden md:block p-4 sm:p-6">
                         <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50/50 dark:bg-gray-800/50">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs sm:text-sm">
+                                <thead class="bg-gray-50/50 dark:bg-gray-800/50 text-[11px]">
                                     <tr>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Waktu</th>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktivitas</th>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Siswa / Kelas</th>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nominal Tagihan</th>
-                                        <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Metode</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Waktu</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktivitas</th>
+                                        <th scope="col" class="px-4 py-3 text-left font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Siswa / Kelas</th>
+                                        <th scope="col" class="px-4 py-3 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pokok (Net)</th>
+                                        <th scope="col" class="px-4 py-3 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Biaya Admin</th>
+                                        <th scope="col" class="px-4 py-3 text-right font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total (Gross)</th>
+                                        <th scope="col" class="px-4 py-3 text-center font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Metode</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white/30 dark:bg-gray-900/30 divide-y divide-gray-200 dark:divide-gray-700">
                                     <tr v-for="act in activities.data" :key="act.id" class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                                         <!-- Time -->
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-4 py-3.5 whitespace-nowrap">
                                             <div class="flex flex-col">
-                                                <span class="text-sm font-medium text-gray-900 dark:text-gray-200" :title="act.date_full">
+                                                <span class="font-medium text-gray-900 dark:text-gray-200" :title="act.date_full">
                                                     {{ act.date }}
                                                 </span>
-                                                <span class="text-xs text-gray-500">{{ act.date_full }}</span>
+                                                <span class="text-[11px] text-gray-400">{{ act.date_full }}</span>
                                             </div>
                                         </td>
                                         
                                         <!-- Activity -->
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-col items-start gap-1.5">
-                                                <span :class="['inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border', getTypeBadgeColor(act.type)]">
-                                                    <component :is="getTypeIcon(act.type)" class="w-3.5 h-3.5" />
+                                        <td class="px-4 py-3.5 max-w-[200px]">
+                                            <div class="flex flex-col items-start gap-1">
+                                                <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border', getTypeBadgeColor(act.type)]">
+                                                    <component :is="getTypeIcon(act.type)" class="w-3 h-3" />
                                                     {{ act.title }}
                                                 </span>
-                                                <span class="text-xs text-gray-500 dark:text-gray-400 max-w-[250px]">
+                                                <span class="text-xs text-gray-500 dark:text-gray-400 truncate w-full" :title="act.description">
                                                     {{ act.description }}
                                                 </span>
                                             </div>
                                         </td>
                                         
                                         <!-- Siswa / Kelas -->
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ act.nama_siswa }}</div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ act.nama_kelas }}</div>
+                                        <td class="px-4 py-3.5 whitespace-nowrap">
+                                            <div class="font-bold text-gray-900 dark:text-white">{{ act.nama_siswa }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ act.nama_kelas }}</div>
                                         </td>
                                         
-                                        <!-- Amount -->
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div v-if="act.amount" class="flex flex-col">
-                                                <span class="text-sm font-bold text-gray-900 dark:text-white">
-                                                    {{ act.amount }}
-                                                </span>
-                                                <div v-if="act.admin_fee_raw > 0" class="text-[11px] text-gray-500 dark:text-gray-400">
-                                                    <span>Pokok: {{ act.net_amount }}</span>
-                                                    <span class="text-amber-600 dark:text-amber-400 font-medium ml-1">(+Fee {{ act.admin_fee }})</span>
-                                                </div>
-                                            </div>
-                                            <span v-else class="text-sm text-gray-400">-</span>
+                                        <!-- Pokok (Net) -->
+                                        <td class="px-4 py-3.5 whitespace-nowrap text-right font-medium text-emerald-600 dark:text-emerald-400">
+                                            {{ act.net_amount ? act.net_amount : (act.amount ? act.amount : '-') }}
+                                        </td>
+
+                                        <!-- Admin Fee -->
+                                        <td class="px-4 py-3.5 whitespace-nowrap text-right">
+                                            <span v-if="act.admin_fee_raw > 0" class="text-amber-600 dark:text-amber-400 font-medium">{{ act.admin_fee }}</span>
+                                            <span v-else class="text-gray-400 text-xs">-</span>
+                                        </td>
+                                        
+                                        <!-- Total Bayar -->
+                                        <td class="px-4 py-3.5 whitespace-nowrap text-right font-bold text-gray-900 dark:text-white">
+                                            {{ act.amount ? act.amount : '-' }}
                                         </td>
                                         
                                         <!-- Payment Method -->
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span v-if="act.payment_method" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 uppercase">
+                                        <td class="px-4 py-3.5 whitespace-nowrap text-center">
+                                            <span v-if="act.payment_method" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 uppercase">
                                                 {{ act.payment_method }}
                                             </span>
-                                            <span v-else class="text-sm text-gray-400">-</span>
+                                            <span v-else class="text-xs text-gray-400">-</span>
                                         </td>
                                     </tr>
                                     
                                     <tr v-if="activities.data.length === 0">
-                                        <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                        <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                             <div class="flex flex-col items-center gap-3">
                                                 <QueueListIcon class="w-12 h-12 text-gray-300 dark:text-gray-600" />
                                                 <p>Belum ada aktivitas publik yang ditemukan.</p>
@@ -306,47 +310,55 @@ const getTypeIcon = (type) => {
                     </div>
 
                     <!-- Mobile Cards -->
-                    <div class="md:hidden space-y-4 mt-2">
-                            <div v-for="act in activities.data" :key="'mob-'+act.id" class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                                <div class="flex justify-between items-start border-b border-gray-100 dark:border-gray-700 pb-2 mb-3">
-                                    <div>
-                                        <h3 class="font-bold text-gray-900 dark:text-white">{{ act.nama_siswa }}</h3>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ act.nama_kelas }}</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-xs text-gray-500">{{ act.date }}</p>
-                                        <div v-if="act.amount" class="flex flex-col items-end">
-                                            <span class="text-sm font-bold text-green-600 dark:text-green-400">{{ act.amount }}</span>
-                                            <span v-if="act.admin_fee_raw > 0" class="text-[10px] text-gray-500 dark:text-gray-400">
-                                                Pokok: {{ act.net_amount }} <span class="text-amber-600 font-medium">(+Fee {{ act.admin_fee }})</span>
-                                            </span>
-                                        </div>
-                                        <span v-else class="text-xs text-gray-400">-</span>
-                                    </div>
+                    <div class="md:hidden space-y-3 p-2">
+                        <div v-for="act in activities.data" :key="'mob-'+act.id" class="bg-white dark:bg-gray-800 rounded-xl p-3.5 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col gap-2">
+                            <div class="flex justify-between items-start gap-2 border-b border-gray-100 dark:border-gray-700/80 pb-2">
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-bold text-xs text-gray-900 dark:text-white leading-tight truncate">{{ act.nama_siswa }}</h3>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ act.nama_kelas }}</p>
                                 </div>
-                                
-                                <div class="flex flex-col gap-2">
-                                    <div class="flex items-center justify-between">
-                                        <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] leading-tight font-semibold border', getTypeBadgeColor(act.type)]">
-                                            <component :is="getTypeIcon(act.type)" class="w-3 h-3" />
-                                            {{ act.title }}
-                                        </span>
-                                        <span v-if="act.payment_method" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 uppercase">
-                                            {{ act.payment_method }}
-                                        </span>
-                                    </div>
-                                    <p class="text-xs text-gray-600 dark:text-gray-300">{{ act.description }}</p>
-                                    <p class="text-[10px] text-gray-400">{{ act.date_full }}</p>
+                                <div class="flex flex-col items-end gap-1 shrink-0">
+                                    <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border', getTypeBadgeColor(act.type)]">
+                                        <component :is="getTypeIcon(act.type)" class="w-3 h-3" />
+                                        {{ act.title }}
+                                    </span>
+                                    <span v-if="act.payment_method" class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 uppercase">
+                                        {{ act.payment_method }}
+                                    </span>
                                 </div>
                             </div>
                             
-                            <div v-if="activities.data.length === 0" class="text-center text-sm text-gray-500 py-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                                <div class="flex flex-col items-center gap-3">
-                                    <QueueListIcon class="w-12 h-12 text-gray-300 dark:text-gray-600" />
-                                    <p>Belum ada aktivitas publik yang ditemukan.</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-300">{{ act.description }}</p>
+
+                            <!-- Mini Grid 3 Kolom: Pokok, Admin, Total jika ada amount -->
+                            <div v-if="act.amount" class="grid grid-cols-3 gap-1.5 p-2 bg-gray-50 dark:bg-gray-900/60 rounded-lg text-center border border-gray-100 dark:border-gray-700/80">
+                                <div>
+                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Pokok</span>
+                                    <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 block truncate">{{ act.net_amount ? act.net_amount : act.amount }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Admin</span>
+                                    <span class="text-xs font-bold text-amber-600 dark:text-amber-400 block truncate">{{ act.admin_fee_raw > 0 ? act.admin_fee : 'Rp 0' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Total</span>
+                                    <span class="text-xs font-black text-gray-900 dark:text-white block truncate">{{ act.amount }}</span>
                                 </div>
                             </div>
+
+                            <div class="flex justify-between items-center text-[10px] text-gray-400 pt-1">
+                                <span>{{ act.date }}</span>
+                                <span>{{ act.date_full }}</span>
+                            </div>
                         </div>
+                        
+                        <div v-if="activities.data.length === 0" class="text-center text-xs text-gray-500 py-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                            <div class="flex flex-col items-center gap-2">
+                                <QueueListIcon class="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                                <p>Belum ada aktivitas publik yang ditemukan.</p>
+                            </div>
+                        </div>
+                    </div>
                         
                         <!-- Pagination -->
                         <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center sm:rounded-b-lg rounded-lg sm:mt-0 mt-2 shadow-sm sm:shadow-none gap-4">
