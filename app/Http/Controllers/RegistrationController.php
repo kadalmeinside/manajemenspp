@@ -398,19 +398,21 @@ class RegistrationController extends Controller
 
         $pending->load('kelas');
 
-        $safeCheckoutData = collect($pending->checkout_data)->only([
-            'id',
-            'payment_type',
-            'bank_code',
-            'va_number',
-            'virtual_account_number',
-            'biller_code',
-            'bill_key',
-            'qris_string',
-            'qr_url',
-            'amount',
-            'expiry_date',
-        ])->toArray();
+        $safeCheckoutData = \App\Services\MidtransService::resolveCheckoutQris(
+            collect($pending->checkout_data)->only([
+                'id',
+                'payment_type',
+                'bank_code',
+                'va_number',
+                'virtual_account_number',
+                'biller_code',
+                'bill_key',
+                'qris_string',
+                'qr_url',
+                'amount',
+                'expiry_date',
+            ])->toArray()
+        );
 
         $invoiceData = [
             'id' => $pending->id,

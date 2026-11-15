@@ -329,19 +329,21 @@ class TagihanController extends Controller
 
         $invoice->load(['siswa.kelas']);
 
-        $safeCheckoutData = collect($invoice->checkout_data)->only([
-            'id',
-            'payment_type',
-            'bank_code',
-            'va_number',
-            'virtual_account_number',
-            'biller_code',
-            'bill_key',
-            'qris_string',
-            'qr_url',
-            'amount',
-            'expiry_date',
-        ])->toArray();
+        $safeCheckoutData = \App\Services\MidtransService::resolveCheckoutQris(
+            collect($invoice->checkout_data)->only([
+                'id',
+                'payment_type',
+                'bank_code',
+                'va_number',
+                'virtual_account_number',
+                'biller_code',
+                'bill_key',
+                'qris_string',
+                'qr_url',
+                'amount',
+                'expiry_date',
+            ])->toArray()
+        );
 
         $safeInvoice = [
             'id' => $invoice->id,

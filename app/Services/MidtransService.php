@@ -182,6 +182,7 @@ class MidtransService implements PaymentGatewayInterface
         $methods = [];
 
         if (($settings['enable_payment_qris'] ?? '1') === '1') {
+            $methods[] = 'other_qris';
             $methods[] = 'gopay';
             $methods[] = 'qris';
         }
@@ -198,7 +199,7 @@ class MidtransService implements PaymentGatewayInterface
         }
 
         if (empty($methods)) {
-            $methods = ['qris'];
+            $methods = ['other_qris', 'gopay', 'qris'];
         }
 
         return $methods;
@@ -340,18 +341,27 @@ class MidtransService implements PaymentGatewayInterface
                     $qrisString = $data['qr_string'];
                 }
 
-                // Simpan juga URL image QRIS bawaan Midtrans dari actions
+                // Simpan juga URL image QRIS bawaan Midtrans dari actions (generate-qr-code / generate-qr-code-v2)
                 if (isset($data['actions']) && is_array($data['actions'])) {
+                    $fallbackQrV2 = null;
                     foreach ($data['actions'] as $action) {
-                        if (($action['name'] ?? '') === 'generate-qr-code') {
-                            $qrUrl = $action['url'] ?? null;
+                        $actionName = $action['name'] ?? '';
+                        if ($actionName === 'generate-qr-code' && !empty($action['url'])) {
+                            $qrUrl = $action['url'];
                             break;
                         }
+                        if ($actionName === 'generate-qr-code-v2' && !empty($action['url'])) {
+                            $fallbackQrV2 = $action['url'];
+                        }
+                    }
+                    if (!$qrUrl && $fallbackQrV2) {
+                        $qrUrl = $fallbackQrV2;
                     }
                 }
 
                 if (!$qrisString && $qrUrl) {
-                    $qrisString = $qrUrl;
+                    // Fetch gambar QR di backend agar bebas dari blokir CORS browser & mendukung fitur download kartu QRIS
+                    $qrisString = self::fetchQrDataUri($qrUrl) ?: $qrUrl;
                 }
             }
 
@@ -392,7 +402,7 @@ class MidtransService implements PaymentGatewayInterface
             ];
 
             $enabledPayments = $paymentType === 'QRIS'
-                ? ['gopay', 'qris']
+                ? ['other_qris', 'gopay', 'qris']
                 : ($snapChannelMap[strtoupper($bankCode)] ?? ['bca_va']);
 
             $snapPayload = [
@@ -466,5 +476,59 @@ class MidtransService implements PaymentGatewayInterface
         }
         
         throw new \Exception("Midtrans menolak pembuatan tagihan (Kode {$statusCode}: {$statusMessage}{$validationMessages}).");
+    }
+
+    /**
+     * Mengambil gambar QRIS dari URL Midtrans di sisi server dan mengubahnya menjadi data URI base64
+     * agar tidak terblokir kebijakan CORS browser (<img> / <canvas>) di halaman pembayaran.
+     */
+    public static function fetchQrDataUri(?string $url): ?string
+    {
+        if (empty($url) || !preg_match('/^https?:\/\//i', $url)) {
+            return null;
+        }
+
+        try {
+            $response = Http::connectTimeout(5)->timeout(10)->get($url);
+            if ($response->successful()) {
+                $contentType = strtolower((string) $response->header('Content-Type'));
+                $mime = trim(explode(';', $contentType)[0]);
+                if (str_starts_with($mime, 'image/') && !empty($response->body())) {
+                    return 'data:' . $mime . ';base64,' . base64_encode($response->body());
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[MidtransService] Gagal mengunduh gambar QRIS dari Midtrans URL: ' . $e->getMessage(), [
+                'url' => $url,
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Memastikan checkoutData QRIS memiliki qris_string yang siap di-render oleh frontend
+     * (mengonversi URL QR Midtrans lama yang tersimpan di DB menjadi data URI jika perlu).
+     */
+    public static function resolveCheckoutQris(array $checkoutData): array
+    {
+        if (($checkoutData['payment_type'] ?? '') !== 'QRIS') {
+            return $checkoutData;
+        }
+
+        $qrisString = (string) ($checkoutData['qris_string'] ?? '');
+        $qrUrl = (string) ($checkoutData['qr_url'] ?? '');
+
+        if ($qrisString === '' || preg_match('/^https?:\/\//i', $qrisString)) {
+            $sourceUrl = preg_match('/^https?:\/\//i', $qrisString) ? $qrisString : $qrUrl;
+            if ($sourceUrl !== '') {
+                $dataUri = self::fetchQrDataUri($sourceUrl);
+                if ($dataUri) {
+                    $checkoutData['qris_string'] = $dataUri;
+                }
+            }
+        }
+
+        return $checkoutData;
     }
 }

@@ -275,6 +275,8 @@ class StoreCheckoutController extends Controller
             return redirect()->route('siswa.store.orders.show', $order->id);
         }
 
+        $checkoutData = \App\Services\MidtransService::resolveCheckoutQris($checkoutData);
+
         if (!empty($checkoutData['snap_redirect_url']) && empty($checkoutData['va_number']) && empty($checkoutData['qris_string']) && empty($checkoutData['qr_url'])) {
             return \Inertia\Inertia::location($checkoutData['snap_redirect_url']);
         }

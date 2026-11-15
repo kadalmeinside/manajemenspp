@@ -52,11 +52,11 @@ const billerCode = computed(() => props.checkoutData?.biller_code || '');
 const billKey = computed(() => props.checkoutData?.bill_key || '');
 const qrisString = computed(() => props.checkoutData?.qris_string || '');
 const isQrUrl = computed(() => {
-    return /^https?:\/\//i.test(qrisString.value) || (!qrisString.value && !!props.checkoutData?.qr_url);
+    return /^(https?:\/\/|data:image\/)/i.test(qrisString.value) || (!qrisString.value && !!props.checkoutData?.qr_url);
 });
 const qrImageSrc = computed(() => {
     if (!qrisString.value) return props.checkoutData?.qr_url || '';
-    if (/^https?:\/\//i.test(qrisString.value)) {
+    if (/^(https?:\/\/|data:image\/)/i.test(qrisString.value)) {
         return qrisString.value;
     }
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrisString.value)}`;
@@ -184,9 +184,11 @@ const getQrSourceElement = () => {
             return;
         }
 
-        // Fallback jika belum selesai atau berupa external URL
+        // Fallback jika belum selesai atau berupa external URL / data URI
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+        if (!/^https?:\/\//i.test(qrImageSrc.value)) {
+            img.crossOrigin = 'anonymous';
+        }
         img.onload = () => resolve(img);
         img.onerror = () => {
             console.error('Gagal memuat gambar QR');
@@ -800,12 +802,15 @@ const activeTab = ref(0);
                                     class="rounded-lg max-w-full h-auto"
                                 />
                                 <img
-                                    v-else
+                                    v-else-if="qrImageSrc"
                                     :src="qrImageSrc"
                                     alt="QRIS"
-                                    crossorigin="anonymous"
                                     class="w-56 h-56 sm:w-60 sm:h-60 mx-auto rounded-lg object-contain"
                                 />
+                                <div v-else class="w-56 h-56 flex flex-col items-center justify-center text-gray-400 text-xs px-4">
+                                    <QrCodeIcon class="w-10 h-10 mb-2 text-gray-300" />
+                                    <span>Kode QRIS tidak tersedia. Silakan muat ulang atau pilih metode pembayaran lain.</span>
+                                </div>
                             </div>
 
                             <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 text-center">
