@@ -106,6 +106,14 @@ class MidtransService implements PaymentGatewayInterface
         if ($response->successful()) {
             $data = $response->json();
             if (!empty($data['redirect_url']) && !empty($data['token'])) {
+                $this->logSnapTransactionDiagnostics(
+                    'createInvoice',
+                    $externalId,
+                    $totalInt,
+                    $payload['enabled_payments'] ?? [],
+                    $data
+                );
+
                 return [
                     'id' => $externalId,
                     'external_id' => $externalId,
@@ -116,6 +124,8 @@ class MidtransService implements PaymentGatewayInterface
         }
 
         Log::error('Midtrans Invoice Creation Failed', [
+            'is_production' => $this->isProduction,
+            'base_url' => $this->baseUrl,
             'external_id' => $externalId,
             'status' => $response->status(),
             'body' => $response->body(),
@@ -422,11 +432,20 @@ class MidtransService implements PaymentGatewayInterface
                 $snapData = $snapResponse->json();
                 if (!empty($snapData['redirect_url']) && !empty($snapData['token'])) {
                     Log::info('Midtrans Core API returned 402; automatically fell back to Snap locked to selected channel.', [
+                        'is_production' => $this->isProduction,
                         'external_id' => $externalId,
                         'payment_type' => $paymentType,
                         'bank_code' => $bankCode,
                         'enabled_payments' => $enabledPayments,
                     ]);
+
+                    $this->logSnapTransactionDiagnostics(
+                        'createCustomPayment_snap_fallback',
+                        $externalId,
+                        $totalInt,
+                        $enabledPayments,
+                        $snapData
+                    );
 
                     return [
                         'id' => $externalId,
@@ -530,5 +549,110 @@ class MidtransService implements PaymentGatewayInterface
         }
 
         return $checkoutData;
+    }
+
+    /**
+     * Memeriksa dan mencatat log diagnostik channel pembayaran yang aktif pada transaksi Hosted Snap Midtrans,
+     * khususnya untuk melacak penyebab jika QRIS tidak tampil di halaman Snap Production.
+     */
+    protected function logSnapTransactionDiagnostics(
+        string $context,
+        string $externalId,
+        int $totalAmount,
+        array $requestedEnabledPayments,
+        array $snapCreateData
+    ): void {
+        $token = (string) ($snapCreateData['token'] ?? '');
+        $redirectUrl = (string) ($snapCreateData['redirect_url'] ?? '');
+        $qrisRequested = !empty(array_intersect(['other_qris', 'gopay', 'qris'], $requestedEnabledPayments));
+
+        if ($token === '') {
+            return;
+        }
+
+        try {
+            $detailResponse = Http::withHeaders(['Accept' => 'application/json'])
+                ->connectTimeout(3)
+                ->timeout(5)
+                ->get("{$this->baseUrl}/transactions/{$token}");
+
+            if (!$detailResponse->successful()) {
+                Log::warning('[Midtrans Snap] Gagal memeriksa detail channel aktif dari token Snap.', [
+                    'context' => $context,
+                    'is_production' => $this->isProduction,
+                    'base_url' => $this->baseUrl,
+                    'external_id' => $externalId,
+                    'gross_amount' => $totalAmount,
+                    'snap_token' => $token,
+                    'redirect_url' => $redirectUrl,
+                    'requested_enabled_payments' => $requestedEnabledPayments,
+                    'detail_http_status' => $detailResponse->status(),
+                    'detail_body' => mb_substr($detailResponse->body(), 0, 500),
+                ]);
+                return;
+            }
+
+            $detail = $detailResponse->json() ?: [];
+            $returnedChannels = collect($detail['enabled_payments'] ?? [])->map(function ($item) {
+                return [
+                    'type' => $item['type'] ?? null,
+                    'processor' => $item['processor'] ?? null,
+                    'status' => $item['status'] ?? null,
+                    'min' => $item['minimum_amount'] ?? null,
+                    'max' => $item['maximum_amount'] ?? null,
+                ];
+            })->values()->all();
+
+            $qrisChannels = array_values(array_filter($returnedChannels, function ($ch) {
+                return in_array($ch['type'] ?? '', ['other_qris', 'gopay', 'qris', 'shopeepay'], true);
+            }));
+
+            $hasActiveQris = collect($qrisChannels)->contains(fn ($ch) => ($ch['status'] ?? '') === 'up');
+
+            $merchantPref = $detail['merchant']['preference'] ?? [];
+            $paymentSettings = $detail['merchant']['payment_settings'] ?? [];
+
+            $diagnosticContext = [
+                'context' => $context,
+                'is_production' => $this->isProduction,
+                'base_url' => $this->baseUrl,
+                'external_id' => $externalId,
+                'gross_amount' => $totalAmount,
+                'snap_token' => $token,
+                'redirect_url' => $redirectUrl,
+                'requested_enabled_payments' => $requestedEnabledPayments,
+                'returned_enabled_payments' => $returnedChannels,
+                'returned_payment_types' => array_values(array_filter(array_column($returnedChannels, 'type'))),
+                'qris_channels_found' => $qrisChannels,
+                'has_active_qris' => $hasActiveQris,
+                'merchant_qris_preference' => [
+                    'gopay_qris_always_on' => $merchantPref['gopay_qris_always_on'] ?? null,
+                    'shopeepay_qris_always_on' => $merchantPref['shopeepay_qris_always_on'] ?? null,
+                    'is_qris_link_enabled' => $detail['merchant']['is_qris_link_enabled'] ?? null,
+                    'payment_settings_keys' => is_array($paymentSettings) ? array_keys($paymentSettings) : [],
+                ],
+                'snap_error_messages' => $detail['error_messages'] ?? null,
+            ];
+
+            if ($qrisRequested && !$hasActiveQris) {
+                $diagnosticContext['possible_cause'] = $totalAmount > 10000000
+                    ? 'Nominal transaksi melebihi batas maksimal QRIS (umumnya Rp 10.000.000).'
+                    : 'Channel QRIS / GoPay QRIS / Other QRIS belum aktif atau berstatus down di Dashboard Midtrans pada environment ini.';
+
+                Log::warning('[Midtrans Snap] QRIS tidak muncul di Hosted Snap walaupun sudah diminta di enabled_payments.', $diagnosticContext);
+                return;
+            }
+
+            Log::info('[Midtrans Snap] Transaksi Hosted Snap berhasil dibuat.', $diagnosticContext);
+        } catch (\Throwable $e) {
+            Log::warning('[Midtrans Snap] Exception saat memeriksa detail channel Snap.', [
+                'context' => $context,
+                'is_production' => $this->isProduction,
+                'external_id' => $externalId,
+                'snap_token' => $token,
+                'requested_enabled_payments' => $requestedEnabledPayments,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
